@@ -19,7 +19,7 @@ import warnings
 from optparse import OptionParser, OptionGroup
 
 import numpy as np
-from scipy.ndimage.filters import median_filter
+from scipy.ndimage import median_filter
 from scipy.stats import rankdata
 from PIL import Image, ImageFilter
 
@@ -60,21 +60,21 @@ def main():
     group = OptionGroup(parser, "control options")
 
     # -d, --directory
-    group.add_option("--directory", dest="directory", 
+    group.add_option("--directory", dest="directory",
         action="store", type="string",
         help="directory in which to place converted files. If the recursive "  +
              "option is selected, this becomes the root of a tree which "      +
              "parallels that of the source files.")
 
     # -r, --recursive
-    group.add_option("-r", "--recursive", dest="recursive", 
+    group.add_option("-r", "--recursive", dest="recursive",
         action="store_true", default=False,
         help="search recursively down directory trees.")
 
     # --pattern
-    group.add_option("--pattern", dest="pattern", 
+    group.add_option("--pattern", dest="pattern",
         action="store", type="string", default="*",
-        help="pattern describing file names to match, e.g., \*.IMG.")
+        help="pattern describing file names to match, e.g., *.IMG.")
 
     # --movie
     group.add_option("--movie", dest="movie",
@@ -123,7 +123,7 @@ def main():
     group = OptionGroup(parser, "output options")
 
     # -x, --extension
-    group.add_option("-x", "--extension", dest="extension", 
+    group.add_option("-x", "--extension", dest="extension",
         action="store", type="choice", default=None,
         choices=("BMP", "bmp", "DIB", "dib",
                  "GIF", "gif",
@@ -135,18 +135,18 @@ def main():
              "png, tif, and tiff, in lower or upper case. Default is jpg.")
 
     # -s, --suffix
-    group.add_option("-s", "--suffix", dest="suffix", 
+    group.add_option("-s", "--suffix", dest="suffix",
         action="store", type="string", default="",
         help="a suffix to append to the end of each file name, prior to the "  +
              "file extension.")
 
     # --strip
-    group.add_option("--strip", dest="strip", 
+    group.add_option("--strip", dest="strip",
         action="store", type="string", default="",
         help="a string to strip from output filename if it is present.")
 
     # --alt-strip
-    group.add_option("--alt-strip", "--alt_strip", dest="alt_strip", 
+    group.add_option("--alt-strip", "--alt_strip", dest="alt_strip",
         action="store", type="string", default=None,
         help="an additional string to strip from output filename if it is "    +
              "present.")
@@ -189,21 +189,21 @@ def main():
         action="store", type="int", default=None,
         help="numeric index or name of the object in the file to display; "    +
              "default is the first valid image object in the file. Object "    +
-             "numbering starts at 0.") 
+             "numbering starts at 0.")
 
     # --pointer
     group.add_option("--pointer", dest="pointer",
         action="store", type="string", default="IMAGE",
         help="the PDS pointer identifying the image object; used when the "    +
              "input file is a PDS label. Converted to upper case. Default is " +
-             "'IMAGE'.") 
+             "'IMAGE'.")
 
     # --alt-pointer
     group.add_option("--alt-pointer", "--alt_pointer", dest="alt_pointer",
         action="store", type="string", default=None,
         help="an alternative PDS pointer identifying the image object; used "  +
              "when the input file is a PDS label and the first pointer is "    +
-             "not found. Converted to upper case.") 
+             "not found. Converted to upper case.")
 
     parser.add_option_group(group)
 
@@ -1704,7 +1704,7 @@ def read_one_image_array(filename, labelfile, obj=None, hst=False):
                 hdulist.close()
 
                 return(array3d, True, (inst_host, inst_id, filter_name))
- 
+
         except (UserWarning, OSError):          # if not a FITS file
             pass
 
@@ -2045,7 +2045,7 @@ def get_limits(array2d, mask, limits=None, percentiles=(0.,100.),
                assume_int=False, trim=0, trim_zeros=False, footprint=0):
     """Determines the stretch limits of an image based on defined limits and/or
     percentiles.
-    
+
     Input:
         array2d         the 2-D numpy array, which may be masked.
         mask            the 2-D mask array, True for masked pixels. None if no
@@ -2612,7 +2612,7 @@ def get_size(array_shape, size=None, scale=(100.,100.), frame=None, wrap=False,
                           wrap_ratio=None, overlap=(0.,0.), gap_size=1):
     """Returns the output image size (width, height) and wrap properties based
     on the shape of the array (neglecting bands, if any).
-    
+
     Input:
         array_shape     shape of the numpy array, which could be 2-D or 3-D.
                         Index order is (lines, samples) or (lines, samples,
@@ -3409,7 +3409,7 @@ def read_array(infile, rescale):
 def get_outfile(infile, outdir=None, strip=[], suffix="", extension="jpg",
                 replace='all'):
     """Derive the name of the output file.
-    
+
     Input:
         infile          name of the input file.
         outdir          name of the output directory if different from that of
@@ -3477,4 +3477,3 @@ def get_outfile(infile, outdir=None, strip=[], suffix="", extension="jpg",
 ################################################################################
 
 if __name__ == "__main__": main()
-
