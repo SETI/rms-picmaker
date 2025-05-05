@@ -10,7 +10,7 @@
 #   picmaker.py -h
 # for complete help information.
 #
-# Mark Showalter, PDS Rings Node, SETI Institute
+# PDS Rings Node, SETI Institute
 ################################################################################
 
 import os, sys, fnmatch
@@ -253,6 +253,13 @@ def main():
         action="store", type="string", default="black",
         help="the color to use when padding an image to fill a frame. "        +
              "The color can be specified by X11 name or by (R,G,B) triplet.")
+
+    # --frame_max
+    group.add_option("--frame_max", dest="frame_max",
+        action="store", type="int", nargs=1,
+        help="maximum percentage by which to scale the image to fit it inside "
+             "the frame. Regardless of the frame size, the image will not be "
+             "scaled by more than this percentage.")
 
     parser.add_option_group(group)
 
@@ -678,6 +685,7 @@ def main():
             'frame': options.frame,
             'pad': options.pad,
             'pad_color': options.pad_color,
+            'frame_max': options.frame_max,
 
             # layout options
             'wrap': options.wrap,
@@ -888,12 +896,12 @@ def process_images(filenames, directory, movie, option_dicts, verbose=False):
 # Main method
 ################################################################################
 
-def images_to_pics(filenames, directory=None, verbose=False,
+def images_to_pics(filenames, directory=None, verbose=False, *,
         replace='all', proceed=False,
         extension='jpg', suffix='', strip=[], quality=75, twobytes=False,
         bands=None, lines=None, samples=None, obj=None, pointer=['IMAGE'],
         size=None, scale=(100.,100.), crop=None, frame=None, pad=False,
-            pad_color='black',
+            pad_color='black', frame_max=None,
         wrap=False, wrap_ratio=None, overlap=(0.,0.), gap_size=1,
             gap_color='white', hst=False,
         valid=None, limits=None, percentiles=None, trim=0, trim_zeros=False,
@@ -994,6 +1002,9 @@ def images_to_pics(filenames, directory=None, verbose=False,
                         specifed by triples (r,g,b), where the red, green and
                         blue values are each specified by a value between 0 and
                         255.
+
+    frame_max           maximum percentage by which to scale the image to fit it
+                        inside the frame.
 
     wrap                True to wrap the sections of an image that is extremely
                         elongated. This can make more effective use of the
@@ -1434,7 +1445,8 @@ def images_to_pics(filenames, directory=None, verbose=False,
         # Determine the full output size neglecting any wrap to be applied
         (unwrapped_size, wrapped_size, sections,
          wrap_axis) = get_size(arrayRGB.shape, size, scale, frame, wrap,
-                                               wrap_ratio, overlap, gap_size)
+                                               wrap_ratio, overlap, gap_size,
+                                               frame_max)
 
         # Convert to PIL image
         image = array_to_pil(arrayRGB, twobytes)
@@ -2609,7 +2621,8 @@ def apply_gamma(array, gamma):
 ################################################################################
 
 def get_size(array_shape, size=None, scale=(100.,100.), frame=None, wrap=False,
-                          wrap_ratio=None, overlap=(0.,0.), gap_size=1):
+                          wrap_ratio=None, overlap=(0.,0.), gap_size=1,
+                          frame_max=None):
     """Returns the output image size (width, height) and wrap properties based
     on the shape of the array (neglecting bands, if any).
 
@@ -2640,6 +2653,8 @@ def get_size(array_shape, size=None, scale=(100.,100.), frame=None, wrap=False,
                         of the last pixels in one section of a wrapped image.
         gap_size        number of pixels to reserve as blank between any wrapped
                         sections of the array.
+        frame_maxx      maximum percentage by which to scale the image to fit it
+                        inside the frame.
 
     Return:             a tuple (unwrapped_shape, wrapped_shape, sections,
                                                                  wrap_axis)
@@ -2676,6 +2691,13 @@ def get_size(array_shape, size=None, scale=(100.,100.), frame=None, wrap=False,
     elif frame is not None:
         (unwrapped_size, expanded_size, quality,
          expand) = _get_size_for_frame(array_size, frame, 0, 1., 1.)
+        if frame_max and not wrap:
+            wfactor = unwrapped_size[0] / array_size[0]
+            hfactor = unwrapped_size[1] / array_size[1]
+            ratio = frame_max/100. / max(wfactor, hfactor)
+            if ratio < 1.:
+                unwrapped_size[0] = int(unwrapped_size[0] * ratio)
+                unwrapped_size[1] = int(unwrapped_size[1] * ratio)
     else:
         unwrapped_size = [int(array_size[0] + 0.5), int(array_size[1] + 0.5)]
 
@@ -3109,9 +3131,9 @@ def _resize_one_image(image, new_size):
         image = image.resize((max(new_size[0], image.size[0]),
                               max(new_size[1], image.size[1])), Image.NEAREST)
 
-    # Scale down if necessary using ANTIALIAS
+    # Scale down if necessary using ANTIALIAS (now LANCZOS)
     if new_size[0] < image.size[0] or new_size[1] < image.size[1]:
-        image = image.resize(new_size, Image.ANTIALIAS)
+        image = image.resize(new_size, Image.LANCZOS)
 
     return image
 
