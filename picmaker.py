@@ -404,7 +404,7 @@ def main():
     group.add_option("-g", "--gamma", dest="gamma",
         action="store", type="float", default=1.,
         help="the gamma value to apply to grayscale of the image returned; "   +
-             "default 1.")
+             "default 1. Values > 1 make grays darker.")
 
     # --tint
     group.add_option("--tint", dest="tint",
@@ -1098,10 +1098,8 @@ def images_to_pics(filenames, directory=None, verbose=False, *,
     invalid_color       color to use for invalid pixels; None default to black.
 
     gamma               an optiona parameter to adjust intermediate intensities
-                        in the output image. Values > 1 will make grays brighter
-                        relative to black and white; values < 1 will make grays
-                        darker. Default is 1. The gamma factor is applied after
-                        the colormap.
+                        in the output image. Values > 1 make grays darker. Default
+                        is 1. The gamma factor is applied after the colormap.
 
     tint                True to override the colormap based on the filter name.
 
@@ -2612,7 +2610,7 @@ def apply_gamma(array, gamma):
     """
 
     if gamma != 1.:
-        array = array**(1./gamma)
+        array = array**gamma
 
     return array
 
