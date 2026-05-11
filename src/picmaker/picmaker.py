@@ -1206,7 +1206,7 @@ def images_to_pics(filenames, directory=None, verbose=False, *,
             labelfile = ''
             if upperfile.endswith('.LBL'):
                 labelfile = infile
-                labeldict = pdsparser.Pds3Label(infile).as_dict()
+                labeldict = pdsparser.PdsLabel(infile).as_dict()
 
                 # Get the instrument info if available
                 filter_info = None
