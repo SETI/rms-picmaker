@@ -36,13 +36,13 @@ def test_overlap_and_overlaps_byte_identical(
 
     r1 = _run(
         '--overlap=0.1',
-        '--wrap', '--frame=32', '32',
+        '--wrap', '--frame', '32', '32',
         '--directory', str(out_singular),
         fixture,
     )
     r2 = _run(
         '--overlaps', '0.1', '0.1',
-        '--wrap', '--frame=32', '32',
+        '--wrap', '--frame', '32', '32',
         '--directory', str(out_plural),
         fixture,
     )

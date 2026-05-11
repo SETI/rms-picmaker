@@ -20,10 +20,12 @@ def _run(*args: str) -> subprocess.CompletedProcess:
 def test_help_exits_zero_and_lists_flags() -> None:
     proc = _run('--help')
     assert proc.returncode == 0
-    assert 'Usage: picmaker' in proc.stdout or 'Usage: picmaker' in proc.stderr
+    # argparse emits a lowercase "usage:" line; optparse used "Usage:" — accept either.
+    output = proc.stdout + proc.stderr
+    assert 'usage: picmaker' in output.lower()
     # Sanity: a few representative flags are present.
     for flag in ('--directory', '--versions', '--gamma'):
-        assert flag in (proc.stdout + proc.stderr)
+        assert flag in output
 
 
 def test_help_flag_set_matches_baseline() -> None:

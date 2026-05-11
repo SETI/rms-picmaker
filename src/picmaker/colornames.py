@@ -1,4 +1,3 @@
-#!/usr/bin/python
 ################################################################################
 # colornames.py
 #
@@ -10,7 +9,8 @@
 
 import re
 
-class ColorNames():
+
+class ColorNames:
 
 # Extracted from /usr/X11/share/X11/rgb.txt
 
