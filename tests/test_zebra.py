@@ -8,6 +8,8 @@ from picmaker.picmaker import fill_zebra_stripes
 
 
 class TestFillZebraStripes:
+    """Test fill_zebra_stripes function for fixing missing pixel values."""
+
     def test_zero_pixel_between_nonzero_neighbors_is_filled(self) -> None:
         # Row 1's left column is zero, but row 0 and row 2's left column are
         # nonzero — fill should set row1[0] to their average.

@@ -10,6 +10,10 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'corrupt_vicar.vic'
 
 
 def main() -> None:
+    """Write 200 bytes of garbage to OUT to simulate a corrupt VICAR file.
+
+    Triggers a VicarError which read_one_image_array will catch.
+    """
     # Garbage bytes with no LBLSIZE keyword. The VICAR parser raises VicarError
     # ("Missing LBLSIZE keyword") which read_one_image_array catches at the
     # outer `except VicarError:` so the cascade can continue.

@@ -1,4 +1,4 @@
-"""Singular --overlap vs plural --overlaps reconciliation (picmaker.py:650-654).
+"""Singular --overlap vs plural --overlaps reconciliation.
 
 `--overlap 0.1` is promoted to the (0.1, 0.1) tuple that `--overlaps 0.1 0.1`
 produces directly. Both should yield byte-identical output files.
@@ -11,6 +11,14 @@ from pathlib import Path
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    """Run picmaker CLI with given arguments.
+
+    Args:
+        *args: Variable length argument list of strings passed to picmaker.
+
+    Returns:
+        subprocess.CompletedProcess with captured stdout/stderr.
+    """
     return subprocess.run(
         ['picmaker', *args], capture_output=True, text=True, check=False
     )
@@ -19,6 +27,7 @@ def _run(*args: str) -> subprocess.CompletedProcess:
 def test_overlap_and_overlaps_byte_identical(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
+    """Verify --overlap and --overlaps produce byte-identical output."""
     fixture = str(fixtures_dir / 'cassini_iss.vic')
     out_singular = tmp_path / 'singular'
     out_plural = tmp_path / 'plural'

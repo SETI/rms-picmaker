@@ -15,6 +15,10 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'hst_wfc3.fits'
 
 
 def main() -> None:
+    """Create a 16x16 float32 PrimaryHDU with HST/WFC3/UVIS F606W headers.
+
+    Writes the HDUList to OUT. No parameters, returns None.
+    """
     hdu = fits.PrimaryHDU(np.zeros((16, 16), dtype=np.float32))
     hdu.header['TELESCOP'] = 'HST'
     hdu.header['INSTRUME'] = 'WFC3'

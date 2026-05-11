@@ -1,6 +1,6 @@
 """Regenerate hst_acs.fits — HST ACS/WFC FITS fixture (5 HDUs).
 
-Exercises the ACS/WFC stacking branch at picmaker.py:1656-1664 (hdulist[4] access).
+Exercises the ACS/WFC stacking branch (hdulist[4] access).
 Detection: ('HST', 'ACS/WFC', ('CL1', 'F606W')).
 
 Run from this directory:
@@ -15,6 +15,21 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'hst_acs.fits'
 
 
 def main() -> None:
+    """Generate hst_acs.fits with 5 HDUs and expected detection tuple.
+
+    Creates a FITS file with a PrimaryHDU containing HST/ACS/WFC header
+    keywords, followed by four ImageHDUs. The expected detection result is
+    ('HST', 'ACS/WFC', ('CL1', 'F606W')).
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Side Effects:
+        Writes hst_acs.fits to the fixtures directory.
+    """
     primary = fits.PrimaryHDU()
     primary.header['TELESCOP'] = 'HST'
     primary.header['INSTRUME'] = 'ACS'

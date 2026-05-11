@@ -1,7 +1,5 @@
 """ColorNames.lookup tests."""
 
-from __future__ import annotations
-
 import pytest
 
 from picmaker.colornames import ColorNames
@@ -21,26 +19,34 @@ class TestPositiveLookups:
 
 
 class TestNegativeLookups:
+    """Test error handling for invalid color name lookups."""
+
     def test_unknown_name_raises(self) -> None:
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError) as excinfo:
             ColorNames.lookup('not_a_real_color')
+        assert 'not_a_real_color' in str(excinfo.value)
 
     def test_empty_string_raises(self) -> None:
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError) as excinfo:
             ColorNames.lookup('')
+        assert 'Unrecognized color name' in str(excinfo.value)
 
     def test_hex_code_not_supported(self) -> None:
         # ColorNames.lookup recognizes only X11 names and (r,g,b)/[r,g,b]
         # expressions. Hex codes are NOT supported today; PR 3 may add them.
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError) as excinfo:
             ColorNames.lookup('#ff8800')
+        assert '#ff8800' in str(excinfo.value)
 
     def test_non_string_raises_typeerror(self) -> None:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError) as excinfo:
             ColorNames.lookup(42)
+        assert 'Colorname must be a string' in str(excinfo.value)
 
 
 class TestRgbExpression:
+    """Test RGB tuple and bracket expression parsing."""
+
     def test_rgb_tuple_expression(self) -> None:
         assert ColorNames.lookup('(255, 128, 0)') == (255, 128, 0)
 

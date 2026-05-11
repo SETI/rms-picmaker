@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 EXPECTED_DIR = FIXTURES_DIR / 'expected'
@@ -17,11 +18,11 @@ def fixtures_dir() -> Path:
 
 @pytest.fixture
 def expected_dir() -> Path:
-    """Absolute path to tests/fixtures/expected/ (populated by PR 2 commit 6)."""
+    """Absolute path to tests/fixtures/expected/."""
     return EXPECTED_DIR
 
 
 @pytest.fixture
-def tiny_array():
+def tiny_array() -> NDArray[np.uint16]:
     """Deterministic 16x16 numpy array used by enhance / colormap unit tests."""
     return np.arange(256, dtype=np.uint16).reshape(16, 16)

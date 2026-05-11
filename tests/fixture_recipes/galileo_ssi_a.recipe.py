@@ -20,6 +20,12 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'galileo_ssi_a.vic'
 
 
 def main() -> None:
+    """Create a 16x16 int16 Vicar image with Galileo SSI metadata.
+
+    Creates image via VicarImage.from_array, sets MISSION and FILTER metadata
+    keys, and writes the output file using vic.write_file(str(OUT)).
+    No parameters, writes the test fixture file.
+    """
     vic = VicarImage.from_array(np.zeros((16, 16), dtype=np.int16))
     vic['MISSION'] = 'GALILEO'
     vic['FILTER'] = 1   # index into GALILEO_SSI_NAMES → 'GREEN'

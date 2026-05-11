@@ -19,6 +19,11 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'cassini_iss.vic'
 
 
 def main() -> None:
+    """Create a 16x16 int16 zero image wrapped in VicarImage with CASSINI metadata.
+
+    Sets INSTRUMENT_HOST_NAME and FILTER_NAME metadata, writes output to OUT.
+    No parameters, returns None.
+    """
     data = np.zeros((16, 16), dtype=np.int16)
     vic = VicarImage.from_array(data)
     vic['INSTRUMENT_HOST_NAME'] = 'CASSINI ORBITER'

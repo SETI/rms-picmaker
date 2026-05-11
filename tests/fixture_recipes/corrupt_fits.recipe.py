@@ -1,9 +1,9 @@
 """Regenerate corrupt_fits.fits — FITS SIMPLE keyword followed by garbage.
 
-picmaker.py:1602-1605 sniffs the first 9 bytes for b'SIMPLE  =' before calling
-`astropy.io.fits.open`, which then raises AstropyUserWarning/OSError on the
-malformed body. The cascade should fall through to PIL and finally raise
-IOError('Unrecognized image file format ...').
+Sniffs the first 9 bytes for b'SIMPLE  =' before calling
+:func:`astropy.io.fits.open`, which then raises AstropyUserWarning/OSError on the
+malformed body. The cascade should fall through to :mod:`PIL` and finally raise
+:class:`IOError`.
 """
 from pathlib import Path
 
@@ -11,6 +11,20 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'corrupt_fits.fits'
 
 
 def main() -> None:
+    """Write corrupt FITS-like byte sequence to OUT.
+
+    Writes a FITS magic header followed by garbage bytes to simulate a corrupt
+    FITS file for testing error handling.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Side Effects:
+        Writes bytes to OUT using OUT.write_bytes.
+    """
     OUT.write_bytes(b'SIMPLE  =' + b'\xff' * 100)
 
 

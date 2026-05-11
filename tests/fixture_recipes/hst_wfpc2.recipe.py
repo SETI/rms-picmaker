@@ -1,6 +1,6 @@
 """Regenerate hst_wfpc2.fits — HST WFPC2 FITS fixture (5 HDUs).
 
-Exercises the WFPC2 stacking branch at picmaker.py:1667.
+Exercises the WFPC2 stacking branch.
 Detection: ('HST', 'WFPC2', ('F555W', 'CLEAR2')).
 
 Run from this directory:
@@ -15,6 +15,11 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'hst_wfpc2.fits'
 
 
 def main() -> None:
+    """Create FITS file with PrimaryHDU and four ImageHDUs for WFPC2.
+
+    Sets header keys TELESCOP/INSTRUME/FILTNAM1/FILTNAM2 and writes to OUT.
+    No parameters, returns None.
+    """
     primary = fits.PrimaryHDU()
     primary.header['TELESCOP'] = 'HST'
     primary.header['INSTRUME'] = 'WFPC2'

@@ -1,12 +1,9 @@
-"""WriteTiff16 / ReadTiff16 round-trip tests.
+"""Tests for :func:`WriteTiff16` and :func:`ReadTiff16` round-trip conversion.
 
-Ports the four legacy driver functions in `tiff16.py` (the `test`, `gray_test`,
-`rgb_test`, `palette_test` block at the bottom of the pre-cleanup file) into
-proper pytest functions. The driver block has been deleted in the same commit
-that introduced this file.
+Ports the four legacy driver functions in :mod:`tiff16` (the :func:`test`,
+gray_test, rgb_test, palette_test block) into proper pytest functions. The
+driver block has been deleted in the same commit that introduced this file.
 """
-
-from __future__ import annotations
 
 from pathlib import Path
 
@@ -17,6 +14,11 @@ from picmaker.tiff16 import ReadTiff16, WriteTiff16
 
 
 def test_grayscale_round_trip(tmp_path: Path) -> None:
+    """Test that a grayscale uint16 array writes and reads back unchanged.
+
+    Creates an 8x8 array, writes it with WriteTiff16, reads it back with
+    ReadTiff16, and verifies the data matches.
+    """
     arr = (np.arange(64, dtype=np.uint16) * 1000).reshape(8, 8)
     outfile = str(tmp_path / 'gray.tiff')
     WriteTiff16(outfile, arr)
@@ -27,6 +29,11 @@ def test_grayscale_round_trip(tmp_path: Path) -> None:
 
 
 def test_rgb_round_trip(tmp_path: Path) -> None:
+    """Test that an RGB uint16 array writes and reads back unchanged.
+
+    Creates an 8x8x3 array with varying channel values, writes it with
+    WriteTiff16, reads it back with ReadTiff16, and verifies the data matches.
+    """
     # Construct (h, w, 3) array.
     arr = np.zeros((8, 8, 3), dtype=np.uint16)
     arr[..., 0] = (np.arange(64) * 100).reshape(8, 8)
@@ -49,6 +56,10 @@ def test_rgb_round_trip(tmp_path: Path) -> None:
     ),
 )
 def test_palette_round_trip_translate_true(tmp_path: Path) -> None:
+    """Test palette TIFF with translate=True converts to RGB on write.
+
+    Known to fail due to palette != None comparison bug.
+    """
     arr = np.arange(64, dtype=np.int32).reshape(8, 8)
     palette = np.zeros((65536, 3), dtype=np.int32)
     for dn in range(64):
@@ -69,6 +80,10 @@ def test_palette_round_trip_translate_true(tmp_path: Path) -> None:
     ),
 )
 def test_palette_round_trip_translate_false(tmp_path: Path) -> None:
+    """Test palette TIFF with translate=False preserves palette format.
+
+    Known to fail due to palette != None comparison bug.
+    """
     arr = np.arange(64, dtype=np.int32).reshape(8, 8)
     palette = np.zeros((65536, 3), dtype=np.int32)
     for dn in range(64):
@@ -83,6 +98,11 @@ def test_palette_round_trip_translate_false(tmp_path: Path) -> None:
 
 
 def test_up_flag_flips_grayscale(tmp_path: Path) -> None:
+    """Test that up=True flag correctly inverts vertical orientation.
+
+    WriteTiff16 with up=True flips line ordering on write; ReadTiff16 with
+    up=True should reverse the flip and produce the original array.
+    """
     # `up=True` flips line ordering on write; ReadTiff16 with `up=True`
     # should produce the original array.
     arr = (np.arange(16, dtype=np.uint16) * 1000).reshape(4, 4)
@@ -94,7 +114,13 @@ def test_up_flag_flips_grayscale(tmp_path: Path) -> None:
 
 
 def test_invalid_file_raises(tmp_path: Path) -> None:
+    """Test that ReadTiff16 raises IOError for corrupt TIFF files.
+
+    Creates a file with invalid content and verifies that ReadTiff16 raises
+    IOError with appropriate message.
+    """
     bad = tmp_path / 'bad.tiff'
     bad.write_bytes(b'\x00' * 64)
-    with pytest.raises(IOError):
+    with pytest.raises(IOError) as excinfo:
         ReadTiff16(str(bad))
+    assert 'File format is not TIFF' in str(excinfo.value)

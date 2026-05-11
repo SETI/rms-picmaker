@@ -10,6 +10,11 @@ OUT = Path(__file__).parent.parent / 'fixtures' / 'malformed_numpy.bin'
 
 
 def main() -> None:
+    """Write deliberately malformed NumPy header to OUT for testing parser errors.
+
+    Uses OUT.write_bytes(b'\\x93NUMPY\\x01\\x00' + b'\\xff' * 50) to create
+    a file with NumPy magic bytes followed by garbage for error handling tests.
+    """
     OUT.write_bytes(b'\x93NUMPY\x01\x00' + b'\xff' * 50)
 
 
