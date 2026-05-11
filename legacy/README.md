@@ -1,2 +1,0 @@
-# rms-picmaker
-picmaker program
