@@ -13,10 +13,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from snapshots_index import SNAPSHOTS
 
 from picmaker.picmaker import images_to_pics
-
-from snapshots_index import SNAPSHOTS
 
 
 @pytest.mark.parametrize(('fixture', 'slug', 'ext'), SNAPSHOTS)

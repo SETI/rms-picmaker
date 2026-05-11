@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from picmaker.picmaker import tinted_colormap
 
 
@@ -85,7 +83,8 @@ class TestHstWavelengthInference:
         # Mid colour: green dominant.
         _, tint, _ = result
         r, g, b = tint
-        assert g > r and g > b
+        assert g > r
+        assert g > b
 
     def test_unknown_filter_returns_none(self) -> None:
         # Triggers the print('******UNKNOWN FILTER:', ...) path; pre-PR3 it

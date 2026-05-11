@@ -25,13 +25,17 @@ class TestCircleMask:
         assert mask.shape == (5, 5)
         assert mask[2, 2]
         assert not mask[0, 0]
-        assert mask[2, 0] and mask[0, 2] and mask[4, 2] and mask[2, 4]
+        assert mask[2, 0]
+        assert mask[0, 2]
+        assert mask[4, 2]
+        assert mask[2, 4]
 
     def test_diameter_8(self) -> None:
         mask = circle_mask(8)
         assert mask.shape[0] == 8
         # center band True
-        assert mask[3, 3] and mask[4, 4]
+        assert mask[3, 3]
+        assert mask[4, 4]
 
     def test_diameter_9(self) -> None:
         mask = circle_mask(9)
@@ -68,7 +72,7 @@ class TestSliceArray:
     def test_valid_mask_applied(self) -> None:
         arr = np.zeros((1, 2, 2), dtype=np.float64)
         arr[0, 0, 0] = 100
-        out, mask = slice_array(arr, valid=(0.0, 50.0), bands=(0, 1))
+        _, mask = slice_array(arr, valid=(0.0, 50.0), bands=(0, 1))
         assert mask is not None
         assert mask[0, 0]  # masked
         assert not mask[0, 1]

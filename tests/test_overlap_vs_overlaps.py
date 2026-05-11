@@ -41,5 +41,6 @@ def test_overlap_and_overlaps_byte_identical(
     assert r2.returncode == 0, r2.stderr
     f1 = out_singular / 'cassini_iss.jpg'
     f2 = out_plural / 'cassini_iss.jpg'
-    assert f1.exists() and f2.exists()
+    assert f1.exists()
+    assert f2.exists()
     assert f1.read_bytes() == f2.read_bytes()

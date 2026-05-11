@@ -71,7 +71,7 @@ class TestReadPdsLabeledImageArray:
         )
     )
     def test_minimal_pds3_sample(self, fixtures_dir: Path) -> None:
-        arr, ptr = read_pds_labeled_image_array(
+        arr, _ptr = read_pds_labeled_image_array(
             str(fixtures_dir / 'pds3_sample.IMG'), 'IMAGE'
         )
         assert arr.shape == (1, 8, 8)

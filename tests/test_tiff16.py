@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from picmaker.tiff16 import ReadTiff16, WriteTiff16
 
@@ -37,9 +38,6 @@ def test_rgb_round_trip(tmp_path: Path) -> None:
     new_arr, palette = ReadTiff16(outfile)
     assert palette is None
     np.testing.assert_array_equal(new_arr, arr)
-
-
-import pytest
 
 
 @pytest.mark.xfail(

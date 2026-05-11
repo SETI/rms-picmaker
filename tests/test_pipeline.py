@@ -15,7 +15,6 @@ from PIL import Image
 
 from picmaker.picmaker import images_to_pics
 
-
 ALL_FIXTURES = [
     'cassini_iss.vic',
     'voyager_iss.vic',

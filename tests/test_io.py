@@ -9,7 +9,6 @@ import pytest
 
 from picmaker.picmaker import read_one_image_array
 
-
 # (fixture_name, expected detect tuple, expected is_color flag)
 INSTRUMENT_FIXTURES = [
     ('cassini_iss.vic', ('CASSINI', 'ISS', 'CL1+GRN'), False),

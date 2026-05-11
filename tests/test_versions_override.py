@@ -1,4 +1,4 @@
-"""--versions × --replace/--proceed override semantics (picmaker.py:543, 548).
+"""--versions x --replace/--proceed override semantics (picmaker.py:543, 548).
 
 Two sub-cases:
 (a) Main CLI --replace=none with a versions-file line specifying --replace=all

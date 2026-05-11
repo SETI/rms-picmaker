@@ -60,19 +60,19 @@ class TestPadImage:
 class TestGetSize:
     def test_size_specified(self) -> None:
         # get_size returns (unwrapped, wrapped, sections, wrap_axis).
-        unwrapped, wrapped, sections, axis = get_size(
-            (100, 200), size=(50, 100)
-        )
-        assert sections == 1 and axis == 0
+        unwrapped, _, sections, axis = get_size((100, 200), size=(50, 100))
+        assert sections == 1
+        assert axis == 0
         # width=50, height=100 was requested; get_size should choose those.
         assert tuple(unwrapped) == (50, 100)
 
     def test_scale_default(self) -> None:
-        unwrapped, wrapped, sections, axis = get_size((100, 200))
+        unwrapped, _, sections, axis = get_size((100, 200))
         # default scale=(100,100) means no change; width=array_shape[1]=200,
         # height=array_shape[0]=100.
         assert unwrapped == [200, 100]
-        assert sections == 1 and axis == 0
+        assert sections == 1
+        assert axis == 0
 
     def test_scale_factor_half(self) -> None:
         unwrapped, *_ = get_size((100, 200), scale=(50.0, 50.0))
@@ -89,7 +89,8 @@ class TestGetSize:
         # 16x16 input + 512x512 frame; default frame_max=None scales to fit,
         # frame_max=50 caps at 50% of frame (256).
         unwrapped, *_ = get_size((16, 16), frame=(512, 512), frame_max=50)
-        assert unwrapped[0] <= 256 and unwrapped[1] <= 256
+        assert unwrapped[0] <= 256
+        assert unwrapped[1] <= 256
 
 
 class TestResizeImage:

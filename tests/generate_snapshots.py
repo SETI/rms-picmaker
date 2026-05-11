@@ -66,7 +66,7 @@ def _generate_one(
             extension=ext,
             **kwargs,
         )
-    except Exception as exc:  # noqa: BLE001 — keep going on per-combo failures.
+    except Exception as exc:
         print(f'  FAIL {fixture.name} + {slug}: {type(exc).__name__}: {exc}')
         return None
 
