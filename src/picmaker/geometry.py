@@ -441,11 +441,7 @@ def resize_image(image: Any, new_size: tuple[int, int]) -> Any:
     if isinstance(image, (list, tuple)):
         result: Any = []
         for i in image:
-            # Preserved verbatim from picmaker.py:3115 — the original
-            # uses unbound `list.append`, which would fail at runtime.
-            # This code path is only reached for 16-bit RGB lists; it is
-            # not exercised by the test suite.
-            list.append(_resize_one_image(i, new_size))  # type: ignore[call-arg]
+            result.append(_resize_one_image(i, new_size))
     else:
         result = _resize_one_image(image, new_size)
 
@@ -457,11 +453,11 @@ def _resize_one_image(image: Any, new_size: tuple[int, int]) -> Any:
     if new_size[0] > image.size[0] or new_size[1] > image.size[1]:
         image = image.resize(
             (max(new_size[0], image.size[0]), max(new_size[1], image.size[1])),
-            Image.NEAREST,  # type: ignore[attr-defined]
+            Image.Resampling.NEAREST,
         )
 
     if new_size[0] < image.size[0] or new_size[1] < image.size[1]:
-        image = image.resize(new_size, Image.LANCZOS)  # type: ignore[attr-defined]
+        image = image.resize(new_size, Image.Resampling.LANCZOS)
 
     return image
 

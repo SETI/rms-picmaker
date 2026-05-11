@@ -137,20 +137,6 @@ module = [
 ]
 ignore_missing_imports = true
 
-# Legacy 2009-era modules use light public-API annotations (Any-typed)
-# so the typed callers in picmaker.io / picmaker.pil_utils / picmaker.enhance
-# / picmaker.geometry don't see no-untyped-call. Internal bodies are not
-# strictly checked — they predate this codebase's annotation rules.
-[[tool.mypy.overrides]]
-module = ["picmaker.tiff16", "picmaker.colornames"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-disable_error_code = [
-  "no-untyped-def",
-  "var-annotated",
-  "assignment",
-  "attr-defined",
-]
 
 [tool.ruff]
 target-version = "py310"

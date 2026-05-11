@@ -43,7 +43,7 @@
 #   ENABLE_* are true (RUN_* from CLI or defaults below; ENABLE_* from env):
 #     ENABLE_RUFF_CHECK   (default: true)
 #     ENABLE_RUFF_FORMAT  (default: false)
-#     ENABLE_MYPY         (default: false)
+#     ENABLE_MYPY         (default: true)
 #     ENABLE_PYTEST       (default: true)
 #     ENABLE_PYROMA       (default: true)
 #     ENABLE_BANDIT       (default: false)
@@ -95,7 +95,7 @@ SCOPE_SPECIFIED=false
 : "${ENABLE_PYROMA:=true}"
 : "${ENABLE_BANDIT:=false}"
 : "${ENABLE_VULTURE:=false}"
-: "${ENABLE_SPHINX:=false}"
+: "${ENABLE_SPHINX:=true}"
 : "${ENABLE_PYMARKDOWN:=true}"
 
 # Get script directory and project root
