@@ -108,7 +108,7 @@ picmaker = "picmaker.picmaker:main"
 branch = true
 parallel = true
 source = ["picmaker"]
-omit = ["tests/*", "_version.py", "*/picmaker.py"]
+omit = ["tests/*", "_version.py"]
 
 [tool.coverage.report]
 exclude_lines = [
