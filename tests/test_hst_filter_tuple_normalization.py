@@ -34,11 +34,12 @@ def test_clear5_paired_with_filter_normalizes_via_startswith() -> None:
 
 
 def test_both_real_filters_concatenated() -> None:
-    # Neither side is CLEAR/CL1/CL2/N/A → 'F555W+F606W' constructed.
-    # The combined string contains no recognized wavelength path that returns
-    # a single mid-color tint → wavelength=555 inferred from first numeric
-    # digits.
+    # Neither side is CLEAR/CL1/CL2/N/A → 'F555W+F606W' constructed and run
+    # through the wavelength-inference path. The digit-extraction loop
+    # concatenates "555" and "606" into 555606, then caps at wavelength<1600
+    # so each digit pushes past the cap; the loop ends at 555 (the largest
+    # value reached before the cap takes effect). 555 nm is green; with
+    # WFC3/UVIS no NIR rescale applies, so the inferred tint is what
+    # RFUNC/GFUNC/BFUNC return at 555 nm.
     result = tinted_colormap(('HST', 'WFC3', ('F555W', 'F606W')))
-    # The function should infer SOMETHING here (the digits 555 and 606 chain
-    # together up to wavelength<1600 cap into a single number).
-    assert result is not None or result is None  # behavior-documenting
+    assert result == [(0, 0, 0), (255, 60, 60), (255, 255, 255)]

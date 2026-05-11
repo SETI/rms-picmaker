@@ -32,7 +32,7 @@ class TestCircleMask:
 
     def test_diameter_8(self) -> None:
         mask = circle_mask(8)
-        assert mask.shape[0] == 8
+        assert mask.shape == (8, 8)
         # center band True
         assert mask[3, 3]
         assert mask[4, 4]

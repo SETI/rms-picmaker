@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from snapshots_index import SNAPSHOTS
+from snapshots_index import KWARGS_BY_SLUG, SNAPSHOTS
 
 from picmaker.picmaker import images_to_pics
 
@@ -25,27 +25,8 @@ def test_byte_identical_snapshot(
     expected = fixtures_dir / 'expected' / f'{Path(fixture).stem}--{slug}.{ext}'
     assert expected.exists(), f'missing snapshot fixture: {expected}'
 
-    # Map slug → kwargs (keep in lockstep with generate_snapshots.COMBOS).
-    kwargs: dict
-    if slug == 'default':
-        kwargs = {}
-    elif slug == 'gamma2':
-        kwargs = {'gamma': 2.0}
-    elif slug == 'pct5_95':
-        kwargs = {'percentiles': (5.0, 95.0)}
-    elif slug == 'colormap_red_blue':
-        kwargs = {'colormap': 'red-blue'}
-    elif slug == 'tint':
-        kwargs = {'tint': True}
-    elif slug == 'rot90':
-        kwargs = {'rotate': 'rot90'}
-    elif slug == 'frame_128_pad':
-        kwargs = {'frame': (128, 128), 'pad': True}
-    elif slug == 'frame_max_50':
-        kwargs = {'frame_max': 50}
-    elif slug == 'twobytes_tiff':
-        kwargs = {'twobytes': True}
-    else:
+    kwargs = KWARGS_BY_SLUG.get(slug)
+    if kwargs is None:
         pytest.fail(f'unknown slug: {slug}')
 
     images_to_pics(

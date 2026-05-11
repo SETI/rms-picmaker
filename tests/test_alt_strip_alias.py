@@ -60,7 +60,8 @@ def test_both_spellings_parse(
 
     assert r1.returncode == 0, r1.stderr
     assert r2.returncode == 0, r2.stderr
-    # Both produced an output file with the same name.
+    # Both produced an output file with the same name AND identical bytes.
     files1 = sorted(p.name for p in out1.iterdir())
     files2 = sorted(p.name for p in out2.iterdir())
     assert files1 == files2 == ['cassini_iss.jpg']
+    assert (out1 / files1[0]).read_bytes() == (out2 / files2[0]).read_bytes()

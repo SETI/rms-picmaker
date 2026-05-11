@@ -51,10 +51,8 @@ class TestPadImage:
     def test_named_pad_color(self) -> None:
         img = Image.new('RGB', (4, 4), color='red')
         out = pad_image(img, frame=(8, 8), pad_color='blue')
-        # Corner pixel was added by padding — must be blue, not the
-        # red interior.
-        corner = out.getpixel((0, 0))
-        assert corner != (255, 0, 0)
+        # Corner pixel was added by padding — exact X11 'blue' is (0, 0, 255).
+        assert out.getpixel((0, 0)) == (0, 0, 255)
 
 
 class TestGetSize:
@@ -119,12 +117,17 @@ class TestRotateArrayRgb:
         out = rotate_array_rgb(arr.copy(), display_upward=True, rotation_name='NONE')
         np.testing.assert_array_equal(out, np.flipud(arr))
 
-    @pytest.mark.parametrize('name', ['FLIPLR', 'FLIPTB', 'ROT90', 'ROT180', 'ROT270'])
-    def test_named_rotations_run(self, name: str) -> None:
+    @pytest.mark.parametrize(('name', 'expected_shape'), [
+        ('FLIPLR', (3, 4)),
+        ('FLIPTB', (3, 4)),
+        ('ROT90', (4, 3)),
+        ('ROT180', (3, 4)),
+        ('ROT270', (4, 3)),
+    ])
+    def test_named_rotations_run(self, name: str, expected_shape: tuple) -> None:
         arr = self._make()
         out = rotate_array_rgb(arr.copy(), display_upward=False, rotation_name=name)
-        # All shapes either match input or swap dims for ROT90/ROT270.
-        assert out.shape in ((3, 4), (4, 3))
+        assert out.shape == expected_shape
 
     def test_unknown_rotation_raises(self) -> None:
         arr = self._make()

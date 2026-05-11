@@ -65,3 +65,15 @@ SNAPSHOTS = [
     ('nh_mvic.fits', 'frame_max_50', 'jpg'),
     ('nh_mvic.fits', 'twobytes_tiff', 'tiff'),
 ]
+
+KWARGS_BY_SLUG = {
+    'default': {},
+    'gamma2': {'gamma': 2.0},
+    'pct5_95': {'percentiles': (5.0, 95.0)},
+    'colormap_red_blue': {'colormap': 'red-blue'},
+    'tint': {'tint': True},
+    'rot90': {'rotate': 'rot90'},
+    'frame_128_pad': {'frame': (128, 128), 'pad': True},
+    'frame_max_50': {'frame_max': 50},
+    'twobytes_tiff': {'twobytes': True},
+}
