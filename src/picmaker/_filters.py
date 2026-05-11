@@ -33,7 +33,7 @@ def filter_image(image: Any, filter_name: str) -> Any:
 
     Two-byte (16-bit) images are not supported and raise ``ValueError``.
 
-    Args:
+    Parameters:
         image: A PIL image as 8-bit RGB or grayscale.
         filter_name: Name of the filter to be applied. Valid choices are the
             keys of ``FILTER_DICT`` (case-insensitive).

@@ -24,7 +24,7 @@ def fill_zebra_stripes(array2d: Any) -> Any:
     columns. This removes an artifact associated with some spacecraft
     compression procedures.
 
-    Args:
+    Parameters:
         array2d: A 2-D numpy array (modified in place).
 
     Returns:
@@ -78,7 +78,7 @@ def get_limits(
 ) -> Any:
     """Compute stretch limits from numeric limits and/or percentiles.
 
-    Args:
+    Parameters:
         array2d: The 2-D numpy array, which may be masked.
         mask: 2-D mask array (True for masked pixels), or ``None``.
         limits: Numeric ``(lower, upper)`` to confine the histogram, or
@@ -255,7 +255,7 @@ def apply_colormap(
     Produces a 3-D array with one band (grayscale) or three bands (RGB),
     in axis order ``(line, sample, band)``.
 
-    Args:
+    Parameters:
         array2d: A 2-D numpy array.
         limits: The values that correspond to the first and last
             colors of the mapping.
@@ -366,7 +366,7 @@ def apply_colormap(
 def apply_gamma(array: Any, gamma: float) -> Any:
     """Apply a gamma curve to an array already scaled 0-1.
 
-    Args:
+    Parameters:
         array: A 2-D or 3-D numpy array.
         gamma: Gamma factor. ``> 1`` brightens midtones; ``< 1`` darkens.
 

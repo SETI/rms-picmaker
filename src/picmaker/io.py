@@ -32,7 +32,7 @@ def read_image_array(
 ) -> tuple[Any, bool, Any]:
     """Read one or more image files and return a stacked 3-D array.
 
-    Args:
+    Parameters:
         filename: An input file name, or a list of file names whose
             arrays should be stacked together. Files can be in VICAR,
             FITS, TIFF, ``.npy``, or pickle format.
@@ -80,7 +80,7 @@ def read_one_image_array(
     (or 16-bit TIFF) → PDS3 label. Each format is attempted in order
     and the first one that succeeds wins.
 
-    Args:
+    Parameters:
         filename: Path to the input file.
         labelfile: Optional path to a sibling PDS3 label file.
         obj: Object index/name for multi-image files.
@@ -238,7 +238,7 @@ def read_pds_labeled_image_array(
 ) -> tuple[Any, bool, tuple[Any, Any, Any]] | None:
     """Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.
 
-    Args:
+    Parameters:
         filename: Path to a ``.LBL`` (or matching) PDS3 label file.
         obj: Optional pointer name or index.
 
@@ -383,7 +383,7 @@ def read_pds_labeled_image_array(
 def read_pil(infile: str | os.PathLike[str]) -> Any:
     """Read a PIL image (or 16-bit TIFF expanded to a PIL image) from a file.
 
-    Args:
+    Parameters:
         infile: Path to the input file.
 
     Returns:
@@ -412,7 +412,7 @@ def read_pil(infile: str | os.PathLike[str]) -> Any:
 def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
     """Read a numpy array from a PIL-readable file (or a 16-bit TIFF).
 
-    Args:
+    Parameters:
         infile: Path to the input file.
         rescale: True to scale values to the range 0-1.
 
@@ -452,7 +452,7 @@ def get_outfile(
 ) -> str:
     """Derive the output filename for one input.
 
-    Args:
+    Parameters:
         infile: Name of the input file.
         outdir: Output directory, or ``None`` for the input's directory.
         strip: A string or list of strings to strip from the input

@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 def find_common_path(directories: list[str]) -> str:
     """Return the longest path prefix shared by every directory in the list.
 
-    Args:
+    Parameters:
         directories: A list of directory path strings.
 
     Returns:
@@ -87,7 +87,7 @@ def process_images(
     In movie mode, all frames are converted with the same stretch
     derived from the median of the per-frame limits.
 
-    Args:
+    Parameters:
         filenames: Files to process.
         directory: Output directory (created if missing). ``None`` to
             write next to the input.
@@ -199,7 +199,7 @@ def images_to_pics(
     keyword argument. ``filter`` shadows the builtin and is preserved
     for backward compatibility.
 
-    Args:
+    Parameters:
         filenames: List of image file names to convert.
         directory: Output directory. ``None`` writes next to the input.
         verbose: Print each input filename as it is processed.

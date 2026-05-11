@@ -21,7 +21,7 @@ from picmaker._rgb import BFUNC, GFUNC, RFUNC, RGB_BY_NM
 def tinted_colormap(filter_info: Any) -> list[tuple[int, int, int]] | None:
     """Return a colormap based on filter info.
 
-    Args:
+    Parameters:
         filter_info: A tuple ``(instrument_host, instrument_id, filter)``,
             where ``filter`` may be a single name or a 2-tuple of names
             (e.g. HST/ACS).

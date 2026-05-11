@@ -17,7 +17,7 @@ from picmaker.pil_utils import array_to_pil, pil_to_array
 def circle_mask(diameter: float) -> Any:
     """Return a boolean disk mask of the given diameter.
 
-    Args:
+    Parameters:
         diameter: The disk diameter in pixels.
 
     Returns:
@@ -48,7 +48,7 @@ def slice_array(
 ) -> tuple[Any, Any]:
     """Return the requested slice of a 3-D array as a 2-D array.
 
-    Args:
+    Parameters:
         array3d: 3-D image array indexed ``(bands, lines, samples)``.
         samples: Tuple ``(s0, s1)`` selecting the sample range, or
             ``None`` for all samples.
@@ -114,7 +114,7 @@ def crop_array(
 ) -> Any:
     """Crop constant-valued borders from a 2-D or 3-D image.
 
-    Args:
+    Parameters:
         array: A 2-D image ``(lines, samples)`` or 3-D image
             ``(bands, lines, samples)``.
         value: Constant pixel value to trim from the border.
@@ -160,7 +160,7 @@ def rotate_array_rgb(
 ) -> Any:
     """Apply an orientation to an RGB array.
 
-    Args:
+    Parameters:
         arrayRGB: An RGB array.
         display_upward: True to flip the image upward (top-of-image
             becomes top-of-display); False leaves it as is.
@@ -211,7 +211,7 @@ def get_size(
 ) -> tuple[Any, Any, int, int]:
     """Compute the output image size and wrap properties.
 
-    Args:
+    Parameters:
         array_shape: Shape of the source numpy array
             ``(lines, samples)`` or ``(lines, samples, bands)``.
         size: Target ``(width, height)``. A scalar means square. ``None``
@@ -428,7 +428,7 @@ def _get_size_for_frame(
 def resize_image(image: Any, new_size: tuple[int, int]) -> Any:
     """Resize a PIL image or a list of three PIL images.
 
-    Args:
+    Parameters:
         image: A single PIL image or a list/tuple of three images.
         new_size: ``(width, height)`` of the output.
 
@@ -476,7 +476,7 @@ def wrap_image(
 ) -> Any:
     """Wrap a PIL image into ``sections`` sub-images separated by gaps.
 
-    Args:
+    Parameters:
         image: A PIL image.
         wrapped_size: ``(width, height)`` of the final wrapped image.
         sections: Number of sections to wrap.
@@ -566,7 +566,7 @@ def wrap_image(
 def pad_image(image: Any, frame: Any, pad_color: Any) -> Any:
     """Pad a PIL image to fill a target frame size.
 
-    Args:
+    Parameters:
         image: A PIL image.
         frame: ``(width, height)`` target frame size, or ``None`` to
             skip padding.

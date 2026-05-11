@@ -21,7 +21,7 @@ def array_to_pil(array: Any, twobytes: bool = False, rescale: bool = True) -> An
     For the special case of a 16-bit RGB image, the result is a list of
     three PIL images (one per channel).
 
-    Args:
+    Parameters:
         array: Image array containing one band of grayscale or three bands
             if RGB.
         twobytes: True for 16-bit images, False for 8-bit.
@@ -75,7 +75,7 @@ def pil_to_array(image: Any, rescale: bool = True) -> Any:
     The shape of the returned array is ``(lines, samples, bands)`` for an
     RGB image or ``(lines, samples)`` for a grayscale image.
 
-    Args:
+    Parameters:
         image: A PIL image or list/tuple of three.
         rescale: True to scale values to the range 0-1; False to leave
             them alone.
@@ -124,7 +124,7 @@ def _one_pil_to_array(image: Any, rescale: bool) -> Any:
 def write_pil(image: Any, outfile: str | os.PathLike[str], quality: int = 75) -> None:
     """Write a PIL image (or list of RGB images) to a file.
 
-    Args:
+    Parameters:
         image: A PIL image or a list of three images.
         outfile: The output file to write.
         quality: Quality factor 0-100 to use for JPEG output.

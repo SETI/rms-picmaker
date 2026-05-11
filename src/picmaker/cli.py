@@ -353,7 +353,7 @@ def _normalize_and_validate(
 ) -> dict[str, Any]:
     """Run mutex checks, normalize parameter shapes, and build the option_dict.
 
-    Args:
+    Parameters:
         options: Parsed argparse Namespace.
         replace: The validated ``--replace`` value (``'all'`` / ``'none'``
             / ``'warn'`` / ``'error'``).

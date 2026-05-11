@@ -25,7 +25,7 @@ ALL_INSTRUMENTS = [cassini, voyager, galileo, hst, nh]
 def lookup(inst_host: str | None, inst_id: str | None) -> Any | None:
     """Return the first instrument whose ``matches()`` returns True, else None.
 
-    Args:
+    Parameters:
         inst_host: Instrument host string (e.g. ``'CASSINI ORBITER'``).
         inst_id: Instrument id (e.g. ``'ISS'``). Pass ``None`` if unknown.
 

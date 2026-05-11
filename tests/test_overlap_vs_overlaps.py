@@ -13,7 +13,7 @@ from pathlib import Path
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     """Run picmaker CLI with given arguments.
 
-    Args:
+    Parameters:
         *args: Variable length argument list of strings passed to picmaker.
 
     Returns:
@@ -27,7 +27,12 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 def test_overlap_and_overlaps_byte_identical(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """Verify --overlap and --overlaps produce byte-identical output."""
+    """Running picmaker on ``cassini_iss.vic`` with ``--overlap 0.1`` (the
+    scalar form) produces output bytes identical to running with
+    ``--overlaps 0.1 0.1`` (the tuple form). Both invocations use the
+    same ``--wrap --frame 32 32`` to force the wrap path that consults
+    the overlap argument.
+    """
     fixture = str(fixtures_dir / 'cassini_iss.vic')
     out_singular = tmp_path / 'singular'
     out_plural = tmp_path / 'plural'
