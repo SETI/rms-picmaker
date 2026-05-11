@@ -30,7 +30,15 @@
 
 # Features
 
-`rms-picmaker` is TODO
+`rms-picmaker` converts binary 2-D or 3-D astronomy images — PDS3-labeled images,
+VICAR images, and FITS images — into JPEG, TIFF, PNG, or other popular display
+formats. It is used by the PDS Ring-Moon Systems Node (SETI Institute) for image
+preview generation.
+
+It ships both as a command-line tool (`picmaker`) and as an importable Python
+library (`from picmaker.picmaker import images_to_pics`). Features include
+percentile stretching, gamma correction, histogram equalization, colormap and
+filter-aware tinting, cropping, resizing, padding, and 16-bit TIFF output.
 
 # Installation
 
@@ -43,11 +51,38 @@ pip install rms-picmaker
 
 # Getting Started
 
-TODO
+Convert a single image to JPEG with the defaults:
 
-Usage examples:
+```sh
+picmaker input.IMG --directory out/
+```
 
-TODO
+Process a directory of VICAR images into 8-bit PNGs with a 1–99% percentile
+stretch and a gamma of 0.7:
+
+```sh
+picmaker -r --pattern '*.vic' --extension png \
+         --percentiles 1 99 --gamma 0.7 \
+         --directory out/ inputs/
+```
+
+Use as a library:
+
+```python
+from picmaker.picmaker import images_to_pics
+
+images_to_pics(
+    ['input.IMG'],
+    directory='out/',
+    extension='jpg',
+    percentiles=(1.0, 99.0),
+    gamma=0.7,
+)
+```
+
+> **Security note:** `picmaker` also accepts Python pickle files as a fallback
+> input format. Only pass pickle inputs you trust — unpickling executes
+> arbitrary code from the file.
 
 Details are available in the [module documentation](https://rms-picmaker.readthedocs.io/en/latest/module.html).
 

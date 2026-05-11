@@ -851,11 +851,14 @@ def process_images(filenames, directory, movie, option_dicts, verbose=False):
     # Movie case...
     if movie:
 
+        # main() writes the same `proceed` value into every option_dict.
+        assert all(d['proceed'] == option_dicts[0]['proceed'] for d in option_dicts)
+
         # Convert all images...
         results = images_to_pics(filenames, directory, reuse=None,
                                  verbose=verbose, **option_dicts[0])
         if results[:2] == (None, None):
-            if proceed:
+            if option_dicts[0]['proceed']:
                 return
             raise IOError('unable to process movie')
 
@@ -3370,7 +3373,7 @@ def read_pil(infile):
 
         if array is not None:
             if palette is not None:
-                return IOError("16-bit palette option is not supported")
+                raise IOError("16-bit palette option is not supported")
 
             return array_to_pil(array, twobytes=True, rescale=False)
 
