@@ -6,7 +6,7 @@ FITS, PIL, and finally raise IOError('Unrecognized image file format ...').
 """
 from pathlib import Path
 
-OUT = Path(__file__).parent / 'malformed_numpy.bin'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'malformed_numpy.bin'
 
 
 def main() -> None:

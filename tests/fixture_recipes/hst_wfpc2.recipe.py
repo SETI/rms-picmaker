@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from astropy.io import fits
 
-OUT = Path(__file__).parent / 'hst_wfpc2.fits'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'hst_wfpc2.fits'
 
 
 def main() -> None:

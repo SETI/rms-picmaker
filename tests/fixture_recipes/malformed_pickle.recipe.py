@@ -5,7 +5,7 @@ are unloadable. Exercises the pickle branch's broad `except Exception:` in
 """
 from pathlib import Path
 
-OUT = Path(__file__).parent / 'malformed_pickle.bin'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'malformed_pickle.bin'
 
 
 def main() -> None:

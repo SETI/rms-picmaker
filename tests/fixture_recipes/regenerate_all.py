@@ -1,8 +1,13 @@
 """Regenerate every binary test fixture by importing and running each
 sibling `<name>.recipe.py` module.
 
+Each recipe writes its output into the sibling `tests/fixtures/` directory
+(via `Path(__file__).parent.parent / 'fixtures' / '<name>.<ext>'`); this
+script does nothing with the output path itself — it just imports each
+recipe and calls its `main()`.
+
 Run from the venv:
-    python tests/fixtures/regenerate_all.py
+    python tests/fixture_recipes/regenerate_all.py
 """
 import importlib.util
 import sys

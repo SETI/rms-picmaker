@@ -7,7 +7,7 @@ import numpy as np
 
 from picmaker.tiff16 import WriteTiff16
 
-OUT = Path(__file__).parent / 'small_tiff16.tiff'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'small_tiff16.tiff'
 
 
 def main() -> None:

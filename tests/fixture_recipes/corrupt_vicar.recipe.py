@@ -6,7 +6,7 @@ cascade should fall through to FITS, PIL, and finally raise IOError
 """
 from pathlib import Path
 
-OUT = Path(__file__).parent / 'corrupt_vicar.vic'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'corrupt_vicar.vic'
 
 
 def main() -> None:

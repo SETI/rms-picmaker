@@ -18,7 +18,7 @@ Run from this directory:
 """
 from pathlib import Path
 
-OUT = Path(__file__).parent / 'pds3_sample.IMG'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'pds3_sample.IMG'
 
 LABEL = (
     b"PDS_VERSION_ID                 = PDS3\r\n"

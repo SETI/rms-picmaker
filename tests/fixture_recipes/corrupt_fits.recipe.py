@@ -7,7 +7,7 @@ IOError('Unrecognized image file format ...').
 """
 from pathlib import Path
 
-OUT = Path(__file__).parent / 'corrupt_fits.fits'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'corrupt_fits.fits'
 
 
 def main() -> None:

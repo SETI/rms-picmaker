@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 from vicar import VicarImage
 
-OUT = Path(__file__).parent / 'galileo_ssi_a.vic'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'galileo_ssi_a.vic'
 
 
 def main() -> None:

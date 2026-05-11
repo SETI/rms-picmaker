@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-OUT = Path(__file__).parent / 'small_rgb.png'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'small_rgb.png'
 
 
 def main() -> None:

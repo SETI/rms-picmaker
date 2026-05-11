@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from astropy.io import fits
 
-OUT = Path(__file__).parent / 'nh_mvic.fits'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'nh_mvic.fits'
 
 
 def main() -> None:

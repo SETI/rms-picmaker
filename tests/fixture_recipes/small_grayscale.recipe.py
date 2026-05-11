@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-OUT = Path(__file__).parent / 'small_grayscale.png'
+OUT = Path(__file__).parent.parent / 'fixtures' / 'small_grayscale.png'
 
 
 def main() -> None:
