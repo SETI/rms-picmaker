@@ -8,8 +8,10 @@ on:
 jobs:
   upload_pypi:
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -33,5 +35,7 @@ jobs:
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        # OIDC trusted publisher — no `password` line.
+        # Configure the publisher at
+        # https://pypi.org/manage/project/rms-picmaker/settings/publishing/
+        # (see CONTRIBUTING.md "Releasing to PyPI").

@@ -10,6 +10,10 @@ permissions:
 jobs:
   upload_pypi:
     runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -29,7 +33,9 @@ jobs:
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
+        # OIDC trusted publisher — no `password` line.
+        # Configure the publisher at
+        # https://test.pypi.org/manage/project/rms-picmaker/settings/publishing/
+        # (see CONTRIBUTING.md "Releasing to PyPI").
