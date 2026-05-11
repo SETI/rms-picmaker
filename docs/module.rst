@@ -1,11 +1,9 @@
 ``picmaker`` Module
 =====================
 
-The :mod:`picmaker` package is decomposed into a handful of leaf modules
-plus an :mod:`~picmaker.instruments` subpackage. The legacy
-``picmaker.picmaker`` module is a backward-compatibility re-export shim
-and is intentionally **not** documented here — its symbols are
-documented in their canonical leaf locations.
+The :mod:`picmaker` package is organized into a handful of leaf modules
+plus an :mod:`~picmaker.instruments` subpackage; each symbol is
+documented at its canonical leaf-module location below.
 
 Pipeline
 --------

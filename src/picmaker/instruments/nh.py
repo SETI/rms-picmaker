@@ -1,8 +1,4 @@
-"""New Horizons MVIC detection and tint.
-
-Source: picmaker.py (pre-PR-3) lines 1621-1633 (FITS detect),
-2259-2264 (filter dict), 2405-2409 (tint).
-"""
+"""New Horizons MVIC detection and tint."""
 
 from typing import Any
 
@@ -15,15 +11,26 @@ FILTER_DICT: dict[str, tuple[int, int, int]] = {
 
 
 def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
-    """NH is not delivered as VICAR — always returns ``None``."""
+    """NH is not delivered as VICAR — always returns ``None``.
+
+    Parameters:
+        vic: A :class:`vicar.VicarImage` instance (unused).
+
+    Returns:
+        Always ``None``.
+    """
     return None
 
 
 def detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
     """Detect a New Horizons FITS image.
 
-    Mirrors picmaker.py:1621-1633: the ``HOSTNAME`` keyword identifies
-    the host and ``INSTRU`` identifies the instrument.
+    The ``HOSTNAME`` keyword identifies the host and ``INSTRU``
+    identifies the instrument; the filter name comes from ``FILTER``
+    when present.
+
+    Parameters:
+        hdulist: An ``astropy.io.fits`` HDU list.
 
     Returns:
         ``(inst_host, inst_id, filter_name)`` if the file is an NH FITS
@@ -48,15 +55,37 @@ def detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
-    """Host-level predicate."""
+    """Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.
+
+    Parameters:
+        inst_host: Instrument host string.
+        inst_id: Instrument id.
+
+    Returns:
+        ``True`` if ``inst_host`` is ``'NEW HORIZONS'`` or ``'NH'``.
+    """
     return inst_host in ('NEW HORIZONS', 'NH')
 
 
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
-    """Return the full ``[black, tint, white]`` colormap.
+    """Return the full ``[black, tint, white]`` colormap for an NH filter.
 
-    Non-MVIC instruments fall through to the 2-element white colormap
-    (matches picmaker.py:2409).
+    Only the MVIC camera gets a coloured tint; every other New Horizons
+    instrument falls through to the 2-element ``[black, white]``
+    colormap.
+
+    Parameters:
+        inst_id: Instrument id (``'MVIC'`` / ``'MVI'`` for the colour
+            path).
+        filter_name: A key into :data:`FILTER_DICT`.
+
+    Returns:
+        ``[(0, 0, 0), tint, (255, 255, 255)]`` for an MVIC filter or
+        ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
+
+    Raises:
+        KeyError: If ``filter_name`` is not in :data:`FILTER_DICT` and
+            ``inst_id`` selects the MVIC path.
     """
     if inst_id not in ('MVIC', 'MVI'):
         return [(0, 0, 0), (255, 255, 255)]

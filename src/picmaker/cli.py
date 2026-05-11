@@ -1,20 +1,26 @@
 """Command-line entry point for picmaker.
 
-This module is an argparse rewrite of the legacy optparse ``main()`` in
-``picmaker.picmaker``. Every flag spelling — including the
-underscore aliases ``--alt_strip``, ``--alt_pointer``, ``--gapsize``,
-``--gapcolor``, ``--trimzeros``, and ``--frame_max`` — is preserved.
+The :func:`main` function builds an :mod:`argparse` parser covering
+every option documented in ``picmaker --help`` and dispatches to
+:func:`picmaker.pipeline.process_images`. Each long flag also has an
+underscore alias (``--alt_strip`` for ``--alt-strip``, etc.) so older
+scripts that use the underscore spelling keep working.
 
-Validation errors raise :class:`ValueError`; the outer ``except
-Exception`` wrapper prints the traceback via :func:`sys.excepthook`
-(NOT :func:`traceback.print_exc`) so IDE / profiler hooks remain
-pluggable, then exits with code 1. argparse's own usage errors raise
-:class:`SystemExit` and pass through unchanged.
+Error handling follows three layers:
 
-The ``filter`` argparse dest shadows the builtin; this is intentional
-for backward compatibility (the ``option_dict`` shape consumed by
-``images_to_pics`` already uses the name ``'filter'``). A per-file
-``A002`` ruff ignore lives in ``pyproject.toml``.
+* :class:`SystemExit` raised by argparse's own usage errors propagates
+  through unchanged.
+* Mutex / value-validity checks raise :class:`ValueError`; the outer
+  ``except Exception`` wrapper prints the traceback via
+  :func:`sys.excepthook` (so any plugin / IDE / profiler hook attached
+  to ``sys.excepthook`` still fires) and exits with code 1.
+* :exc:`KeyboardInterrupt` prints ``*** KeyboardInterrupt ***`` and
+  exits with code 2.
+
+The ``filter`` argparse dest deliberately shadows the builtin so the
+``option_dict`` it builds passes straight through to
+:func:`picmaker.pipeline.images_to_pics`. The per-file ``A002`` ruff
+ignore lives in ``pyproject.toml``.
 """
 
 

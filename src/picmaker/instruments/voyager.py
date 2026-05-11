@@ -1,14 +1,9 @@
-"""Voyager ISS detection and tint.
-
-Source: picmaker.py (pre-PR-3) lines 1589-1593 (VICAR detect),
-2245-2256 (filter dict), 2370-2374 (tint).
-"""
+"""Voyager ISS detection and tint."""
 
 from typing import Any
 
 from vicar import VicarError
 
-# Extracted verbatim from picmaker.py:2245-2256.
 FILTER_DICT: dict[str, tuple[int, int, int]] = {
     'UV': (200, 60, 255),
     'VIOLET': (200, 120, 255),
@@ -27,6 +22,13 @@ FILTER_DICT: dict[str, tuple[int, int, int]] = {
 def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     """Detect a Voyager ISS VICAR image.
 
+    Voyager VICAR labels carry their identifying string in ``LAB02`` (a
+    ``VGR`` prefix) and the filter name in characters 37..43 of
+    ``LAB03``; trailing spaces are stripped.
+
+    Parameters:
+        vic: A :class:`vicar.VicarImage` instance.
+
     Returns:
         ``('VOYAGER', 'ISS', filter_name)`` if the label identifies a
         Voyager ISS image, ``None`` otherwise.
@@ -40,26 +42,49 @@ def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
 
 
 def detect_fits(hdulist: Any) -> tuple[str, str, str] | None:
-    """Voyager ISS is not delivered as FITS — always returns ``None``."""
+    """Voyager ISS is not delivered as FITS — always returns ``None``.
+
+    Parameters:
+        hdulist: An ``astropy.io.fits`` HDU list (unused).
+
+    Returns:
+        Always ``None``.
+    """
     return None
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
-    """Host-level predicate. picmaker.py:2370 also accepts ``'VG'`` but
-    no current detection path produces such a host; preserve only the
-    ``'VOYAGER'`` prefix.
+    """Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.
+
+    Parameters:
+        inst_host: Instrument host string.
+        inst_id: Instrument id (e.g. ``'ISS'``).
+
+    Returns:
+        ``True`` for any host whose name starts with ``'VOYAGER'``.
     """
     return inst_host.startswith('VOYAGER')
 
 
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
-    """Return the full ``[black, tint, white]`` colormap.
+    """Return the full ``[black, tint, white]`` colormap for a Voyager filter.
 
-    Non-ISS Voyager instruments fall through to the 2-element white
-    colormap (matches picmaker.py:2374).
+    Non-ISS Voyager instruments fall through to the 2-element
+    ``[black, white]`` colormap. Unknown filter names raise
+    :class:`KeyError` (the caller is expected to surface that as a
+    "no colormap" condition).
 
-    Unknown filter names propagate ``KeyError`` to the caller — this
-    matches the original picmaker.py:2372 behavior.
+    Parameters:
+        inst_id: Instrument id (typically ``'ISS'``).
+        filter_name: A key into :data:`FILTER_DICT`.
+
+    Returns:
+        ``[(0, 0, 0), tint, (255, 255, 255)]`` for an ISS filter or
+        ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
+
+    Raises:
+        KeyError: If ``filter_name`` is not in :data:`FILTER_DICT` and
+            ``inst_id`` is an ISS instrument.
     """
     if not inst_id.startswith('ISS'):
         return [(0, 0, 0), (255, 255, 255)]

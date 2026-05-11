@@ -1,13 +1,13 @@
 """rms-picmaker — convert PDS3/VICAR/FITS images to JPEG, TIFF, etc.
 
-The package's public surface is re-exported here so that consumers can
-write::
+The package's public surface is re-exported from this module so that
+consumers can write::
 
     from picmaker import images_to_pics, read_one_image_array
 
-The legacy import path ``from picmaker.picmaker import X`` is still
-supported — every name exposed from this module is the same object as
-the one in :mod:`picmaker.picmaker` (identity-equal).
+The top-level pipeline entry point is :func:`images_to_pics`; the
+single-image reader is :func:`read_one_image_array`. The full set of
+public names is in :data:`__all__`.
 """
 
 try:

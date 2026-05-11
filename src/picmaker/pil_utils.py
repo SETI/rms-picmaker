@@ -111,9 +111,9 @@ def _one_pil_to_array(image: Any, rescale: bool) -> Any:
             array = array.astype('uint16')
         return array
 
-    # 8-bit grayscale case — the original `return` short-circuits the
-    # `rescale` branch below; this is preserved exactly for byte parity
-    # with the legacy implementation.
+    # 8-bit grayscale case: return the raw uint8 array verbatim — the
+    # `rescale` flag is ignored for this mode because the downstream
+    # consumers (filter, write) expect uint8 0..255.
     if image.mode == 'L':
         array = np.array(image.getdata(), dtype='uint8')
         return array.reshape((image.size[1], image.size[0]))

@@ -1,8 +1,4 @@
-"""Galileo SSI detection and tint.
-
-Source: picmaker.py (pre-PR-3) lines 1571-1586 (VICAR detect),
-2266-2277 (filter dict + names), 2399-2403 (tint).
-"""
+"""Galileo SSI detection and tint."""
 
 from typing import Any
 
@@ -34,8 +30,13 @@ FILTER_DICT: dict[str, tuple[int, int, int]] = {
 def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     """Detect a Galileo SSI VICAR image.
 
-    Tries the ``MISSION`` keyword first (picmaker.py:1573-1577), then
-    falls back to parsing ``LAB01`` / ``LAB03`` (picmaker.py:1581-1586).
+    Two label conventions are tried in order: the ``MISSION`` keyword
+    with a numeric ``FILTER`` index into :data:`FILTER_NAMES`, then a
+    ``GLL/SSI`` prefix in ``LAB01`` with ``FILTER=<digit>`` somewhere
+    in ``LAB03``.
+
+    Parameters:
+        vic: A :class:`vicar.VicarImage` instance.
 
     Returns:
         ``('GALILEO', 'SSI', filter_name)`` if the label identifies a
@@ -57,20 +58,48 @@ def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
 
 
 def detect_fits(hdulist: Any) -> tuple[str, str, str] | None:
-    """Galileo SSI is not delivered as FITS — always returns ``None``."""
+    """Galileo SSI is not delivered as FITS — always returns ``None``.
+
+    Parameters:
+        hdulist: An ``astropy.io.fits`` HDU list (unused).
+
+    Returns:
+        Always ``None``.
+    """
     return None
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
-    """Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`."""
+    """Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.
+
+    Parameters:
+        inst_host: Instrument host string.
+        inst_id: Instrument id (e.g. ``'SSI'``).
+
+    Returns:
+        ``True`` for any host whose name starts with ``'GALILEO'``.
+    """
     return inst_host.startswith('GALILEO')
 
 
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
-    """Return the full ``[black, tint, white]`` colormap.
+    """Return the full ``[black, tint, white]`` colormap for a Galileo filter.
 
-    Non-SSI Galileo instruments fall through to the 2-element white
-    colormap (matches picmaker.py:2403).
+    Only the SSI camera and the ``SOLID``-prefixed variants get a
+    coloured tint; every other Galileo instrument falls through to the
+    2-element ``[black, white]`` colormap.
+
+    Parameters:
+        inst_id: Instrument id.
+        filter_name: A key into :data:`FILTER_DICT`.
+
+    Returns:
+        ``[(0, 0, 0), tint, (255, 255, 255)]`` for an SSI filter or
+        ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
+
+    Raises:
+        KeyError: If ``filter_name`` is not in :data:`FILTER_DICT` and
+            ``inst_id`` selects the SSI path.
     """
     if not (inst_id == 'SSI' or inst_id.startswith('SOLID')):
         return [(0, 0, 0), (255, 255, 255)]

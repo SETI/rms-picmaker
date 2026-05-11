@@ -1,10 +1,10 @@
 """Top-level orchestration: walk directories, process one image, drive a movie.
 
-``process_images`` and ``images_to_pics`` are the CLI's main entry
-points; everything else is plumbing.
+:func:`process_images` and :func:`images_to_pics` are the CLI's main
+entry points; everything else in this module is plumbing.
 
-The ``filter`` keyword is preserved as ``filter`` (not renamed) for
-backward compatibility — the per-file ruff ignore for ``A002`` lives in
+The ``filter`` keyword on :func:`images_to_pics` deliberately shadows
+the builtin; the per-file ruff ignore for ``A002`` lives in
 ``pyproject.toml``.
 """
 
@@ -119,7 +119,10 @@ def process_images(
         )
 
     else:
-        results = None  # persists across filenames, matching legacy behavior
+        # `results` is declared outside the per-filename loop so the
+        # reuse-detection check below can fall through to the previous
+        # filename's output when obj/pointer match.
+        results = None
         for filename in filenames:
             prev_obj: Any = -1
             prev_pointer: Any = None
@@ -195,9 +198,10 @@ def images_to_pics(
 ) -> tuple[Any, Any, Any]:
     """Convert one or more image files to picture files.
 
-    See module-level docs and CLI ``--help`` for the meaning of each
-    keyword argument. ``filter`` shadows the builtin and is preserved
-    for backward compatibility.
+    See ``picmaker --help`` for the meaning of each keyword argument.
+    Note that ``filter`` deliberately shadows the builtin: the CLI's
+    ``--filter`` flag binds to this name and the rule is silenced by a
+    per-file ruff ignore.
 
     Parameters:
         filenames: List of image file names to convert.

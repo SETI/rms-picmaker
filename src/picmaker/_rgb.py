@@ -1,11 +1,14 @@
 """Wavelength → RGB lookup tables.
 
-Leaf module — no internal package imports — so that `color.py`,
-`instruments/hst.py`, and anyone else can use these tables without
-producing an import cycle.
+Maps wavelengths in the 380-750 nm range to an ``(R, G, B)`` triple
+suitable for tinting a grayscale image. ``RGB_BY_NM`` holds the raw
+table; ``RFUNC``, ``GFUNC``, and ``BFUNC`` are
+:class:`tabulation.Tabulation` splines that interpolate between
+adjacent rows so the caller can query at any wavelength.
 
-Source: ``picmaker.picmaker.py`` (pre-PR-3) module-level constants at
-lines 2279-2292.
+This module imports nothing from the rest of :mod:`picmaker`, which
+lets :mod:`picmaker.color` and :mod:`picmaker.instruments.hst` both
+read the same tables without forming an import cycle.
 """
 
 import numpy as np
@@ -13,7 +16,7 @@ from numpy.typing import NDArray
 from tabulation import Tabulation
 
 # [wavelength_nm, r, g, b] — values are floats (RGB channels can fall
-# between 60.5 and 255.999), NOT uint8.
+# between 60.5 and 255.999), so the dtype is float64, not uint8.
 RGB_BY_NM: NDArray[np.float64] = np.array(
     [
         [380.0, 200.500, 60.500, 255.999],  # uv

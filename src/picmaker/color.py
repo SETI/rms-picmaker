@@ -1,14 +1,14 @@
 """Mission-agnostic colormap dispatch.
 
-``tinted_colormap`` takes a ``(host, instrument, filter)`` triple from
-the I/O cascade and returns a per-filter colormap (or ``None``). The
-mission-specific logic lives in :mod:`picmaker.instruments`; this
+:func:`tinted_colormap` takes a ``(host, instrument, filter)`` triple
+from the I/O cascade and returns a per-filter colormap (or ``None``).
+The mission-specific logic lives in :mod:`picmaker.instruments`; this
 module's only job is to normalize the filter description and forward
-to ``instruments.lookup``.
+to :func:`picmaker.instruments.lookup`.
 
-The wavelength → RGB constants (``RGB_BY_NM``, ``RFUNC``, ``GFUNC``,
-``BFUNC``) are re-exported from :mod:`picmaker._rgb` so that callers
-that imported them from this module before PR 3 keep working.
+The wavelength → RGB constants ``RGB_BY_NM``, ``RFUNC``, ``GFUNC``, and
+``BFUNC`` are surfaced here as well as on :mod:`picmaker._rgb`, so that
+``from picmaker.color import RGB_BY_NM`` is a single short import.
 """
 
 
@@ -39,7 +39,8 @@ def tinted_colormap(filter_info: Any) -> list[tuple[int, int, int]] | None:
         return None
 
     # CL1/CL2/CLEAR*/N/A normalization for two-tuple filters (HST/ACS,
-    # WFPC2). Mirrors picmaker.py (pre-PR-3) lines 2314-2327 exactly.
+    # WFPC2): if either side is a "clear" marker, drop it; if both are
+    # clear, the colormap is plain black-white.
     if isinstance(filter_name, tuple):
         (filter1, filter2) = filter_name
         if filter1.startswith('CLEAR') or filter1 == 'CL1' or filter1 == 'N/A':
