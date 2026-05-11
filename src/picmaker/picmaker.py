@@ -1206,7 +1206,7 @@ def images_to_pics(filenames, directory=None, verbose=False, *,
             labelfile = ''
             if upperfile.endswith('.LBL'):
                 labelfile = infile
-                labeldict = pdsparser.PdsLabel.from_file(infile).as_dict()
+                labeldict = pdsparser.PdsLabel(infile).as_dict()
 
                 # Get the instrument info if available
                 filter_info = None
@@ -1739,18 +1739,18 @@ def read_pds_labeled_image_array(filename, obj=None):
 
     label = None
     try:
-        label = pdsparser.PdsLabel.from_file(filename)
+        label = pdsparser.PdsLabel(filename)
     except pdsparser.ParseException:
         (head,ext) = os.path.splitext(filename)
         if ext.lower() != '.lbl':
             if os.path.exists(head + '.lbl'):
                 try:
-                    label = pdsparser.PdsLabel.from_file(head + '.lbl')
+                    label = pdsparser.PdsLabel(head + '.lbl')
                 except pdsparser.ParseException:
                     pass
             elif os.path.exists(head + '.LBL'):
                 try:
-                    label = pdsparser.PdsLabel.from_file(head + '.LBL')
+                    label = pdsparser.PdsLabel(head + '.LBL')
                 except pdsparser.ParseException:
                     pass
 
