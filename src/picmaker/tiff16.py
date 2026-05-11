@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 ################################################################################
 # tiff16.py
 #
@@ -15,15 +14,23 @@
 # Mark R. Showalter, SETI Institute, July 2009
 ################################################################################
 
-from __future__ import print_function
+import sys
+from struct import pack, unpack
+from typing import Any
 
-import sys, os
 import numpy as np
-from struct import *
 from PIL import Image
 
-def WriteTiff16(filename, array, palette=None, up=False, byteorder="native",
-                translate=True, transpose=None):
+
+def WriteTiff16(
+    filename: str,
+    array: Any,
+    palette: Any = None,
+    up: bool = False,
+    byteorder: str = "native",
+    translate: bool = True,
+    transpose: Any = None,
+) -> None:
     """Writes a 16-bit TIFF file based on the contents of a 2-D or 3-D array.
     Three TIFF formats are supported: grayscale, RGB, and palette.
     
@@ -76,11 +83,11 @@ def WriteTiff16(filename, array, palette=None, up=False, byteorder="native",
     if up: array = np.flipud(array)
 
     # Apply transpose operation if needed
-    if transpose == Image.FLIP_LEFT_RIGHT: array = np.fliplr(array)
-    if transpose == Image.FLIP_TOP_BOTTOM: array = np.flipud(array)
-    if transpose == Image.ROTATE_90:       array = np.rot90(array,1)
-    if transpose == Image.ROTATE_180:      array = np.rot90(array,2)
-    if transpose == Image.ROTATE_270:      array = np.rot90(array,3)
+    if transpose == Image.Transpose.FLIP_LEFT_RIGHT: array = np.fliplr(array)
+    if transpose == Image.Transpose.FLIP_TOP_BOTTOM: array = np.flipud(array)
+    if transpose == Image.Transpose.ROTATE_90:       array = np.rot90(array,1)
+    if transpose == Image.Transpose.ROTATE_180:      array = np.rot90(array,2)
+    if transpose == Image.Transpose.ROTATE_270:      array = np.rot90(array,3)
 
     # Interpret the shape of the image
     if array.ndim == 3:
@@ -148,7 +155,7 @@ def WriteTiff16(filename, array, palette=None, up=False, byteorder="native",
     f.write(pack(o+"HHLL",  257, 4, 1, height))         # image height
 
     if is_rgb:                                          # bits per sample
-        f.write(pack(o+"HHLL", 258, 3, 3, after_offset + 16)) 
+        f.write(pack(o+"HHLL", 258, 3, 3, after_offset + 16))
     else:
         f.write(pack(o+"HHLHH", 258, 3, 1, 16, 0))
 
@@ -209,7 +216,11 @@ def WriteTiff16(filename, array, palette=None, up=False, byteorder="native",
     # Close the file
     f.close()
 
-def ReadTiff16(filename, up=False, transpose=None):
+def ReadTiff16(
+    filename: str,
+    up: bool = False,
+    transpose: Any = None,
+) -> tuple[Any, Any]:
     """Reads a 16-bit TIFF file that had been written by WriteTiff16. No other
     Tiff file formats are supported.
     
@@ -260,14 +271,14 @@ def ReadTiff16(filename, up=False, transpose=None):
 
     flag1 = f.read(1)
     flag2 = f.read(1)
-    if flag1 != flag2: raise IOError("File format is not TIFF")
+    if flag1 != flag2: raise OSError("File format is not TIFF")
 
     if   flag1 == b'I': o = "<"
     elif flag1 == b"M": o = ">"
-    else: raise IOError("File format is not TIFF")
+    else: raise OSError("File format is not TIFF")
 
     t = unpack(o+"H", f.read(2))
-    if t[0] != 42: IOError("File format is not TIFF")
+    if t[0] != 42: OSError("File format is not TIFF")
 
     t = unpack(o+"L", f.read(4))
     my_assert(t[0] == 8)
@@ -288,7 +299,7 @@ def ReadTiff16(filename, up=False, transpose=None):
     height = t[3]
 
     # if is_rgb:                                        # bits per sample
-    #     f.write(pack(o+"HHLL", 258, 3, 3, after_offset + 16)) 
+    #     f.write(pack(o+"HHLL", 258, 3, 3, after_offset + 16))
     # else:
     #     f.write(pack(o+"HHLHH", 258, 3, 1, 16, 0))
 
@@ -445,17 +456,11 @@ def ReadTiff16(filename, up=False, transpose=None):
         array = array.reshape(height, width)
 
     # Apply transpose operation if needed
-    # if transpose == Image.FLIP_LEFT_RIGHT: array = np.fliplr(array)
-    # if transpose == Image.FLIP_TOP_BOTTOM: array = np.flipud(array)
-    # if transpose == Image.ROTATE_90:       array = np.rot90(array,1)
-    # if transpose == Image.ROTATE_180:      array = np.rot90(array,2)
-    # if transpose == Image.ROTATE_270:      array = np.rot90(array,3)
-
-    if transpose == Image.FLIP_LEFT_RIGHT: array = np.fliplr(array)
-    if transpose == Image.FLIP_TOP_BOTTOM: array = np.flipud(array)
-    if transpose == Image.ROTATE_90:       array = np.rot90(array,3)
-    if transpose == Image.ROTATE_180:      array = np.rot90(array,2)
-    if transpose == Image.ROTATE_270:      array = np.rot90(array,1)
+    if transpose == Image.Transpose.FLIP_LEFT_RIGHT: array = np.fliplr(array)
+    if transpose == Image.Transpose.FLIP_TOP_BOTTOM: array = np.flipud(array)
+    if transpose == Image.Transpose.ROTATE_90:       array = np.rot90(array,3)
+    if transpose == Image.Transpose.ROTATE_180:      array = np.rot90(array,2)
+    if transpose == Image.Transpose.ROTATE_270:      array = np.rot90(array,1)
 
     # Flip if line numbers increase upward
     # if up: array = np.flipud(array)
@@ -467,7 +472,7 @@ def ReadTiff16(filename, up=False, transpose=None):
 
     return(array, palette)
 
-def my_assert(test):
+def my_assert(test: bool) -> None:
     if not test:
-        raise IOError("Not a recognized TIFF16 file.")
+        raise OSError("Not a recognized TIFF16 file.")
 

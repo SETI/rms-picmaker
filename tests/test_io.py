@@ -24,7 +24,7 @@ INSTRUMENT_FIXTURES = [
 
 @pytest.mark.parametrize(('fixture', 'expected', 'is_color'), INSTRUMENT_FIXTURES)
 def test_instrument_detection(
-    fixture: str, expected: tuple, is_color: bool, fixtures_dir: Path
+    fixture: str, expected: tuple[str, str, str], is_color: bool, fixtures_dir: Path
 ) -> None:
     array, color, detect = read_one_image_array(str(fixtures_dir / fixture), None)
     assert detect == expected

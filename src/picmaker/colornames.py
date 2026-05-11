@@ -1,4 +1,3 @@
-#!/usr/bin/python
 ################################################################################
 # colornames.py
 #
@@ -9,8 +8,10 @@
 ################################################################################
 
 import re
+from typing import Any
 
-class ColorNames():
+
+class ColorNames:
 
 # Extracted from /usr/X11/share/X11/rgb.txt
 
@@ -775,7 +776,7 @@ class ColorNames():
         re.IGNORECASE)
 
     @staticmethod
-    def lookup(name):
+    def lookup(name: str) -> Any:
 
         # Make sure it's a string
         if not isinstance(name, str):
@@ -809,12 +810,12 @@ class ColorNames():
             pass
 
         # Failing that, see if it is an RGB expression in () or []
-        test = ColorNames.RGB_PATTERN.match(name)
-        if test == None:
+        match = ColorNames.RGB_PATTERN.match(name)
+        if match is None:
             raise KeyError("Unrecognized color name: " + name.strip())
 
         # If so, evaluate and check values
-        if test.end() == len(name):
+        if match.end() == len(name):
             tuple = eval(name)
             for i in tuple:
                 if i > 255:

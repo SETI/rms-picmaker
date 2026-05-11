@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 from picmaker.picmaker import images_to_pics
 
@@ -36,7 +37,7 @@ ALL_FIXTURES = VICAR_FIXTURES + FITS_FIXTURES
 
 # Each combo is (slug, kwargs, extension). The slug becomes part of the
 # output filename; kwargs are passed through to images_to_pics.
-COMBOS: list[tuple[str, dict, str]] = [
+COMBOS: list[tuple[str, dict[str, Any], str]] = [
     ('default', {}, 'jpg'),
     ('gamma2', {'gamma': 2.0}, 'jpg'),
     ('pct5_95', {'percentiles': (5.0, 95.0)}, 'jpg'),
@@ -58,7 +59,7 @@ def _safe_name(fixture: str, slug: str, ext: str) -> str:
 
 
 def _generate_one(
-    fixture: Path, slug: str, kwargs: dict, ext: str, out_dir: Path
+    fixture: Path, slug: str, kwargs: dict[str, Any], ext: str, out_dir: Path
 ) -> Path | None:
     """Generate one snapshot. Returns the produced path or None on failure."""
     try:

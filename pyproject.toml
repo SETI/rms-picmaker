@@ -100,7 +100,7 @@ docs = [
 ]
 
 [project.scripts]
-picmaker = "picmaker.picmaker:main"
+picmaker = "picmaker.cli:main"
 
 # Tool configuration
 
@@ -108,7 +108,7 @@ picmaker = "picmaker.picmaker:main"
 branch = true
 parallel = true
 source = ["picmaker"]
-omit = ["tests/*", "_version.py"]
+omit = ["tests/*", "_version.py", "*/picmaker.py"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -137,6 +137,7 @@ module = [
 ]
 ignore_missing_imports = true
 
+
 [tool.ruff]
 target-version = "py310"
 line-length = 100
@@ -159,7 +160,32 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "A", "N", "PT", "RUF"]
 extend-ignore = ["PT011", "SIM105", "SIM108"]
 
 [tool.ruff.lint.per-file-ignores]
-#"TODO" = ["TODO"]
+# `filter` shadows the builtin in cli.py and pipeline.py — preserved for BC
+# (picmaker's images_to_pics has used `filter` as a kwarg name since v1).
+# `arrayRGB`, `arraysRGB`, `panelsRGB`, `quadsRGB` are preserved camelCase
+# names from the legacy API; renaming them would break BC for callers that
+# import these helpers from `picmaker.picmaker`.
+"src/picmaker/cli.py" = ["A002", "SIM102"]
+# RUF005 = `(N,) + shape` vs `(N, *shape)` — both legal, the former is the
+# legacy idiom and produces byte-identical numpy arrays.
+"src/picmaker/pipeline.py" = ["A002", "N806", "RUF005"]
+"src/picmaker/geometry.py" = ["N806", "SIM102"]
+"src/picmaker/io.py" = ["RUF005"]
+# tiff16.py is legacy 2009-era code (PascalCase function names, one-line
+# if/elif chains, non-context-manager `open()`). Modernization is out of
+# scope for PR 3.
+"src/picmaker/tiff16.py" = [
+  "E701", "N802", "N806", "E501", "E711", "W291", "W293", "SIM115",
+]
+# colornames.py is auto-generated legacy data; keep `ColorNames` class name.
+"src/picmaker/colornames.py" = [
+  "E701", "E711", "N801", "W291", "W293",
+  "A001",   # `tuple` is a parameter name in a tight helper
+  "RUF012", # ColorNames class-level dicts are intentional
+  "SIM102",
+]
+# Tests import legacy camelCase names for BC verification.
+"tests/test_*.py" = ["N806"]
 
 [tool.pymarkdown.plugins.md013]
 # Line length (disable so README/CONTRIBUTING can use longer lines).
