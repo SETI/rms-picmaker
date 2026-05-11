@@ -333,9 +333,8 @@ def _build_parser() -> argparse.ArgumentParser:
 def _separate_files_and_dirs(args: list[str]) -> tuple[list[str], list[str]]:
     """Split positional arguments into existing files vs. directories.
 
-    Mirrors picmaker.py (pre-PR-3) lines 513-522 exactly: trailing
-    slashes on directories are stripped; anything that is not an
-    existing file is treated as a directory.
+    Trailing slashes on directory paths are stripped; anything that is
+    not an existing file is treated as a directory.
     """
     filenames: list[str] = []
     directories: list[str] = []
@@ -354,7 +353,15 @@ def _normalize_and_validate(
 ) -> dict[str, Any]:
     """Run mutex checks, normalize parameter shapes, and build the option_dict.
 
-    Mirrors picmaker.py:564-717 line-for-line.
+    Args:
+        options: Parsed argparse Namespace.
+        replace: The validated ``--replace`` value (``'all'`` / ``'none'``
+            / ``'warn'`` / ``'error'``).
+        proceed: The validated ``--proceed`` flag.
+
+    Returns:
+        The ``option_dict`` consumed by ``images_to_pics``. Validation
+        failures raise :class:`ValueError`.
     """
     if options.hst:
         if options.band is not None or options.bands is not None:
@@ -492,7 +499,7 @@ def _normalize_and_validate(
 
 
 def main() -> None:
-    """Picmaker CLI entry point. Mirrors the legacy ``picmaker.picmaker.main``.
+    """Picmaker CLI entry point.
 
     Argparse usage errors raise :class:`SystemExit` (passed through).
     Validation errors raise :class:`ValueError`; the outer

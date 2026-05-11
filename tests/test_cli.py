@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 
-def _run(*args: str) -> subprocess.CompletedProcess:
+def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ['picmaker', *args], capture_output=True, text=True, check=False
     )

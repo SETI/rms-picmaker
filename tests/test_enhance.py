@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from picmaker.picmaker import (
@@ -14,7 +16,7 @@ from picmaker.picmaker import (
 class TestGetLimits:
     """Test get_limits function for histogram range calculation."""
 
-    def test_full_range_integer_extends_half_pixel(self, tiny_array) -> None:
+    def test_full_range_integer_extends_half_pixel(self, tiny_array: Any) -> None:
         """Verify that integer arrays extend histogram by 0.5 on each side."""
         # For integer arrays, get_limits extends the histogram from 0.5 below
         # min to 0.5 above max so the histogram is bucketed correctly.
@@ -22,7 +24,7 @@ class TestGetLimits:
         assert lo == -0.5
         assert hi == 255.5
 
-    def test_explicit_limits_passes_through(self, tiny_array) -> None:
+    def test_explicit_limits_passes_through(self, tiny_array: Any) -> None:
         """Verify that explicit limits parameter is passed through unchanged."""
         lo, hi = get_limits(tiny_array, mask=None, limits=(10, 200))
         assert (lo, hi) == (10, 200)

@@ -124,7 +124,9 @@ class TestRotateArrayRgb:
         ('ROT180', (3, 4)),
         ('ROT270', (4, 3)),
     ])
-    def test_named_rotations_run(self, name: str, expected_shape: tuple) -> None:
+    def test_named_rotations_run(
+        self, name: str, expected_shape: tuple[int, ...]
+    ) -> None:
         arr = self._make()
         out = rotate_array_rgb(arr.copy(), display_upward=False, rotation_name=name)
         assert out.shape == expected_shape

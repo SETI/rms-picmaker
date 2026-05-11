@@ -23,7 +23,7 @@ def test_unknown_filter_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
     assert any('UNKNOWN_FILTER_NAME' in r.message for r in caplog.records)
 
 
-def test_unknown_filter_does_not_print(capsys: pytest.CaptureFixture) -> None:
+def test_unknown_filter_does_not_print(capsys: pytest.CaptureFixture[str]) -> None:
     tinted_colormap(('HST', 'WFC3', 'UNKNOWN_FILTER_NAME'))
     captured = capsys.readouterr()
     assert 'UNKNOWN FILTER' not in captured.out

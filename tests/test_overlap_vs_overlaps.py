@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 
-def _run(*args: str) -> subprocess.CompletedProcess:
+def _run(*args: str) -> subprocess.CompletedProcess[str]:
     """Run picmaker CLI with given arguments.
 
     Args:

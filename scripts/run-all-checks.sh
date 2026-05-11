@@ -380,7 +380,7 @@ run_code_checks() {
         # __init__.py and the module-name patterns mypy supports don't match
         # bare files. The pyproject overrides for "test_*" are kept for
         # future use (e.g., adding tests/__init__.py).
-        if MYPYPATH=src python -m mypy src; then
+        if MYPYPATH=src python -m mypy src tests; then
             print_success "Mypy passed"
         else
             print_error "Mypy failed"

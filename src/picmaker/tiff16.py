@@ -16,13 +16,21 @@
 
 import sys
 from struct import pack, unpack
+from typing import Any
 
 import numpy as np
 from PIL import Image
 
 
-def WriteTiff16(filename, array, palette=None, up=False, byteorder="native",
-                translate=True, transpose=None):
+def WriteTiff16(
+    filename: str,
+    array: Any,
+    palette: Any = None,
+    up: bool = False,
+    byteorder: str = "native",
+    translate: bool = True,
+    transpose: Any = None,
+) -> None:
     """Writes a 16-bit TIFF file based on the contents of a 2-D or 3-D array.
     Three TIFF formats are supported: grayscale, RGB, and palette.
     
@@ -208,7 +216,11 @@ def WriteTiff16(filename, array, palette=None, up=False, byteorder="native",
     # Close the file
     f.close()
 
-def ReadTiff16(filename, up=False, transpose=None):
+def ReadTiff16(
+    filename: str,
+    up: bool = False,
+    transpose: Any = None,
+) -> tuple[Any, Any]:
     """Reads a 16-bit TIFF file that had been written by WriteTiff16. No other
     Tiff file formats are supported.
     
@@ -460,7 +472,7 @@ def ReadTiff16(filename, up=False, transpose=None):
 
     return(array, palette)
 
-def my_assert(test):
+def my_assert(test: bool) -> None:
     if not test:
         raise OSError("Not a recognized TIFF16 file.")
 

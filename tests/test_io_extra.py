@@ -75,7 +75,9 @@ class TestReadPdsLabeledImageArray:
     def test_minimal_pds3_sample(self, fixtures_dir: Path) -> None:
         # read_pds_labeled_image_array returns (array3d, default_is_up,
         # filter_info) or None — matches the read_one_image_array contract.
-        arr, _default_is_up, _filter_info = read_pds_labeled_image_array(
+        result = read_pds_labeled_image_array(
             str(fixtures_dir / 'pds3_sample.IMG'), 'IMAGE'
         )
+        assert result is not None
+        arr, _default_is_up, _filter_info = result
         assert arr.shape == (1, 8, 8)

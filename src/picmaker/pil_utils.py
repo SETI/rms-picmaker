@@ -143,14 +143,14 @@ def write_pil(image: Any, outfile: str | os.PathLike[str], quality: int = 75) ->
         array = array.reshape((image[c].size[1], image[c].size[0], 3))
         array = array.clip(0, 65535).astype('uint16')
 
-        WriteTiff16(str(outfile_path), array)  # type: ignore[no-untyped-call]
+        WriteTiff16(str(outfile_path), array)
 
     elif image.mode == 'I':
         array = np.array(image.getdata(), dtype='int32')
         array = array.reshape((image.size[1], image.size[0], 1))
         array = array.clip(0, 65535).astype('uint16')
 
-        WriteTiff16(str(outfile_path), array)  # type: ignore[no-untyped-call]
+        WriteTiff16(str(outfile_path), array)
 
     else:
         image.save(str(outfile_path), quality=quality)

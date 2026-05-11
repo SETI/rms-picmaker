@@ -280,7 +280,7 @@ def apply_colormap(
     for i in range(len(highlights)):
         if highlights[i]:
             if isinstance(highlights[i], str):
-                highlights[i] = ColorNames.lookup(highlights[i])  # type: ignore[no-untyped-call]
+                highlights[i] = ColorNames.lookup(highlights[i])
 
             highlights[i] = np.array(highlights[i][:], 'float') / 255.0
 
@@ -296,7 +296,7 @@ def apply_colormap(
     if colormap:
         if isinstance(colormap, str):
             names = colormap.split('-')
-            colormap = [ColorNames.lookup(name) for name in names]  # type: ignore[no-untyped-call]
+            colormap = [ColorNames.lookup(name) for name in names]
 
         if len(colormap) == 1:
             colormap = [(0, 0, 0), colormap[0], (255, 255, 255)]

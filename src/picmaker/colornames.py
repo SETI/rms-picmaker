@@ -8,6 +8,7 @@
 ################################################################################
 
 import re
+from typing import Any
 
 
 class ColorNames:
@@ -775,7 +776,7 @@ class ColorNames:
         re.IGNORECASE)
 
     @staticmethod
-    def lookup(name):
+    def lookup(name: str) -> Any:
 
         # Make sure it's a string
         if not isinstance(name, str):

@@ -137,36 +137,20 @@ module = [
 ]
 ignore_missing_imports = true
 
-# Legacy 2009-era modules — not type-annotated yet. Their public functions
-# are wrapped at the picmaker.io / picmaker.pil_utils boundary so the typed
-# code only sees `Any`.
+# Legacy 2009-era modules use light public-API annotations (Any-typed)
+# so the typed callers in picmaker.io / picmaker.pil_utils / picmaker.enhance
+# / picmaker.geometry don't see no-untyped-call. Internal bodies are not
+# strictly checked — they predate this codebase's annotation rules.
 [[tool.mypy.overrides]]
 module = ["picmaker.tiff16", "picmaker.colornames"]
 disallow_untyped_defs = false
-disallow_untyped_calls = false
+disallow_incomplete_defs = false
 disable_error_code = [
   "no-untyped-def",
-  "no-untyped-call",
   "var-annotated",
   "assignment",
   "attr-defined",
 ]
-
-# Tests are not held to the same strictness as library code. Pytest test
-# functions are conventionally written without return annotations, and
-# subprocess-driven tests don't care about CompletedProcess generics.
-# Module names match the bare filename (e.g. ``test_io``) because the
-# ``tests/`` directory is not a Python package.
-[[tool.mypy.overrides]]
-module = [
-  "test_*",
-  "conftest",
-  "snapshots_index",
-  "generate_snapshots",
-  "regenerate_all",
-  "*.recipe",
-]
-ignore_errors = true
 
 [tool.ruff]
 target-version = "py310"

@@ -489,7 +489,7 @@ def wrap_image(
     """
     if gap_size > 0:
         if isinstance(gap_color, str):
-            gap_color = list(ColorNames.lookup(gap_color))  # type: ignore[no-untyped-call]
+            gap_color = list(ColorNames.lookup(gap_color))
     else:
         gap_color = [0, 0, 0]
 
@@ -583,7 +583,7 @@ def pad_image(image: Any, frame: Any, pad_color: Any) -> Any:
         return image
 
     if isinstance(pad_color, str):
-        pad_color = list(ColorNames.lookup(pad_color))  # type: ignore[no-untyped-call]
+        pad_color = list(ColorNames.lookup(pad_color))
 
     array = pil_to_array(image, rescale=False)
     array = np.atleast_3d(array)

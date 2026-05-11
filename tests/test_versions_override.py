@@ -22,7 +22,7 @@ def two_versions_replace_all(tmp_path: Path) -> Path:
     return f
 
 
-def _run_picmaker(*args: str) -> subprocess.CompletedProcess:
+def _run_picmaker(*args: str) -> subprocess.CompletedProcess[str]:
     # Use the installed `picmaker` entry-point so that sys.argv looks the
     # same as when an end-user invokes the CLI (matters for --versions which
     # rebuilds args via sys.argv[1:]).

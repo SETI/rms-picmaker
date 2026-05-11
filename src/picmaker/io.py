@@ -393,7 +393,7 @@ def read_pil(infile: str | os.PathLike[str]) -> Any:
     testfile = infile_str.upper()
     if testfile.endswith('.TIFF') or testfile.endswith('.TIF'):
         try:
-            (array, palette) = ReadTiff16(infile_str)  # type: ignore[no-untyped-call]
+            (array, palette) = ReadTiff16(infile_str)
         except OSError:
             array = None
             palette = None
@@ -425,7 +425,7 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
     testfile = infile_str.upper()
     if testfile.endswith('.TIFF') or testfile.endswith('.TIF'):
         try:
-            (array, palette) = ReadTiff16(infile_str)  # type: ignore[no-untyped-call]
+            (array, palette) = ReadTiff16(infile_str)
         except OSError:
             array = None
             palette = None

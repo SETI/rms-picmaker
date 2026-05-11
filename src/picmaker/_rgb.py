@@ -8,13 +8,13 @@ Source: ``picmaker.picmaker.py`` (pre-PR-3) module-level constants at
 lines 2279-2292.
 """
 
-from typing import Any
-
 import numpy as np
+from numpy.typing import NDArray
 from tabulation import Tabulation
 
-# [wavelength_nm, r, g, b]
-RGB_BY_NM: Any = np.array(
+# [wavelength_nm, r, g, b] — values are floats (RGB channels can fall
+# between 60.5 and 255.999), NOT uint8.
+RGB_BY_NM: NDArray[np.float64] = np.array(
     [
         [380.0, 200.500, 60.500, 255.999],  # uv
         [410.0, 200.500, 110.500, 255.999],  # violet
@@ -27,8 +27,8 @@ RGB_BY_NM: Any = np.array(
     ]
 )
 
-RFUNC: Any = Tabulation(RGB_BY_NM[:, 0], RGB_BY_NM[:, 1])
-GFUNC: Any = Tabulation(RGB_BY_NM[:, 0], RGB_BY_NM[:, 2])
-BFUNC: Any = Tabulation(RGB_BY_NM[:, 0], RGB_BY_NM[:, 3])
+RFUNC: Tabulation = Tabulation(RGB_BY_NM[:, 0], RGB_BY_NM[:, 1])
+GFUNC: Tabulation = Tabulation(RGB_BY_NM[:, 0], RGB_BY_NM[:, 2])
+BFUNC: Tabulation = Tabulation(RGB_BY_NM[:, 0], RGB_BY_NM[:, 3])
 
 __all__ = ['BFUNC', 'GFUNC', 'RFUNC', 'RGB_BY_NM']
