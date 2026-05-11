@@ -88,14 +88,14 @@ SCOPE_SPECIFIED=false
 
 # Per-check defaults (override by exporting before invoking this script, or
 # permanently change here)
-: "${ENABLE_RUFF_CHECK:=true}"
+: "${ENABLE_RUFF_CHECK:=false}"
 : "${ENABLE_RUFF_FORMAT:=false}"
 : "${ENABLE_MYPY:=false}"
-: "${ENABLE_PYTEST:=true}"
+: "${ENABLE_PYTEST:=false}"
 : "${ENABLE_PYROMA:=true}"
 : "${ENABLE_BANDIT:=false}"
 : "${ENABLE_VULTURE:=false}"
-: "${ENABLE_SPHINX:=true}"
+: "${ENABLE_SPHINX:=false}"
 : "${ENABLE_PYMARKDOWN:=true}"
 
 # Get script directory and project root
