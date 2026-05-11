@@ -65,9 +65,11 @@ class TestReadPdsLabeledImageArray:
     @pytest.mark.skip(
         reason=(
             'read_pds_labeled_image_array is broken against the current '
-            'pdsparser API: it iterates `for node in label` expecting '
-            '`node.name`, and references `pdsparser.PdsOffsetPointer` which '
-            'no longer exists. PR 3 will fix the reader.'
+            'pdsparser API. The constructor was patched on this branch '
+            '(PdsLabel.from_file → PdsLabel) but the body still iterates '
+            '`for node in label` expecting `node.name` and references '
+            '`pdsparser.PdsOffsetPointer`, which raises AttributeError. '
+            'PR 3 will rewrite the reader against the dict-style API.'
         )
     )
     def test_minimal_pds3_sample(self, fixtures_dir: Path) -> None:
