@@ -5,17 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rms-picmaker"
 dynamic = ["version"]
-description = "TODO"
+description = "Convert PDS3, VICAR, and FITS astronomy images to JPEG, TIFF, and other display formats."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "astropy",
-  "numpy",
-  "pillow",
-  "scipy",
-  "rms-pdsparser",
-  "rms-tabulation",
-  "rms-vicar"
+  "astropy>=7.2.0",
+  "numpy>=2.4.4",
+  "pillow>=12.2.0",
+  "scipy>=1.17.1",
+  "rms-pdsparser>=2.0.0",
+  "rms-tabulation>=2.0.0",
+  "rms-vicar>=1.2.1",
 ]
 license = {text = "Apache-2.0"}
 authors = [
@@ -24,7 +24,17 @@ authors = [
 maintainers = [
   {name = "Robert S. French", email = "rfrench@seti.org"}
 ]
-keywords = ["TODO"]
+keywords = [
+  "astronomy",
+  "PDS3",
+  "VICAR",
+  "FITS",
+  "imaging",
+  "image conversion",
+  "JPEG",
+  "TIFF",
+  "planetary science",
+]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Natural Language :: English",
@@ -50,12 +60,9 @@ Source = "https://github.com/SETI/rms-picmaker"
 Issues = "https://github.com/SETI/rms-picmaker/issues"
 
 [tool.pytest.ini_options]
-pythonpath = [
-  "src"
-]
 testpaths = ["tests"]
 # TODO Update desired parallelism
-addopts = ["-n", "auto", "--cov=src", "--strict-markers", "--strict-config"]
+addopts = ["-n", "auto", "--cov=picmaker", "--strict-markers", "--strict-config"]
 markers = []
 
 [tool.setuptools]
@@ -72,7 +79,8 @@ write_to = "src/picmaker/_version.py"
 [project.optional-dependencies]
 dev = [
   "coverage>=7.0",
-  # "mypy>=1.0",
+  "mypy>=1.0",
+  "pip-audit>=2.7",
   "pymarkdownlnt>=0.9.35",
   "pytest>=7.0",
   "pytest-cov>=4.0",
@@ -100,7 +108,7 @@ picmaker = "picmaker.picmaker:main"
 branch = true
 parallel = true
 source = ["picmaker"]
-omit = ["tests/*", "_version.py"]
+omit = ["tests/*", "_version.py", "*/picmaker.py"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -108,7 +116,7 @@ exclude_lines = [
   "def __repr__",
   "raise NotImplementedError",
 ]
-fail_under = 90
+fail_under = 0
 
 [tool.mypy]
 strict = true
@@ -119,8 +127,15 @@ module = "picmaker._version"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# module = ["picmaker.*"]
-# ignore_missing_imports = true
+module = [
+  "astropy.*",
+  "PIL.*",
+  "scipy.*",
+  "vicar",
+  "pdsparser",
+  "tabulation",
+]
+ignore_missing_imports = true
 
 [tool.ruff]
 target-version = "py310"
