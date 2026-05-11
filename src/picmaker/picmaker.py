@@ -24,19 +24,13 @@ from scipy.stats import rankdata
 from PIL import Image, ImageFilter
 
 from vicar import VicarImage, VicarError
-from colornames import ColorNames
-from tiff16 import WriteTiff16, ReadTiff16
+from picmaker.colornames import ColorNames
+from picmaker.tiff16 import WriteTiff16, ReadTiff16
 import pdsparser
 from tabulation import Tabulation
 import pickle
 
-# Use astropy.io.fits if possible; old pyfits is a backup option
-try:
-    import astropy.io.fits as pyfits
-except ImportError:
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore')
-        import pyfits
+import astropy.io.fits as pyfits
 
 ################################################################################
 # Command-line program

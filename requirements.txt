@@ -1,9 +1,5 @@
-astropy
-coverage
-numpy
-pytest
-scipy
-pillow
-rms-pdsparser
-rms-tabulation
-rms-vicar
+# Install the package in editable mode. For development (tests, lint, type-check, docs) use:
+#   pip install -e ".[dev]"
+# For documentation build only:
+#   pip install -e ".[docs]"
+-e .
