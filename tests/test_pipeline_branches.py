@@ -325,7 +325,7 @@ def test_process_images_movie_failure_raises(tmp_path: Path) -> None:
     # The first read failure propagates out of the inner images_to_pics
     # call rather than hitting the "unable to process movie" guard,
     # because proceed=False re-raises before the movie pass finishes.
-    with pytest.raises((OSError, Exception)):
+    with pytest.raises(OSError, match='Unrecognized image file format'):
         process_images([str(bogus)], str(tmp_path / 'out'), True, [od])
 
 

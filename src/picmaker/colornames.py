@@ -9,10 +9,26 @@
 
 import ast
 import re
-from typing import Any, ClassVar
+from typing import ClassVar
 
 
 class ColorNames:
+    """Standard X11 color-name → RGB lookup.
+
+    Exposes the X11 ``rgb.txt`` color table as
+    :attr:`COLOR_NAME_DICT` (and the case-insensitive,
+    whitespace-stripped variant :attr:`COLOR_NAME_LOWER_DICT`) plus a
+    single entry point :meth:`lookup` that resolves the following
+    input forms:
+
+    * A canonical name (``'IndianRed'``, ``'red'``, ``'white smoke'``).
+    * A case-insensitive variant with spaces, dashes, or underscores
+      stripped (``'INDIAN_RED'``, ``'mint-cream'``).
+    * An RGB container expressed as ``'(r, g, b)'`` or ``'[r, g, b]'``.
+
+    The class has no instance state; every entry point is a
+    :func:`staticmethod`.
+    """
 
     # Extracted from /usr/X11/share/X11/rgb.txt
     COLOR_NAME_DICT: ClassVar[dict[str, tuple[int, int, int]]] = {
@@ -780,8 +796,28 @@ class ColorNames:
         re.IGNORECASE)
 
     @staticmethod
-    def lookup(name: str) -> Any:
+    def lookup(name: str) -> tuple[int, int, int]:
+        """Resolve a color name or RGB expression to a ``(r, g, b)`` triple.
 
+        Parameters:
+            name: A canonical X11 color name (case-sensitive), a
+                case-insensitive variant with spaces / dashes /
+                underscores stripped, or an RGB container expressed as
+                ``'(r, g, b)'`` or ``'[r, g, b]'`` (parsed via
+                :func:`ast.literal_eval`).
+
+        Returns:
+            The ``(r, g, b)`` triple with each channel in ``[0, 255]``.
+            Bracketed ``'[r, g, b]'`` inputs are also returned as
+            tuples (the parser normalizes lists to tuples on the way
+            out).
+
+        Raises:
+            TypeError: If ``name`` is not a string.
+            KeyError: If ``name`` matches no known X11 color and no
+                RGB expression in ``()`` / ``[]``.
+            ValueError: If a parsed RGB component exceeds 255.
+        """
         # Make sure it's a string
         if not isinstance(name, str):
             raise TypeError("Colorname must be a string: " + str(name))
@@ -833,4 +869,7 @@ class ColorNames:
             if i > 255:
                 raise ValueError("Color value out of range: " + name)
 
-        return rgb
+        # Normalize ``[r, g, b]`` lists to ``(r, g, b)`` tuples so the
+        # return type is consistent regardless of the bracketing the
+        # caller used.
+        return tuple(rgb)

@@ -54,9 +54,10 @@ class TestRgbExpression:
         assert ColorNames.lookup('(255, 128, 0)') == (255, 128, 0)
 
     def test_rgb_brackets_expression(self) -> None:
-        # Bracket form `[100, 100, 100]` parses but returns a list (eval result),
-        # not a tuple — documenting the actual current behavior.
-        assert ColorNames.lookup('[100, 100, 100]') == [100, 100, 100]
+        # Bracket form `[100, 100, 100]` parses via ast.literal_eval and is
+        # normalized to a ``(r, g, b)`` tuple before being returned, so the
+        # two bracketing styles produce identical results.
+        assert ColorNames.lookup('[100, 100, 100]') == (100, 100, 100)
 
     def test_rgb_out_of_range_raises(self) -> None:
         with pytest.raises(ValueError, match='Color value out of range'):

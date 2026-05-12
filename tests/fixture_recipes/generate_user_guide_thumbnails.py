@@ -27,9 +27,9 @@ from typing import Any
 
 from picmaker.pipeline import images_to_pics
 
-HERE = Path(__file__).parent
-FIXTURES = HERE.parent / 'fixtures'
-OUT_DIR = HERE.parent.parent / 'docs' / '_static' / 'user_guide'
+_HERE = Path(__file__).parent
+_FIXTURES = _HERE.parent / 'fixtures'
+_OUT_DIR = _HERE.parent.parent / 'docs' / '_static' / 'user_guide'
 
 INSTRUMENT_GALLERY: list[tuple[str, str, dict[str, Any], str]] = [
     # (output_slug, fixture, kwargs, extension)
@@ -95,7 +95,7 @@ def _generate_one(
     Returns:
         The produced path, or ``None`` on failure.
     """
-    fixture = FIXTURES / fixture_name
+    fixture = _FIXTURES / fixture_name
     if not fixture.exists():
         print(f'  SKIP {slug}: fixture {fixture_name} missing')
         return None
@@ -129,9 +129,9 @@ def _generate_one(
 
 
 def main() -> int:
-    """Render every gallery entry in :data:`ALL_GALLERIES` into :data:`OUT_DIR`.
+    """Render every gallery entry in :data:`ALL_GALLERIES` into :data:`_OUT_DIR`.
 
-    Creates :data:`OUT_DIR` if it does not already exist, then calls
+    Creates :data:`_OUT_DIR` if it does not already exist, then calls
     :func:`_generate_one` for each ``(slug, fixture, kwargs, ext)``
     tuple. Per-entry failures are logged and skipped rather than aborting
     the run. Prints a one-line summary of survivors / total.
@@ -139,14 +139,14 @@ def main() -> int:
     Returns:
         Process exit code (always ``0`` — failures are logged, not raised).
     """
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    _OUT_DIR.mkdir(parents=True, exist_ok=True)
     survivors = 0
     for slug, fixture_name, kwargs, ext in ALL_GALLERIES:
-        path = _generate_one(slug, fixture_name, kwargs, ext, OUT_DIR)
+        path = _generate_one(slug, fixture_name, kwargs, ext, _OUT_DIR)
         if path is not None:
             survivors += 1
             print(f'  ok {path.name}')
-    print(f'\nemitted {survivors}/{len(ALL_GALLERIES)} thumbnails to {OUT_DIR}')
+    print(f'\nemitted {survivors}/{len(ALL_GALLERIES)} thumbnails to {_OUT_DIR}')
     return 0
 
 

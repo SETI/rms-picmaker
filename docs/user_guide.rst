@@ -455,7 +455,7 @@ Processing options
      - Default
      - Effect
    * - ``-f NAME``, ``--filter NAME``
-     - ``filter``
+     - ``filter_name``
      - ``'none'``
      - One of the PIL :mod:`PIL.ImageFilter` presets (``blur``,
        ``contour``, ``detail``, ``edge_enhance``, ``edge_enhance_more``,

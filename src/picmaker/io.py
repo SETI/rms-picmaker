@@ -175,9 +175,8 @@ def read_one_image_array(
 
     if test == b'SIMPLE  =':
         try:
-            with warnings.catch_warnings():
+            with warnings.catch_warnings(), pyfits.open(filename_str) as hdulist:
                 warnings.filterwarnings('error')
-                hdulist = pyfits.open(filename_str)
                 _fitsobj = hdulist[0]  # IndexError if not FITS
 
                 filter_info = None
@@ -239,7 +238,6 @@ def read_one_image_array(
                 if len(array3d.shape) == 2:
                     array3d = array3d.reshape((1,) + array3d.shape)
 
-                hdulist.close()
                 return ReadResult(array3d, True, filter_info)
 
         except (UserWarning, OSError) as exc:

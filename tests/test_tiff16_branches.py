@@ -26,11 +26,15 @@ def test_tiff16_rgb_write(tmp_path: Path) -> None:
 
 
 def test_tiff16_three_d_grayscale(tmp_path: Path) -> None:
-    """A 3-D ``(h, w, 1)`` grayscale array is reduced and written."""
+    """A 3-D ``(h, w, 1)`` grayscale array round-trips through tiff16."""
     arr = (np.arange(64, dtype='uint16') * 100).reshape(8, 8, 1)
     out = tmp_path / 'gray3d.tiff'
     WriteTiff16(str(out), arr)
-    assert out.exists()
+    array, palette = ReadTiff16(str(out))
+    assert palette is None
+    # Read back as 2-D; reshape the input the same way for comparison.
+    assert array.shape == (8, 8)
+    np.testing.assert_array_equal(array, arr.reshape(8, 8))
 
 
 def test_tiff16_big_endian(tmp_path: Path) -> None:
@@ -39,8 +43,10 @@ def test_tiff16_big_endian(tmp_path: Path) -> None:
     out = tmp_path / 'big.tiff'
     WriteTiff16(str(out), arr, byteorder='big')
     array, palette = ReadTiff16(str(out))
-    assert array.shape == (8, 8) or array.shape == (8, 8, 1)
+    array = np.squeeze(array)
+    assert array.shape == (8, 8)
     assert palette is None
+    np.testing.assert_array_equal(array, arr)
 
 
 def test_tiff16_transpose_rotate90(tmp_path: Path) -> None:
@@ -48,12 +54,21 @@ def test_tiff16_transpose_rotate90(tmp_path: Path) -> None:
     arr = (np.arange(64, dtype='uint16') * 100).reshape(8, 8)
     out = tmp_path / 'rot.tiff'
     WriteTiff16(str(out), arr, transpose=Image.Transpose.ROTATE_90)
-    assert out.exists()
+    array, _ = ReadTiff16(str(out))
+    array = np.squeeze(array)
+    # WriteTiff16 applies np.rot90(arr, 1) before writing; the round
+    # trip should produce the same 90-degree rotated array.
+    np.testing.assert_array_equal(array, np.rot90(arr, 1))
 
 
 def test_tiff16_up_flag_flips_vertically(tmp_path: Path) -> None:
-    """``up=True`` flips the image before writing."""
+    """``up=True`` flips the image vertically before writing."""
     arr = (np.arange(64, dtype='uint16') * 100).reshape(8, 8)
     out = tmp_path / 'up.tiff'
     WriteTiff16(str(out), arr, up=True)
-    assert out.exists()
+    array, _ = ReadTiff16(str(out))
+    array = np.squeeze(array)
+    assert array.shape == (8, 8)
+    # The writer flipped vertically on disk, so the round trip
+    # (without ``up=True`` on the read) returns the flipped array.
+    np.testing.assert_array_equal(array, np.flipud(arr))

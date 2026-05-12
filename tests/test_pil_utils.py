@@ -29,11 +29,19 @@ class TestRoundTrip:
         """rescale=True returns a float array in [0, 1] for grayscale.
 
         Regression test for issue #10: ``_one_pil_to_array`` previously
-        ignored ``rescale`` for ``'L'`` mode and returned a raw ``uint8``
-        array.
+        ignored ``rescale`` for ``'L'`` mode and returned a raw
+        ``uint8`` array.
+
+        The input ``arange(64).reshape(8, 8)`` (values 0..63) is
+        deliberately outside the documented ``[0, 1]`` range, so
+        ``array_to_pil(rescale=True)`` saturates every non-zero pixel
+        to ``uint8`` 255. After ``pil_to_array(rescale=True)`` divides
+        by 255 those pixels round-trip to exactly ``1.0`` and the
+        ``arr[0, 0] == 0`` pixel comes back as ``0.0``.
         """
         arr = np.arange(64, dtype=np.float64).reshape(8, 8)
         img = array_to_pil(arr, rescale=True)
         back = pil_to_array(img, rescale=True)
-        assert back.dtype == np.float64
-        assert back.max() <= 1.0
+        expected = np.ones((8, 8), dtype=np.float64)
+        expected[0, 0] = 0.0
+        np.testing.assert_array_equal(back, expected)

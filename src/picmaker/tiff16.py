@@ -102,16 +102,22 @@ def WriteTiff16(
         else:
             translate_to_rgb = False
 
-        # Intepret the byte order
-        if byteorder.lower() == "native":
+        # Interpret the byte order. Validate explicitly so an unknown
+        # `byteorder` value fails fast rather than silently being
+        # treated as big-endian.
+        byteorder = byteorder.lower()
+        if byteorder == "native":
             byteorder = sys.byteorder
-
-        if byteorder.lower() == "little":
+        if byteorder == "little":
             o = "<"
             flag = b"I"
-        else:
+        elif byteorder == "big":
             o = ">"
             flag = b"M"
+        else:
+            raise ValueError(
+                f"byteorder must be 'native', 'little', or 'big'; got {byteorder!r}"
+            )
 
         # Write the Image File Header
         #------- 0 bytes

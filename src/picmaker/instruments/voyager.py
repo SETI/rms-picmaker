@@ -83,7 +83,8 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
         ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
 
     Raises:
-        KeyError: If ``filter_name`` is not in :data:`picmaker.instruments.voyager.FILTER_DICT` and
+        KeyError: If ``filter_name`` is not in
+            :data:`picmaker.instruments.voyager.FILTER_DICT` and
             ``inst_id`` is an ISS instrument.
     """
     if not inst_id.startswith('ISS'):

@@ -106,10 +106,9 @@ class PicmakerOptions:
                 and self.extension.lower()[:3] != 'tif'
             ):
                 raise ValueError('only tiffs can be written in 16-bit mode')
-            if (
-                self.filter_name is not None
-                and self.filter_name.lower() != 'none'
-            ):
+            # ``filter_name`` is typed as ``str`` with default ``'NONE'``,
+            # so we only need to compare the value directly.
+            if self.filter_name.lower() != 'none':
                 raise ValueError('16-bit filter options are not supported')
 
     def to_kwargs(self) -> dict[str, Any]:

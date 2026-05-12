@@ -64,10 +64,13 @@ def find_common_path(directories: list[str]) -> str:
         return ''
 
     # Treat root-only common paths ('/' on POSIX, '\\' on Windows, or a
-    # bare drive letter like 'C:\\') as "no useful prefix" so the legacy
+    # bare drive root like 'C:\\') as "no useful prefix" so the legacy
     # behavior is preserved (the old implementation rejected commons
-    # that had no slash at position >= 1).
-    if len(result) <= 1 or result == os.sep:
+    # that had no slash at position >= 1). os.path.splitdrive separates
+    # the drive anchor from the rest so we can detect drive-only roots
+    # on Windows in addition to the platform separator.
+    _drive, rest = os.path.splitdrive(result)
+    if not rest or rest == os.sep:
         return ''
     return result
 
@@ -98,6 +101,12 @@ def process_images(
 
     results: Any
     if movie:
+        # Validate input shape before indexing option_dicts[0]. An empty
+        # option_dicts in movie mode is a programming error from the
+        # caller; raising up-front is clearer than the IndexError that
+        # the next line would otherwise produce.
+        if not option_dicts:
+            raise ValueError('movie mode requires at least one option_dict')
         # Use ValueError (not `assert`) so the check survives `python -O`,
         # which strips assertions and would otherwise let an inconsistent
         # `proceed` slip through movie mode silently.

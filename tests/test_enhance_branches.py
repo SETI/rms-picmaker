@@ -70,9 +70,12 @@ def test_get_limits_with_footprint_filter() -> None:
     """``footprint=N`` applies a median filter that narrows the limits."""
     arr = np.zeros((16, 16), dtype='uint16')
     arr[8, 8] = 200  # single outlier
-    _lo, hi = get_limits(arr, None, None, (0.0, 100.0), footprint=3)
-    # The 3-pixel circular footprint median pulls the outlier down.
-    assert hi <= 200 + 0.5
+    lo, hi = get_limits(arr, None, None, (0.0, 100.0), footprint=3)
+    # The 3x3 circular median of a single-outlier array is zero
+    # everywhere (the outlier is outvoted), so the filtered min and
+    # max both collapse to 0 and `hi` lands exactly at 0.
+    assert lo == 0
+    assert hi == 0
 
 
 def test_get_limits_with_trim() -> None:
