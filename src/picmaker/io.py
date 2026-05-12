@@ -10,8 +10,9 @@ non-``picmaker`` file unchanged.
 import os
 import pickle
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 import astropy.io.fits as pyfits
 import numpy as np
@@ -29,6 +30,14 @@ from picmaker.tiff16 import ReadTiff16
 # :func:`picmaker.instruments.hst.detect_fits`), which keeps the static type as
 # ``tuple[str, str, Any] | None`` rather than ``tuple[str, str, str] | None``.
 FilterInfo = tuple[str, str, Any] | None
+
+# Selector for multi-image files. FITS and PDS3 both accept an integer index
+# or a pointer/HDU name; FITS additionally accepts a list/tuple of such
+# selectors when stacking multiple HDUs into one 3-D array. Sequence is
+# spelled out as list/tuple (not Sequence[...]) because ``str`` is itself
+# a Sequence[str] and the runtime branches use ``isinstance(obj, (list,
+# tuple))`` to discriminate.
+ObjectSelector = int | str | list[int | str] | tuple[int | str, ...] | None
 
 
 class ReadResult(NamedTuple):
@@ -51,9 +60,9 @@ class ReadResult(NamedTuple):
 
 
 def read_image_array(
-    filename: Any,
-    labelfile: Any,
-    obj: Any = None,
+    filename: str | Sequence[str | os.PathLike[str]],
+    labelfile: str | os.PathLike[str] | None,
+    obj: ObjectSelector = None,
     hst: bool = False,
 ) -> ReadResult:
     """Read one or more image files and return a stacked 3-D array.
@@ -96,8 +105,8 @@ def read_image_array(
 
 def read_one_image_array(
     filename: str | os.PathLike[str],
-    labelfile: Any,
-    obj: Any = None,
+    labelfile: str | os.PathLike[str] | None,
+    obj: ObjectSelector = None,
     hst: bool = False,
 ) -> ReadResult:
     """Read a single image array, trying each known format in turn.
@@ -268,7 +277,7 @@ def read_one_image_array(
 
 
 def read_pds_labeled_image_array(
-    filename: str | os.PathLike[str], obj: Any = None
+    filename: str | os.PathLike[str], obj: ObjectSelector = None
 ) -> ReadResult | None:
     """Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.
 
@@ -322,6 +331,8 @@ def read_pds_labeled_image_array(
 
         if obj is None:
             obj = 0
+        elif not isinstance(obj, int):
+            raise TypeError(f'Invalid index type {obj} for {filename_str}')
 
         try:
             pname = pnames[obj]
@@ -329,8 +340,6 @@ def read_pds_labeled_image_array(
             raise IndexError(
                 f'Object index {obj} is out of range in {filename_str}'
             ) from e
-        except TypeError as e:
-            raise TypeError(f'Invalid index type {obj} for {filename_str}') from e
 
     # Resolve the pointer to ``(imagefile, byte_offset)``. The current
     # pdsparser API stores the pointer value in ``label_dict[pname]`` and
@@ -419,7 +428,7 @@ def read_pds_labeled_image_array(
     return ReadResult(array3d, False, (inst_host, inst_name, filter_name))
 
 
-def read_pil(infile: str | os.PathLike[str]) -> Any:
+def read_pil(infile: str | os.PathLike[str]) -> Image.Image | list[Image.Image]:
     """Read a PIL image (or 16-bit TIFF expanded to a PIL image) from a file.
 
     Parameters:
@@ -441,14 +450,17 @@ def read_pil(infile: str | os.PathLike[str]) -> Any:
             if palette is not None:
                 raise OSError('16-bit palette option is not supported')
 
-            return array_to_pil(array, twobytes=True, rescale=False)
+            return cast(
+                'Image.Image | list[Image.Image]',
+                array_to_pil(array, twobytes=True, rescale=False),
+            )
 
     im = Image.open(infile_str)
     im.load()
     return im
 
 
-def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
+def read_array(infile: str | os.PathLike[str], rescale: bool) -> NDArray[Any]:
     """Read a numpy array from a PIL-readable file (or a 16-bit TIFF).
 
     Parameters:
@@ -456,7 +468,10 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
         rescale: True to scale values to the range 0-1.
 
     Returns:
-        A 2-D or 3-D numpy array.
+        A 2-D or 3-D numpy array. The dtype depends on the input format
+        and on ``rescale``: ``uint8`` for 8-bit PIL inputs without
+        rescaling, ``uint16`` for 16-bit TIFF, and ``float64`` whenever
+        ``rescale`` is true.
     """
     infile_str = str(infile)
     array = None
@@ -476,9 +491,9 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
         if rescale:
             array = array.astype('float') / 65535.0
 
-        return array
+        return cast('NDArray[Any]', array)
 
-    return pil_to_array(Image.open(infile_str), rescale)
+    return cast('NDArray[Any]', pil_to_array(Image.open(infile_str), rescale))
 
 
 def get_outfile(

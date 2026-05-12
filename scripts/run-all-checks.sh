@@ -376,10 +376,10 @@ run_code_checks() {
 
     if [ "$RUN_MYPY" = true ] && [ "$ENABLE_MYPY" = true ]; then
         print_info "Running mypy..."
-        # Tests are not type-checked under mypy strict: tests/ has no
-        # __init__.py and the module-name patterns mypy supports don't match
-        # bare files. The pyproject overrides for "test_*" are kept for
-        # future use (e.g., adding tests/__init__.py).
+        # tests/ has no __init__.py but mypy still type-checks every test_*.py
+        # under strict mode because file basenames are unique across the
+        # directory; the (src + tests) file count in the success line confirms
+        # tests are covered.
         if MYPYPATH=src python -m mypy src tests; then
             print_success "Mypy passed"
         else

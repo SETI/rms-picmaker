@@ -8,6 +8,78 @@ function name to jump to its source via :mod:`sphinx.ext.viewcode`, or
 follow the ``Source`` link under each section to view the file on
 GitHub.
 
+Public API
+----------
+
+Every name listed below is re-exported from the top-level :mod:`picmaker`
+package, so callers should import from there::
+
+    from picmaker import images_to_pics, read_one_image_array, PicmakerOptions
+
+The per-leaf-module sections after this one are the authoritative
+documentation for each symbol; the entries here are short pointers
+arranged by topic.
+
+**Top-level pipeline and CLI**
+
+.. autofunction:: picmaker.images_to_pics
+.. autofunction:: picmaker.process_images
+.. autofunction:: picmaker.find_common_path
+.. autofunction:: picmaker.main
+.. autoclass:: picmaker.PicmakerOptions
+   :no-members:
+
+**Image I/O**
+
+.. autofunction:: picmaker.read_image_array
+.. autofunction:: picmaker.read_one_image_array
+.. autofunction:: picmaker.read_pds_labeled_image_array
+.. autofunction:: picmaker.read_pil
+.. autofunction:: picmaker.read_array
+.. autofunction:: picmaker.get_outfile
+.. autofunction:: picmaker.write_pil
+.. autoclass:: picmaker.ReadResult
+   :no-members:
+
+The :data:`~picmaker.FilterInfo` type alias is documented in the I/O
+section below.
+
+**Enhancement**
+
+.. autofunction:: picmaker.get_limits
+.. autofunction:: picmaker.apply_gamma
+.. autofunction:: picmaker.apply_colormap
+.. autofunction:: picmaker.fill_zebra_stripes
+.. autofunction:: picmaker.tinted_colormap
+
+**Geometry**
+
+.. autofunction:: picmaker.crop_array
+.. autofunction:: picmaker.slice_array
+.. autofunction:: picmaker.wrap_image
+.. autofunction:: picmaker.pad_image
+.. autofunction:: picmaker.resize_image
+.. autofunction:: picmaker.rotate_array_rgb
+.. autofunction:: picmaker.circle_mask
+.. autofunction:: picmaker.get_size
+
+**Filters and conversion**
+
+.. autofunction:: picmaker.filter_image
+.. autofunction:: picmaker.array_to_pil
+.. autofunction:: picmaker.pil_to_array
+
+**Re-exported constants**
+
+The following module-level data names are re-exported from
+:mod:`picmaker` and documented in their leaf-module sections below
+(`Color` and `Filters`):
+
+* :data:`picmaker.color.RGB_BY_NM`
+* :data:`picmaker.color.RFUNC`, :data:`picmaker.color.GFUNC`,
+  :data:`picmaker.color.BFUNC`
+* :data:`picmaker._filters.FILTER_DICT`
+
 Package
 -------
 Source: `src/picmaker/__init__.py

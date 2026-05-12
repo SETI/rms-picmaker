@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 from picmaker import (
     read_array,
@@ -39,11 +40,13 @@ class TestReadArray:
 class TestReadPil:
     def test_png_returns_pil_image(self, fixtures_dir: Path) -> None:
         img = read_pil(str(fixtures_dir / 'small_grayscale.png'))
+        assert isinstance(img, Image.Image)
         assert img.size == (8, 8)
         assert img.mode == 'L'
 
     def test_sixteen_bit_tiff(self, fixtures_dir: Path) -> None:
         img = read_pil(str(fixtures_dir / 'small_tiff16.tiff'))
+        assert isinstance(img, Image.Image)
         assert img.size == (8, 8)
 
 

@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from picmaker.io import get_outfile, read_array, read_image_array, read_one_image_array, read_pil
 
@@ -227,4 +228,5 @@ def test_read_pil_tiff_with_bogus_content_falls_through_to_pil(
     fake = tmp_path / 'fake.tiff'
     PILImage.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
     img = read_pil(str(fake))
+    assert isinstance(img, Image.Image)
     assert img.size == (4, 4)
