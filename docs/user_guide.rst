@@ -59,7 +59,7 @@ The ``[dev]`` extra pulls in ``pytest``, ``ruff``, ``mypy``,
 ``pymarkdownlnt``, ``pip-audit``, ``pyroma``, and the docs extras
 (Sphinx + sphinx-rtd-theme).
 
-``rms-picmaker`` requires Python 3.10 or later, and depends on
+``rms-picmaker`` requires Python 3.11 or later, and depends on
 ``numpy``, ``scipy``, ``pillow``, ``astropy``, and the SETI sibling
 packages ``rms-pdsparser``, ``rms-tabulation``, and ``rms-vicar``.
 
