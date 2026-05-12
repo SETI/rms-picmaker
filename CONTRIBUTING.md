@@ -131,56 +131,6 @@ When adding new features, please update the relevant documentation:
 * Add examples if appropriate
 * Update the user guide or developer guide if necessary
 
-## Releasing to PyPI
-
-Releases publish to PyPI via the
-[Trusted Publishers / OIDC](https://docs.pypi.org/trusted-publishers/) workflow
-(`.github/workflows/publish_to_pypi.yml`). No long-lived `PYPI_API_TOKEN` secret
-is stored in the repository.
-
-**Pre-merge manual step (release blocker).** Until the trusted publisher is
-configured on the PyPI side, the workflow fails on first run with
-`invalid-publisher`. Complete the following one-time setup before tagging the
-first release:
-
-1. Determine the GitHub owner / repo from the remote URL:
-
-   ```bash
-   git remote get-url origin
-   # → e.g. https://github.com/<OWNER>/<REPO>.git
-   ```
-
-   Use the exact `<OWNER>` / `<REPO>` strings from that output, case-sensitive,
-   in the steps below.
-
-2. On <https://pypi.org/manage/project/rms-picmaker/settings/publishing/>,
-   click "Add a new publisher" → "GitHub":
-
-   * Owner: `<OWNER>` (from step 1)
-   * Repository name: `<REPO>` (from step 1)
-   * Workflow filename: `publish_to_pypi.yml`
-   * Environment name: `pypi`
-
-3. Repeat on
-   <https://test.pypi.org/manage/project/rms-picmaker/settings/publishing/>
-   with workflow filename `publish_to_test_pypi.yml` and environment name
-   `testpypi`.
-
-4. In the GitHub repo, configure Environments → New environment `pypi` (and
-   `testpypi`). The publish jobs run inside these environments so PyPI can
-   verify the OIDC claim.
-
-5. Once configured, tag a release:
-
-   ```bash
-   git tag v0.1.0
-   git push --tags
-   ```
-
-   The `publish_to_pypi.yml` workflow fires on release-published and uploads
-   via OIDC. To publish to TestPyPI, trigger `publish_to_test_pypi.yml`
-   manually from the Actions tab.
-
 ## Reporting Issues
 
 If you find a bug or have a suggestion for improvement:

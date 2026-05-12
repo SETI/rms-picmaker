@@ -508,6 +508,7 @@ run_markdown_checks() {
     [ -d ".cursor/" ] && scan_paths+=(".cursor/")
     [ -f "README.md" ] && scan_paths+=("README.md")
     [ -f "CONTRIBUTING.md" ] && scan_paths+=("CONTRIBUTING.md")
+    [ -f "RELEASING.md" ] && scan_paths+=("RELEASING.md")
     if [ ${#scan_paths[@]} -eq 0 ]; then
         print_info "No Markdown files/directories found to scan"
         deactivate 2>/dev/null || true
