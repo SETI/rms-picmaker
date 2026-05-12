@@ -116,7 +116,7 @@ exclude_lines = [
   "def __repr__",
   "raise NotImplementedError",
 ]
-fail_under = 59
+fail_under = 90
 
 [tool.mypy]
 strict = true

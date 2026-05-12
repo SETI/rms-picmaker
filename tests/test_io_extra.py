@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-import pytest
 
 from picmaker.picmaker import (
     read_array,
@@ -62,16 +61,6 @@ class TestWritePil:
 
 
 class TestReadPdsLabeledImageArray:
-    @pytest.mark.skip(
-        reason=(
-            'read_pds_labeled_image_array is broken against the current '
-            'pdsparser API. The constructor was patched on this branch '
-            '(PdsLabel.from_file → PdsLabel) but the body still iterates '
-            '`for node in label` expecting `node.name` and references '
-            '`pdsparser.PdsOffsetPointer`, which raises AttributeError. '
-            'PR 3 will rewrite the reader against the dict-style API.'
-        )
-    )
     def test_minimal_pds3_sample(self, fixtures_dir: Path) -> None:
         # read_pds_labeled_image_array returns (array3d, default_is_up,
         # filter_info) or None — matches the read_one_image_array contract.
@@ -79,5 +68,7 @@ class TestReadPdsLabeledImageArray:
             str(fixtures_dir / 'pds3_sample.IMG'), 'IMAGE'
         )
         assert result is not None
-        arr, _default_is_up, _filter_info = result
+        arr, default_is_up, filter_info = result
         assert arr.shape == (1, 8, 8)
+        assert default_is_up is False
+        assert filter_info == ('', '', '')

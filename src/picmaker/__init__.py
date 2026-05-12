@@ -14,7 +14,7 @@ try:
     from importlib.metadata import version as _version
 
     __version__ = _version('rms-picmaker')
-except Exception:
+except Exception:  # pragma: no cover — only fires when the package isn't installed
     try:
         from picmaker._version import __version__
     except ImportError:

@@ -250,18 +250,18 @@ def read_pds_labeled_image_array(
     label = None
     try:
         label = pdsparser.PdsLabel(filename_str)
-    except pdsparser.ParseException:
+    except (pdsparser.ParseException, SyntaxError):
         (head, ext) = os.path.splitext(filename_str)
         if ext.lower() != '.lbl':
             if os.path.exists(head + '.lbl'):
                 try:
                     label = pdsparser.PdsLabel(head + '.lbl')
-                except pdsparser.ParseException:
+                except (pdsparser.ParseException, SyntaxError):
                     pass
             elif os.path.exists(head + '.LBL'):
                 try:
                     label = pdsparser.PdsLabel(head + '.LBL')
-                except pdsparser.ParseException:
+                except (pdsparser.ParseException, SyntaxError):
                     pass
 
     if not label:
@@ -273,10 +273,12 @@ def read_pds_labeled_image_array(
             raise KeyError(f'Object {obj} not found in {filename_str}')
 
     else:
+        # pdsparser.PdsLabel does not implement __iter__ over keys; it
+        # falls back to integer indexing. Iterate keys() explicitly.
         pnames = [
-            node.name
-            for node in label
-            if node.name.startswith('^') and node.name.endswith('IMAGE')
+            key
+            for key in label.keys()  # noqa: SIM118
+            if key.startswith('^') and key.endswith('IMAGE')
         ]
         if not pnames:
             raise KeyError(f'No IMAGE objects found in {filename_str}')
@@ -293,33 +295,43 @@ def read_pds_labeled_image_array(
         except TypeError as e:
             raise TypeError(f'Invalid index type {obj} for {filename_str}') from e
 
+    # Resolve the pointer to ``(imagefile, byte_offset)``. The current
+    # pdsparser API stores the pointer value in ``label[pname]`` and the
+    # offset and unit in companion keys ``<pname>_offset`` / ``<pname>_unit``.
+    # The unit is either ``'<BYTES>'`` or an empty string (RECORDS default).
     node = label[pname]
-    if isinstance(node, pdsparser.PdsOffsetPointer):
-        imagefile = node.value
-        offset = node.offset - 1
-        if node.unit == 'RECORDS':
-            offset *= label['FILE_RECORDS'].value
-    else:
-        imagefile = node.value
-        offset = 0
+    record_bytes = label.get('RECORD_BYTES', 0) or 0
+    unit = label.get(pname + '_unit', '') or ''
 
-    imagefile = os.path.join(os.path.split(filename_str)[0], imagefile)
+    if isinstance(node, int):
+        imagefile = filename_str
+        offset_value = node
+    elif isinstance(node, str):
+        imagefile = os.path.join(os.path.split(filename_str)[0], node)
+        offset_value = label.get(pname + '_offset', 1) or 1
+    elif isinstance(node, (list, tuple)):
+        if isinstance(node[0], str):
+            imagefile = os.path.join(os.path.split(filename_str)[0], node[0])
+            offset_value = int(node[1]) if len(node) >= 2 else 1
+        else:
+            imagefile = filename_str
+            offset_value = int(node[0])
+    else:
+        raise TypeError(f'Unsupported pointer value {node!r} in {filename_str}')
+
+    if 'BYTES' in unit:
+        offset = max(int(offset_value) - 1, 0)
+    else:
+        offset = max(int(offset_value) - 1, 0) * record_bytes
 
     image = label[pname[1:]]
-    lines = image['LINES'].value
-    samples = image['LINE_SAMPLES'].value
-    bytes_ = image['SAMPLE_BITS'].value // 8
-    fmt = image['SAMPLE_TYPE'].value
+    lines = image['LINES']
+    samples = image['LINE_SAMPLES']
+    bytes_ = image['SAMPLE_BITS'] // 8
+    fmt = image['SAMPLE_TYPE']
 
-    try:
-        prefix_bytes = image['PREFIX_BYTES'].value
-    except KeyError:
-        prefix_bytes = 0
-
-    try:
-        suffix_bytes = image['SUFFIX_BYTES'].value
-    except KeyError:
-        suffix_bytes = 0
+    prefix_bytes = image.get('PREFIX_BYTES', 0)
+    suffix_bytes = image.get('SUFFIX_BYTES', 0)
 
     prefix_samples = prefix_bytes // bytes_
     if prefix_samples * bytes_ != prefix_bytes:
@@ -336,7 +348,7 @@ def read_pds_labeled_image_array(
     row_samples = prefix_samples + samples + suffix_samples
 
     offset_samples = offset // bytes_
-    if suffix_samples * bytes_ != suffix_bytes:
+    if offset_samples * bytes_ != offset:
         raise ValueError(
             f'SAMPLE_BITS and file offset values are incompatible in {imagefile}'
         )
@@ -359,23 +371,9 @@ def read_pds_labeled_image_array(
     array3d = data.reshape(1, lines, row_samples)
     array3d = array3d[..., prefix_samples : prefix_samples + samples]
 
-    try:
-        inst_host = label['INSTRUMENT_NAME'].value
-    except KeyError:
-        try:
-            inst_host = label['SPACECRAFT_NAME'].value
-        except KeyError:
-            inst_host = ''
-
-    try:
-        inst_name = label['INSTRUMENT_HOST_NAME'].value
-    except KeyError:
-        inst_name = ''
-
-    try:
-        filter_name = label['FILTER_NAME'].value
-    except KeyError:
-        filter_name = ''
+    inst_host = label.get('INSTRUMENT_NAME', '') or label.get('SPACECRAFT_NAME', '')
+    inst_name = label.get('INSTRUMENT_HOST_NAME', '')
+    filter_name = label.get('FILTER_NAME', '')
 
     return (array3d, False, (inst_host, inst_name, filter_name))
 
