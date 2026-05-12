@@ -267,15 +267,20 @@ def read_pds_labeled_image_array(
     if not label:
         return None
 
+    # pdsparser.Pds3Label proxies every dict operation through to its
+    # underlying ``.dict`` attribute, which is a plain dict. Pull it out
+    # once and use it directly for the rest of the function.
+    label_dict = label.dict
+
     if isinstance(obj, str):
         pname = '^' + obj
-        if pname not in label:
+        if pname not in label_dict:
             raise KeyError(f'Object {obj} not found in {filename_str}')
 
     else:
         pnames = [
             key
-            for key in label.dict
+            for key in label_dict
             if key.startswith('^') and key.endswith('IMAGE')
         ]
         if not pnames:
@@ -294,19 +299,20 @@ def read_pds_labeled_image_array(
             raise TypeError(f'Invalid index type {obj} for {filename_str}') from e
 
     # Resolve the pointer to ``(imagefile, byte_offset)``. The current
-    # pdsparser API stores the pointer value in ``label[pname]`` and the
-    # offset and unit in companion keys ``<pname>_offset`` / ``<pname>_unit``.
-    # The unit is either ``'<BYTES>'`` or an empty string (RECORDS default).
-    node = label[pname]
-    record_bytes = label.get('RECORD_BYTES', 0) or 0
-    unit = label.get(pname + '_unit', '') or ''
+    # pdsparser API stores the pointer value in ``label_dict[pname]`` and
+    # the offset and unit in companion keys ``<pname>_offset`` /
+    # ``<pname>_unit``. The unit is either ``'<BYTES>'`` or an empty
+    # string (RECORDS default).
+    node = label_dict[pname]
+    record_bytes = label_dict.get('RECORD_BYTES', 0) or 0
+    unit = label_dict.get(pname + '_unit', '') or ''
 
     if isinstance(node, int):
         imagefile = filename_str
         offset_value = node
     elif isinstance(node, str):
         imagefile = os.path.join(os.path.split(filename_str)[0], node)
-        offset_value = label.get(pname + '_offset', 1) or 1
+        offset_value = label_dict.get(pname + '_offset', 1) or 1
     elif isinstance(node, (list, tuple)):
         if isinstance(node[0], str):
             imagefile = os.path.join(os.path.split(filename_str)[0], node[0])
@@ -322,7 +328,7 @@ def read_pds_labeled_image_array(
     else:
         offset = max(int(offset_value) - 1, 0) * record_bytes
 
-    image = label[pname[1:]]
+    image = label_dict[pname[1:]]
     lines = image['LINES']
     samples = image['LINE_SAMPLES']
     bytes_ = image['SAMPLE_BITS'] // 8
@@ -369,9 +375,12 @@ def read_pds_labeled_image_array(
     array3d = data.reshape(1, lines, row_samples)
     array3d = array3d[..., prefix_samples : prefix_samples + samples]
 
-    inst_host = label.get('INSTRUMENT_NAME', '') or label.get('SPACECRAFT_NAME', '')
-    inst_name = label.get('INSTRUMENT_HOST_NAME', '')
-    filter_name = label.get('FILTER_NAME', '')
+    inst_host = (
+        label_dict.get('INSTRUMENT_NAME', '')
+        or label_dict.get('SPACECRAFT_NAME', '')
+    )
+    inst_name = label_dict.get('INSTRUMENT_HOST_NAME', '')
+    filter_name = label_dict.get('FILTER_NAME', '')
 
     return (array3d, False, (inst_host, inst_name, filter_name))
 
