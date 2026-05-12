@@ -273,11 +273,9 @@ def read_pds_labeled_image_array(
             raise KeyError(f'Object {obj} not found in {filename_str}')
 
     else:
-        # pdsparser.PdsLabel does not implement __iter__ over keys; it
-        # falls back to integer indexing. Iterate keys() explicitly.
         pnames = [
             key
-            for key in label.keys()  # noqa: SIM118
+            for key in label.dict
             if key.startswith('^') and key.endswith('IMAGE')
         ]
         if not pnames:
