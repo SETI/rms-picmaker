@@ -43,7 +43,7 @@
 #   ENABLE_* are true (RUN_* from CLI or defaults below; ENABLE_* from env):
 #     ENABLE_RUFF_CHECK   (default: true)
 #     ENABLE_RUFF_FORMAT  (default: false)
-#     ENABLE_MYPY         (default: false)
+#     ENABLE_MYPY         (default: true)
 #     ENABLE_PYTEST       (default: true)
 #     ENABLE_PYROMA       (default: true)
 #     ENABLE_BANDIT       (default: false)
@@ -88,14 +88,14 @@ SCOPE_SPECIFIED=false
 
 # Per-check defaults (override by exporting before invoking this script, or
 # permanently change here)
-: "${ENABLE_RUFF_CHECK:=false}"
+: "${ENABLE_RUFF_CHECK:=true}"
 : "${ENABLE_RUFF_FORMAT:=false}"
-: "${ENABLE_MYPY:=false}"
-: "${ENABLE_PYTEST:=false}"
+: "${ENABLE_MYPY:=true}"
+: "${ENABLE_PYTEST:=true}"
 : "${ENABLE_PYROMA:=true}"
 : "${ENABLE_BANDIT:=false}"
 : "${ENABLE_VULTURE:=false}"
-: "${ENABLE_SPHINX:=false}"
+: "${ENABLE_SPHINX:=true}"
 : "${ENABLE_PYMARKDOWN:=true}"
 
 # Get script directory and project root
@@ -376,6 +376,10 @@ run_code_checks() {
 
     if [ "$RUN_MYPY" = true ] && [ "$ENABLE_MYPY" = true ]; then
         print_info "Running mypy..."
+        # tests/ has no __init__.py but mypy still type-checks every test_*.py
+        # under strict mode because file basenames are unique across the
+        # directory; the (src + tests) file count in the success line confirms
+        # tests are covered.
         if MYPYPATH=src python -m mypy src tests; then
             print_success "Mypy passed"
         else

@@ -1,0 +1,2 @@
+--suffix=_v1 --extension=jpg
+--suffix=_v2 --extension=tif

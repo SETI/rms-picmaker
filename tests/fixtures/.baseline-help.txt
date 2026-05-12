@@ -1,0 +1,209 @@
+Usage: picmaker [options] file1 file2 ...
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+
+  control options:
+    --directory=DIRECTORY
+                        directory in which to place converted files. If the
+                        recursive option is selected, this becomes the root of
+                        a tree which parallels that of the source files.
+    -r, --recursive     search recursively down directory trees.
+    --pattern=PATTERN   pattern describing file names to match, e.g., *.IMG.
+    --movie             use the same enhancement limits for all images. In
+                        recursive mode, use the same limits for all the images
+                        in a single directory. This option takes twice as
+                        long.
+    --versions=VERSIONS
+                        create multiple versions of the picture using
+                        different sets of options, as specified in the named
+                        input file. Each line of the input file must contain a
+                        a sequence of options as if they were typed on the
+                        command line. These options are appended to the
+                        options in the command line, and one version of each
+                        picture is created for each line in the file. This is
+                        much faster than multiple runs of picmaker because
+                        each image file is only read once. Note that changes
+                        to control options in the input file are ignored.
+    --verbose=VERBOSE   1 to print out the name of each directory in a
+                        recursive search; 2 to print out each file path.
+    --replace=REPLACE   what to do when a file already exists. "all" (the
+                        default) to replace the file silently; "none" to skip
+                        the file silently; "warn" to issue a warning and skip
+                        the file; "error" to raise an error condition.
+    --proceed           continue processing subsequent files after an error
+                        has been encountered.
+
+  output options:
+    -x EXTENSION, --extension=EXTENSION
+                        file name extension for image produced; this also
+                        defines the format of the output file; options are
+                        bmp, gif, jpg, jpeg, png, tif, and tiff, in lower or
+                        upper case. Default is jpg.
+    -s SUFFIX, --suffix=SUFFIX
+                        a suffix to append to the end of each file name, prior
+                        to the file extension.
+    --strip=STRIP       a string to strip from output filename if it is
+                        present.
+    --alt-strip=ALT_STRIP, --alt_strip=ALT_STRIP
+                        an additional string to strip from output filename if
+                        it is present.
+    -q QUALITY, --quality=QUALITY
+                        output quality value for JPEG files. Range is 1-100;
+                        default is 75.
+    --16                output a 16-bit tiff instead of an 8-bit picture.
+
+  selection options:
+    -b BAND, --band=BAND
+                        index of the band to appear in the output image;
+                        default 1.
+    --bands=BANDS       pair of indices indicating a range of bands to be
+                        averaged for the output image. This serves as an
+                        alternative to the --band option.
+    --rectangle=RECTANGLE
+                        corner coordinates of a rectangular sub-region to
+                        appear in the image, as four values: sample1, line1,
+                        sample2, line2.
+    -o OBJ, --object=OBJ
+                        numeric index or name of the object in the file to
+                        display; default is the first valid image object in
+                        the file. Object numbering starts at 0.
+    --pointer=POINTER   the PDS pointer identifying the image object; used
+                        when the input file is a PDS label. Converted to upper
+                        case. Default is 'IMAGE'.
+    --alt-pointer=ALT_POINTER, --alt_pointer=ALT_POINTER
+                        an alternative PDS pointer identifying the image
+                        object; used when the input file is a PDS label and
+                        the first pointer is not found. Converted to upper
+                        case.
+
+  sizing options:
+    --size=SIZE         width and height of the output image in pixels.
+    --scale=SCALE       percentage by which to scale the size of the image.
+    --wscale=WSCALE     percentage by which to scale the width of the image;
+                        use with --hscale to scale the width and height by
+                        different amounts.
+    --hscale=HSCALE     percentage by which to scale the width of the image;
+                        use with --wscale to scale the width and height by
+                        different amounts.
+    --crop=CROP         crop away any boundary regions entirely containing the
+                        specified value.
+    --frame=FRAME       width and height of the frame within which the image
+                        must fit; if necessary, the final width and height of
+                        the image will be scaled down proportionally to fit
+                        within the frame.
+    --pad               pad the image to match the full size of the frame.
+    --pad-color=PAD_COLOR
+                        the color to use when padding an image to fill a
+                        frame. The color can be specified by X11 name or by
+                        (R,G,B) triplet.
+    --frame_max=FRAME_MAX
+                        maximum percentage by which to scale the image to fit
+                        it inside the frame. Regardless of the frame size, the
+                        image will not be scaled by more than this percentage.
+
+  layout options:
+    --wrap              wrap the sections of an image if it is extremely
+                        elongated.
+    --wrap-ratio=WRAP_RATIO
+                        wrap the sections of an image if its width:height
+                        ratio or its height:width ratio exceeds this value.
+    --overlap=OVERLAP   percentage of overlap between the end of one wrapped
+                        section and the beginning of the next.
+    --overlaps=OVERLAPS
+                        range of percentages of overlaps between the end of
+                        one wrapped section and the beginning of the next.
+    --gap-size=GAP_SIZE, --gapsize=GAP_SIZE
+                        the width of the gap in pixels between sections of a
+                        wrapped image.
+    --gap-color=GAP_COLOR, --gapcolor=GAP_COLOR
+                        the color of the gap between sections of a wrapped
+                        image. A color can be specified by X11 name or by
+                        (R,G,B) triplet.
+    --hst               construct a mosaic using all the detectors of an HST
+                        image. This is a 2x2 mosaic (with rotation) for WFPC2
+                        and a 1x2 for WFC.
+
+  scaling options:
+    -v VALID, --valid=VALID
+                        range of valid pixel values; pixels outside this range
+                        are ignored.
+    -l LIMITS, --limits=LIMITS
+                        pair of pixel values that define the limits of the
+                        histogram; values outside this range are set to the
+                        'below' and 'above' highlight colors. Default uses the
+                        image minimum and maximum.
+    -p PERCENTILES, --percentiles=PERCENTILES
+                        pair of values that define the percentiles of the
+                        histogram to use for scaling the image; values outside
+                        this range are set to the 'below' and 'above'
+                        highlight colors.
+    --trim=TRIM         number of pixels around the edge of the image to trim
+                        before computing a histogram. Sometimes edge pixels
+                        have bad values that could otherwise corrupt the
+                        scaling. Default is zero.
+    --trim-zeros, --trimzeros
+                        ignore any exterior rows or columns that contain all
+                        zeros before calculating the percentiles or limits.
+    --footprint=FOOTPRINT
+                        the diameter in pixels of a circular footprint for a
+                        median filter. If specified, then this median filter
+                        is applied to image and the resulting minimum and
+                        maximum values define the limits of the scaling. This
+                        procedure can be useful for suppressing localized bad
+                        pixels such as cosmic ray hits. It can be more
+                        effective then the percentile approach for handling
+                        images that contain a large amount of dark sky. Zero
+                        is the default value, in which case no median filter
+                        is applied. If a footprint is specified in addition to
+                        other limits, then the greater of the lower limits and
+                        the lesser of the upper limitsare used.
+    --histogram         use a histogram stretch, in which case the returned
+                        images has a uniform distribution of shadings.
+
+  enhancement options:
+    -c COLORMAP, --colormap=COLORMAP
+                        colormap to apply, defined by a sequence of color
+                        names or [R,G,B] triplets, separated by dashes. Values
+                        of R, G, and B range 0-255. The map will be
+                        constructed by interpolating between these colors.
+                        Default is black-white or [0,0,0]-[255,255,255].
+    --below=BELOW_COLOR
+                        the color to use for pixel values below the lower
+                        limit; default is the lowest color of the colormap,
+                        typically black. A color can be specified by X11 name
+                        or by (R,G,B) triplet.
+    --above=ABOVE_COLOR
+                        the color to use for pixel values above the upper
+                        limit; default is the highest color of the colormap,
+                        typically white. A color can be specified by X11 name
+                        or by (R,G,B) triplet.
+    --invalid=INVALID_COLOR
+                        the color to use for invalid pixel values (outside the
+                        range specified by the --valid option) and NaNs;
+                        default is black. A color can be specified by X11 name
+                        or by (R,G,B) triplet.
+    -g GAMMA, --gamma=GAMMA
+                        the gamma value to apply to grayscale of the image
+                        returned; default 1. Values > 1 make grays darker.
+    --tint              override the colormap based on the image's filter
+                        name.
+
+  orientation options:
+    -u, --up            display the image with line numbers increasing upward.
+                        This is the default for FITS files.
+    -d, --down          display the image with line numbers increasing
+                        downward. This is the default for VICAR files.
+    --rotate=ROTATE     rotate or flip the image from its default orientation;
+                        choices are fliplr, fliptb, rot90, rot180, or rot270.
+
+  processing options:
+    -f FILTER, --filter=FILTER
+                        name of image processing filter to apply. Choices are:
+                        none, blur, contour, detail, edge_enahnce,
+                        edge_enhance_more, emboss, find_edges, smooth,
+                        smooth_more, sharpen, median_3, median_5, median_7,
+                        minimum_3/5/7, and maximum_3/5/7.
+    --zebra             interpolate across black zebra stripes at the
+                        beginnings and ends of lines.

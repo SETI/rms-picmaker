@@ -8,18 +8,22 @@ on:
 jobs:
   upload_pypi:
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.11
         uses: actions/setup-python@v6
         with:
-          python-version: 3.12
+          # Build on the lowest supported Python version so no 3.12-only
+          # syntax slips into the wheel.
+          python-version: "3.11"
 
       - name: Build
         run: |
@@ -33,5 +37,7 @@ jobs:
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        # OIDC trusted publisher — no `password` line.
+        # Configure the publisher at
+        # https://pypi.org/manage/project/rms-picmaker/settings/publishing/
+        # (see docs/dev/releasing.rst for the one-time setup).

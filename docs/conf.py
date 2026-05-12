@@ -59,13 +59,16 @@ source_suffix = ['.rst', '.md']
 # The theme to use for HTML and HTML Help pages.
 html_theme = 'sphinx_rtd_theme'
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
-
 add_module_names = False
 autodoc_typehints_format = "short"
+
+# Show class inheritance in automodule output. `:members:` is set
+# explicitly per directive in `module.rst` rather than globally so
+# that auto-documenting every imported re-export does not produce
+# noisy duplicate entries.
+autodoc_default_options = {
+    'show-inheritance': True,
+}
 
 # -- Extension configuration -------------------------------------------------
 
@@ -90,7 +93,46 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'matplotlib': ('https://matplotlib.org/stable/', None),
+    'pil': ('https://pillow.readthedocs.io/en/stable/', None),
+    'astropy': ('https://docs.astropy.org/en/stable/', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+    'pytest': ('https://docs.pytest.org/en/stable/', None),
 }
+
+# Nitpicky mode (sphinx-build -n) flags any unresolved cross-reference.
+# Suppress references to the sibling SETI packages and a few legacy
+# internal names that don't appear in any automodule output.
+nitpick_ignore = [
+    # Sibling SETI packages without published intersphinx inventories.
+    ('py:class', 'vicar.VicarImage'),
+    ('py:class', 'vicar.VicarError'),
+    ('py:class', 'tabulation.Tabulation'),
+    # Module-level dunders are intentional and not documented separately.
+    ('py:data', '__all__'),
+    ('py:data', '__version__'),
+    # Module-level constants documented inline rather than as autodata.
+    # autodoc skips undocumented module-level assignments by default;
+    # adding explicit autodata directives for each would bloat
+    # docs/module.rst without producing a more useful API page.
+    ('py:data', 'picmaker._filters.FILTER_DICT'),
+    ('py:data', 'picmaker._rgb.RGB_BY_NM'),
+    ('py:data', 'picmaker._rgb.RFUNC'),
+    ('py:data', 'picmaker._rgb.GFUNC'),
+    ('py:data', 'picmaker._rgb.BFUNC'),
+    ('py:data', 'picmaker.io.FilterInfo'),
+    ('py:data', 'picmaker.instruments.galileo.FILTER_DICT'),
+    ('py:data', 'picmaker.instruments.galileo.FILTER_NAMES'),
+    ('py:data', 'picmaker.instruments.nh.FILTER_DICT'),
+    ('py:data', 'picmaker.instruments.voyager.FILTER_DICT'),
+    # ColorNames is a singleton-style class whose only public surface
+    # is a staticmethod; autodoc treats the ClassVar dicts as primary
+    # members and the class itself disappears from the index.
+    ('py:class', 'picmaker.colornames.ColorNames'),
+    # Private CLI helpers are referenced by name for context but live
+    # in `picmaker.cli` and are unit-tested directly; they are not part
+    # of the documented public API.
+    ('py:func', 'picmaker.cli._normalize_and_validate'),
+]
 
 # MyST-Parser settings
 myst_enable_extensions = [
