@@ -51,7 +51,7 @@ jobs:
 
       - name: PyMarkdown
         run: |
-          pymarkdown scan docs/ .cursor/ README.md CONTRIBUTING.md RELEASING.md
+          pymarkdown scan docs/ .cursor/ README.md CONTRIBUTING.md
 
       - name: pip-audit
         # Audit the project's declared dependencies via the pyproject
