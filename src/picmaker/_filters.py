@@ -46,7 +46,7 @@ def filter_image(image: Any, filter_name: str) -> Any:
     Raises:
         ValueError: If ``image`` is a list (16-bit two-byte image).
         KeyError: If ``filter_name`` (case-folded) is not a key of
-            :data:`FILTER_DICT`.
+            :data:`picmaker._filters.FILTER_DICT`.
     """
     if isinstance(image, list):
         raise ValueError('filtering of 2-byte images is not supported')

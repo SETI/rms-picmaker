@@ -76,14 +76,14 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
 
     Parameters:
         inst_id: Instrument id (typically ``'ISS'``).
-        filter_name: A key into :data:`FILTER_DICT`.
+        filter_name: A key into :data:`picmaker.instruments.voyager.FILTER_DICT`.
 
     Returns:
         ``[(0, 0, 0), tint, (255, 255, 255)]`` for an ISS filter or
         ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
 
     Raises:
-        KeyError: If ``filter_name`` is not in :data:`FILTER_DICT` and
+        KeyError: If ``filter_name`` is not in :data:`picmaker.instruments.voyager.FILTER_DICT` and
             ``inst_id`` is an ISS instrument.
     """
     if not inst_id.startswith('ISS'):

@@ -1,15 +1,17 @@
-"""Configuration dataclass for the :func:`picmaker.pipeline.images_to_pics` pipeline.
+"""Configuration dataclass for :func:`picmaker.pipeline.images_to_pics`.
 
-:class:`PicmakerOptions` consolidates the ~45 keyword arguments accepted by
-:func:`picmaker.pipeline.images_to_pics` into a single value object, and owns
-the cross-field mutex / value-validity checks that previously lived inline in
-both :func:`picmaker.cli._normalize_and_validate` and
+:class:`PicmakerOptions` consolidates the ~45 keyword arguments accepted
+by :func:`picmaker.pipeline.images_to_pics` into a single value object,
+and owns the cross-field mutex / value-validity checks that previously
+lived inline in both ``picmaker.cli._normalize_and_validate`` (the
+private helper that builds the CLI's option dict) and
 :func:`picmaker.pipeline.images_to_pics`.
 
-The public function signature of :func:`images_to_pics` is unchanged for
-backward compatibility — internally it builds a :class:`PicmakerOptions` and
-calls :meth:`PicmakerOptions.validate` so the duplicated mutex checks live in
-exactly one place.
+The public function signature of
+:func:`picmaker.pipeline.images_to_pics` is unchanged for backward
+compatibility — internally it builds a :class:`PicmakerOptions` and
+calls :meth:`PicmakerOptions.validate` so the duplicated mutex checks
+live in exactly one place.
 """
 
 from dataclasses import asdict, dataclass
@@ -18,12 +20,12 @@ from typing import Any
 
 @dataclass
 class PicmakerOptions:
-    """All post-normalization knobs that drive :func:`images_to_pics`.
+    """All post-normalization knobs that drive the pipeline.
 
     Each field's default matches the corresponding kwarg default on
-    :func:`picmaker.pipeline.images_to_pics`. Call :meth:`validate` once after
-    construction (or after any in-place mutation) to enforce the cross-field
-    invariants.
+    :func:`picmaker.pipeline.images_to_pics`. Call :meth:`validate` once
+    after construction (or after any in-place mutation) to enforce the
+    cross-field invariants.
 
     The :meth:`to_kwargs` and :meth:`from_kwargs` helpers let the legacy
     ``**option_dict`` call form continue to work unchanged.
@@ -111,7 +113,11 @@ class PicmakerOptions:
                 raise ValueError('16-bit filter options are not supported')
 
     def to_kwargs(self) -> dict[str, Any]:
-        """Return a kwargs dict that unpacks back into :func:`images_to_pics`."""
+        """Return a kwargs dict that unpacks into the pipeline entry point.
+
+        Specifically, the dict can be passed as
+        ``picmaker.pipeline.images_to_pics(**options.to_kwargs())``.
+        """
         return asdict(self)
 
     @classmethod

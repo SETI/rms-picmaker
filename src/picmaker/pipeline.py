@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 def find_common_path(directories: list[str]) -> str:
     """Return the longest directory prefix shared by every directory in the list.
 
-    Uses :func:`os.path.commonpath` so the result honours the current
+    Uses :func:`os.path.commonpath` so the result honors the current
     platform's separator (``/`` on POSIX, ``\\`` on Windows).
 
     Parameters:
@@ -65,7 +65,7 @@ def find_common_path(directories: list[str]) -> str:
 
     # Treat root-only common paths ('/' on POSIX, '\\' on Windows, or a
     # bare drive letter like 'C:\\') as "no useful prefix" so the legacy
-    # behaviour is preserved (the old implementation rejected commons
+    # behavior is preserved (the old implementation rejected commons
     # that had no slash at position >= 1).
     if len(result) <= 1 or result == os.sep:
         return ''

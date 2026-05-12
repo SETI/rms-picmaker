@@ -5,9 +5,10 @@ consumers can write::
 
     from picmaker import images_to_pics, read_one_image_array
 
-The top-level pipeline entry point is :func:`images_to_pics`; the
-single-image reader is :func:`read_one_image_array`. The full set of
-public names is in :data:`__all__`.
+The top-level pipeline entry point is
+:func:`picmaker.pipeline.images_to_pics`; the single-image reader is
+:func:`picmaker.io.read_one_image_array`. The full set of public
+names is in this module's ``__all__`` list.
 """
 
 try:

@@ -23,7 +23,7 @@ display. It accepts:
 * FITS images, via `astropy.io.fits
   <https://docs.astropy.org/en/stable/io/fits/>`_.
 * Pickled NumPy arrays (``.pkl``) and ``.npy`` files.
-* Any raster format that Pillow's :class:`PIL.Image` can open (BMP,
+* Any raster format that Pillow's :mod:`PIL.Image` can open (BMP,
   GIF, JPEG, PNG, TIFF, …).
 
 It produces:
@@ -37,7 +37,7 @@ fastest way to get a single image converted; the library lets you
 script multi-file pipelines and embed the conversion inside larger
 tools.
 
-The library entry-point :func:`picmaker.images_to_pics` accepts the
+The library entry-point :func:`picmaker.pipeline.images_to_pics` accepts the
 same keyword arguments the CLI binds to, so any CLI invocation is
 exactly equivalent to one library call.
 
@@ -457,7 +457,7 @@ Processing options
    * - ``-f NAME``, ``--filter NAME``
      - ``filter``
      - ``'none'``
-     - One of the PIL :class:`PIL.ImageFilter` presets (``blur``,
+     - One of the PIL :mod:`PIL.ImageFilter` presets (``blur``,
        ``contour``, ``detail``, ``edge_enhance``, ``edge_enhance_more``,
        ``emboss``, ``find_edges``, ``smooth``, ``smooth_more``,
        ``sharpen``, ``median_<n>``, ``minimum_<n>``, ``maximum_<n>``
@@ -530,7 +530,7 @@ are joined with ``'+'`` to form the lookup key.
 The tint is produced by a chain of substring tests (in declaration
 order): ``IR``, ``UV``, ``VIO``, ``BL``, ``GRN``, ``RED``, ``MT1``,
 ``CB1``, ``HAL``, ``MT``, ``CB``. The first match wins; unknown
-filters fall back to grey ``(127, 127, 127)``.
+filters fall back to gray ``(127, 127, 127)``.
 
 A worked example: ``FILTER_NAME == ('CL1', 'GRN')`` produces the
 filter key ``'CL1+GRN'``. The chain finds ``'GRN'`` (the ``BL`` branch

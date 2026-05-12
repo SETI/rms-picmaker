@@ -12,6 +12,7 @@ Welcome to the Documentation for rms-picmaker!
    :caption: Contents:
 
    user_guide
+   developer_guide
    module
    contributing
    code_of_conduct

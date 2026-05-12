@@ -40,4 +40,4 @@ jobs:
         # OIDC trusted publisher — no `password` line.
         # Configure the publisher at
         # https://pypi.org/manage/project/rms-picmaker/settings/publishing/
-        # (see RELEASING.md for the one-time setup).
+        # (see docs/developer_guide.rst §7 for the one-time setup).

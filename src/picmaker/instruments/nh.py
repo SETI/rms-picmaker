@@ -70,21 +70,21 @@ def matches(inst_host: str, inst_id: str) -> bool:
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
     """Return the full ``[black, tint, white]`` colormap for an NH filter.
 
-    Only the MVIC camera gets a coloured tint; every other New Horizons
+    Only the MVIC camera gets a colored tint; every other New Horizons
     instrument falls through to the 2-element ``[black, white]``
     colormap.
 
     Parameters:
-        inst_id: Instrument id (``'MVIC'`` / ``'MVI'`` for the colour
+        inst_id: Instrument id (``'MVIC'`` / ``'MVI'`` for the color
             path).
-        filter_name: A key into :data:`FILTER_DICT`.
+        filter_name: A key into :data:`picmaker.instruments.nh.FILTER_DICT`.
 
     Returns:
         ``[(0, 0, 0), tint, (255, 255, 255)]`` for an MVIC filter or
         ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
 
     Raises:
-        KeyError: If ``filter_name`` is not in :data:`FILTER_DICT` and
+        KeyError: If ``filter_name`` is not in :data:`picmaker.instruments.nh.FILTER_DICT` and
             ``inst_id`` selects the MVIC path.
     """
     if inst_id not in ('MVIC', 'MVI'):

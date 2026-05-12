@@ -10,7 +10,7 @@ def _iss_tint(filter_name: str) -> tuple[int, int, int]:
 
     The match is a substring test, in declaration order; the first
     branch whose substring appears in ``filter_name`` wins. Unknown
-    filter names fall back to neutral grey ``(127, 127, 127)``.
+    filter names fall back to neutral gray ``(127, 127, 127)``.
 
     Parameters:
         filter_name: A Cassini ISS filter string, typically

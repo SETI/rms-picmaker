@@ -31,7 +31,7 @@ def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     """Detect a Galileo SSI VICAR image.
 
     Two label conventions are tried in order: the ``MISSION`` keyword
-    with a numeric ``FILTER`` index into :data:`FILTER_NAMES`, then a
+    with a numeric ``FILTER`` index into :data:`picmaker.instruments.galileo.FILTER_NAMES`, then a
     ``GLL/SSI`` prefix in ``LAB01`` with ``FILTER=<digit>`` somewhere
     in ``LAB03``.
 
@@ -86,19 +86,19 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     """Return the full ``[black, tint, white]`` colormap for a Galileo filter.
 
     Only the SSI camera and the ``SOLID``-prefixed variants get a
-    coloured tint; every other Galileo instrument falls through to the
+    colored tint; every other Galileo instrument falls through to the
     2-element ``[black, white]`` colormap.
 
     Parameters:
         inst_id: Instrument id.
-        filter_name: A key into :data:`FILTER_DICT`.
+        filter_name: A key into :data:`picmaker.instruments.galileo.FILTER_DICT`.
 
     Returns:
         ``[(0, 0, 0), tint, (255, 255, 255)]`` for an SSI filter or
         ``[(0, 0, 0), (255, 255, 255)]`` otherwise.
 
     Raises:
-        KeyError: If ``filter_name`` is not in :data:`FILTER_DICT` and
+        KeyError: If ``filter_name`` is not in :data:`picmaker.instruments.galileo.FILTER_DICT` and
             ``inst_id`` selects the SSI path.
     """
     if not (inst_id == 'SSI' or inst_id.startswith('SOLID')):
