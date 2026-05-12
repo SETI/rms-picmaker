@@ -2,17 +2,11 @@
 
 :func:`process_images` and :func:`images_to_pics` are the CLI's main
 entry points; everything else in this module is plumbing.
-
-The ``filter`` keyword on :func:`images_to_pics` deliberately shadows
-the builtin; the per-file ruff ignore for ``A002`` lives in
-``pyproject.toml``.
 """
 
 
 import logging
 import os
-import sys
-import traceback
 from typing import Any
 
 import numpy as np
@@ -35,44 +29,47 @@ from picmaker.geometry import (
     wrap_image,
 )
 from picmaker.io import get_outfile, read_image_array
+from picmaker.options import PicmakerOptions
 from picmaker.pil_utils import array_to_pil, write_pil
 
 logger = logging.getLogger(__name__)
 
 
 def find_common_path(directories: list[str]) -> str:
-    """Return the longest path prefix shared by every directory in the list.
+    """Return the longest directory prefix shared by every directory in the list.
+
+    Uses :func:`os.path.commonpath` so the result honours the current
+    platform's separator (``/`` on POSIX, ``\\`` on Windows).
 
     Parameters:
         directories: A list of directory path strings.
 
     Returns:
-        The longest common path prefix, trimmed at the last ``/``. An
-        empty string if the directories share no useful prefix or the
-        list is empty.
+        The longest common directory path. An empty string if the list
+        is empty or the directories share no common ancestor (e.g. paths
+        on different drives on Windows, or a mix of absolute and
+        relative paths).
     """
-
-    def longest_match(str1: str, str2: str) -> str:
-        kmax = min(len(str1), len(str2))
-        for k in range(kmax):
-            if str1[k] != str2[k]:
-                return str1[:k]
-        return str1[:kmax]
-
     if len(directories) == 0:
         return ''
     if len(directories) == 1:
         return directories[0]
 
-    longest = longest_match(directories[0], directories[1])
-    for d in directories[2:]:
-        longest = longest_match(longest, d)
-
-    last_slash = longest.rfind('/')
-    if last_slash < 1:
+    try:
+        result = os.path.commonpath(directories)
+    except ValueError:
+        # commonpath raises ValueError when the inputs share no common
+        # prefix (e.g. mix of absolute / relative, different Windows
+        # drives). Preserve the legacy "no common ancestor" return.
         return ''
 
-    return longest[:last_slash]
+    # Treat root-only common paths ('/' on POSIX, '\\' on Windows, or a
+    # bare drive letter like 'C:\\') as "no useful prefix" so the legacy
+    # behaviour is preserved (the old implementation rejected commons
+    # that had no slash at position >= 1).
+    if len(result) <= 1 or result == os.sep:
+        return ''
+    return result
 
 
 def process_images(
@@ -101,7 +98,16 @@ def process_images(
 
     results: Any
     if movie:
-        assert all(d['proceed'] == option_dicts[0]['proceed'] for d in option_dicts)
+        # Use ValueError (not `assert`) so the check survives `python -O`,
+        # which strips assertions and would otherwise let an inconsistent
+        # `proceed` slip through movie mode silently.
+        if any(
+            d['proceed'] != option_dicts[0]['proceed'] for d in option_dicts
+        ):
+            raise ValueError(
+                'movie mode requires all option_dicts to share the same '
+                "'proceed' value"
+            )
 
         results = images_to_pics(
             filenames, directory, reuse=None, verbose=verbose, **option_dicts[0]
@@ -192,16 +198,16 @@ def images_to_pics(
     display_upward: bool = False,
     display_downward: bool = False,
     rotate: Any = None,
-    filter: str = 'NONE',
+    filter_name: str = 'NONE',
     zebra: bool = False,
     reuse: Any = None,
 ) -> tuple[Any, Any, Any]:
     """Convert one or more image files to picture files.
 
     See ``picmaker --help`` for the meaning of each keyword argument.
-    Note that ``filter`` deliberately shadows the builtin: the CLI's
-    ``--filter`` flag binds to this name and the rule is silenced by a
-    per-file ruff ignore.
+    The CLI's ``--filter`` flag binds to the ``filter_name`` keyword on
+    this function (the rename in 2026-05 dropped the legacy
+    builtin-shadowing ``filter`` kwarg).
 
     Parameters:
         filenames: List of image file names to convert.
@@ -213,19 +219,30 @@ def images_to_pics(
         stretch and the reuse tuple if the caller wants to call again
         without re-reading the file.
     """
+    # Single source of truth for mutex / value-validity checks: build a
+    # PicmakerOptions and let its `validate()` method raise on any
+    # cross-field conflict. The CLI does this earlier via
+    # _normalize_and_validate; library callers get the same checks here.
+    PicmakerOptions(
+        replace=replace, proceed=proceed, extension=extension,
+        suffix=suffix, strip=strip, quality=quality, twobytes=twobytes,
+        bands=bands, lines=lines, samples=samples, obj=obj, pointer=pointer,
+        size=size, scale=scale, crop=crop, frame=frame, pad=pad,
+        pad_color=pad_color, frame_max=frame_max, wrap=wrap,
+        wrap_ratio=wrap_ratio, overlap=overlap, gap_size=gap_size,
+        gap_color=gap_color, hst=hst, valid=valid, limits=limits,
+        percentiles=percentiles, trim=trim, trim_zeros=trim_zeros,
+        footprint=footprint, histogram=histogram, colormap=colormap,
+        below_color=below_color, above_color=above_color,
+        invalid_color=invalid_color, gamma=gamma, tint=tint,
+        display_upward=display_upward, display_downward=display_downward,
+        rotate=rotate, filter_name=filter_name, zebra=zebra,
+    ).validate()
+
     if strip is None:
         strip = []
     if pointer is None:
         pointer = ['IMAGE']
-
-    if hst and bands is not None:
-        raise ValueError('hst and bands options are incompatible')
-
-    if frame is not None and size is not None:
-        raise ValueError('frame and size options are incompatible')
-
-    if frame is not None and wrap_ratio:
-        raise ValueError('frame and wrap_ratio options are incompatible')
 
     if bands is None:
         bands = (0, 1)
@@ -287,12 +304,15 @@ def images_to_pics(
                         else:
                             inst_id = None
 
+                        # Local PDS3-label "FILTER_NAME" value; do NOT
+                        # shadow the function parameter ``filter_name``
+                        # (the PIL filter name to apply downstream).
                         if 'FILTER_NAME' in labeldict:
-                            filter_name = labeldict['FILTER_NAME']
+                            pds_filter_name = labeldict['FILTER_NAME']
                         else:
-                            filter_name = None
+                            pds_filter_name = None
 
-                        filter_info = (inst_host, inst_id, filter_name)
+                        filter_info = (inst_host, inst_id, pds_filter_name)
 
                     if isinstance(pointer, str):
                         pointer = [pointer]
@@ -506,7 +526,7 @@ def images_to_pics(
 
             image = array_to_pil(arrayRGB, twobytes)
 
-            image = filter_image(image, filter)
+            image = filter_image(image, filter_name)
 
             image = resize_image(image, unwrapped_size)
 
@@ -527,10 +547,11 @@ def images_to_pics(
 
         except Exception:
             if proceed:
-                (etype, value, tb) = sys.exc_info()
-                traceback.print_tb(tb)
-                etype_name = etype.__name__ if etype is not None else 'Exception'
-                logger.error('%s **** %s: %s', infile, etype_name, value)
+                # `logger.exception` logs the type, message, AND the full
+                # traceback in one call through the configured handler, so
+                # output ordering stays deterministic under `pytest -n auto`
+                # and `caplog` captures it cleanly.
+                logger.exception('%s', infile)
             else:
                 raise
 

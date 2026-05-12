@@ -111,12 +111,16 @@ def _one_pil_to_array(image: Any, rescale: bool) -> Any:
             array = array.astype('uint16')
         return array
 
-    # 8-bit grayscale case: return the raw uint8 array verbatim — the
-    # `rescale` flag is ignored for this mode because the downstream
-    # consumers (filter, write) expect uint8 0..255.
+    # 8-bit grayscale case. ``rescale=True`` returns a float in [0, 1]
+    # (matching the documented contract and the ``'I'``-mode branch
+    # above); ``rescale=False`` returns the raw uint8 0..255 array that
+    # downstream consumers (filter, write) expect.
     if image.mode == 'L':
         array = np.array(image.getdata(), dtype='uint8')
-        return array.reshape((image.size[1], image.size[0]))
+        array = array.reshape((image.size[1], image.size[0]))
+        if rescale:
+            return array.astype('float') / 255.0
+        return array
 
     raise OSError('Unsupported PIL image format')
 

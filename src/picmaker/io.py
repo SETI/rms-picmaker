@@ -11,11 +11,12 @@ import os
 import pickle
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import astropy.io.fits as pyfits
 import numpy as np
 import pdsparser
+from numpy.typing import NDArray
 from PIL import Image
 from vicar import VicarError, VicarImage
 
@@ -23,13 +24,38 @@ from picmaker import instruments
 from picmaker.pil_utils import array_to_pil, pil_to_array
 from picmaker.tiff16 import ReadTiff16
 
+# Reader-cascade ``filter_info`` element: ``(inst_host, inst_id, filter_name)``
+# or ``None``. The inner ``filter_name`` may be a 2-tuple for HST (see
+# :func:`picmaker.instruments.hst.detect_fits`), which keeps the static type as
+# ``tuple[str, str, Any] | None`` rather than ``tuple[str, str, str] | None``.
+FilterInfo = tuple[str, str, Any] | None
+
+
+class ReadResult(NamedTuple):
+    """Triple returned by the reader cascade.
+
+    A :class:`typing.NamedTuple` so callers can use either positional
+    unpacking (``array, up, info = read_one_image_array(...)``) or
+    attribute access (``result.array3d``) interchangeably.
+    """
+
+    #: 3-D numpy array indexed ``(bands, lines, samples)``.
+    array3d: NDArray[Any]
+    #: True if the per-instrument default display orientation is upward
+    #: (line numbers increase upward).
+    default_is_up: bool
+    #: ``(inst_host, inst_id, filter_name)`` or ``None`` if no registered
+    #: instrument matched. ``filter_name`` is usually a string but is a
+    #: 2-tuple for some HST conventions.
+    filter_info: FilterInfo
+
 
 def read_image_array(
     filename: Any,
     labelfile: Any,
     obj: Any = None,
     hst: bool = False,
-) -> tuple[Any, bool, Any]:
+) -> ReadResult:
     """Read one or more image files and return a stacked 3-D array.
 
     Parameters:
@@ -65,7 +91,7 @@ def read_image_array(
             arrays[k] = np.reshape(array, (1,) + array.shape)
 
     array = np.vstack(arrays)
-    return (array,) + results[0][1:]
+    return ReadResult(array, results[0].default_is_up, results[0].filter_info)
 
 
 def read_one_image_array(
@@ -73,7 +99,7 @@ def read_one_image_array(
     labelfile: Any,
     obj: Any = None,
     hst: bool = False,
-) -> tuple[Any, bool, Any]:
+) -> ReadResult:
     """Read a single image array, trying each known format in turn.
 
     The try-cascade is: pickle → numpy ``.npy`` → VICAR → FITS → PIL
@@ -91,57 +117,60 @@ def read_one_image_array(
         ``None`` if no instrument is detected.
 
     Raises:
-        OSError: If none of the format readers succeed.
+        OSError: If none of the format readers succeed. The per-reader
+            failure causes are attached via ``__cause__`` as an
+            :class:`ExceptionGroup` so callers can inspect what each
+            reader rejected.
     """
     filename_str = str(filename)
+    cascade_errors: list[Exception] = []
 
     # ---- Pickle attempt ----
+    # The pickle branch is the only one that catches the broad ``Exception``
+    # because pickle.load can raise nearly anything (OSError on missing/unreadable
+    # files, pickle.UnpicklingError on bad streams, AttributeError/ImportError
+    # during object reconstruction, TypeError on .shape access if the unpickled
+    # value isn't a numpy array, etc.). The exception is collected for the
+    # diagnostic ExceptionGroup at the cascade end.
     try:
         with open(filename_str, 'rb') as f:
             array3d = pickle.load(f)
         if len(array3d.shape) == 2:
             array3d = array3d.reshape((1,) + array3d.shape)
-        return (array3d, False, None)
-    except Exception:
-        # Not a pickle file (or unreadable as one) — fall through. The
-        # original picmaker.py:1543-1544 had a `raise e` on IOError that
-        # would propagate "file not found" early; PR 3 removes that so
-        # the final failure message ("Unrecognized image file format")
-        # is consistent across all unreadable-file cases.
-        pass
+        return ReadResult(array3d, False, None)
+    except Exception as exc:
+        cascade_errors.append(exc)
 
     # ---- numpy .npy attempt ----
     try:
         array3d = np.load(filename_str)
         if len(array3d.shape) == 2:
             array3d = array3d.reshape((1,) + array3d.shape)
-        return (array3d, False, None)
-    except (OSError, ValueError):
-        pass
+        return ReadResult(array3d, False, None)
+    except (OSError, ValueError) as exc:
+        cascade_errors.append(exc)
 
     # ---- VICAR attempt ----
     # Also catch OSError so a missing-file error propagates through to the
     # final OSError("Unrecognized image file format ...") below rather than
-    # surfacing as the rms-vicar FileNotFoundError. The lose-traceback fix
-    # in the pickle branch above removed the early `raise e` that previously
-    # short-circuited; this keeps the cascade behavior consistent for missing
-    # files.
+    # surfacing as the rms-vicar FileNotFoundError.
     try:
         vic = VicarImage.from_file(filename_str, extraneous='print')
         array3d = vic.data_3d
         for instrument in instruments.VICAR_INSTRUMENTS:
             filter_info = instrument.detect_vicar(vic)
             if filter_info is not None:
-                return (array3d, False, filter_info)
-        return (array3d, False, None)
-    except (VicarError, OSError):
-        pass
+                return ReadResult(array3d, False, filter_info)
+        return ReadResult(array3d, False, None)
+    except (VicarError, OSError) as exc:
+        cascade_errors.append(exc)
 
     # ---- FITS attempt (preserves the magic-byte sniff at picmaker.py:1602-1605) ----
     try:
         with open(filename_str, 'rb') as f:
             test = f.read(9)
-    except OSError:
+    except OSError as exc:
+        cascade_errors.append(exc)
         test = b''
 
     if test == b'SIMPLE  =':
@@ -211,18 +240,18 @@ def read_one_image_array(
                     array3d = array3d.reshape((1,) + array3d.shape)
 
                 hdulist.close()
-                return (array3d, True, filter_info)
+                return ReadResult(array3d, True, filter_info)
 
-        except (UserWarning, OSError):
-            pass
+        except (UserWarning, OSError) as exc:
+            cascade_errors.append(exc)
 
     # ---- PIL / 16-bit TIFF attempt ----
     try:
         array2d = read_array(filename_str, False)
         array3d = array2d.reshape((1,) + array2d.shape)
-        return (array3d, False, None)
-    except OSError:
-        pass
+        return ReadResult(array3d, False, None)
+    except OSError as exc:
+        cascade_errors.append(exc)
 
     # ---- PDS3 label attempt ----
     if labelfile:
@@ -230,12 +259,19 @@ def read_one_image_array(
         if result is not None:
             return result
 
-    raise OSError(f'Unrecognized image file format: {filename_str}')
+    cause: BaseException | None = (
+        ExceptionGroup('No reader matched', cascade_errors)
+        if cascade_errors
+        else None
+    )
+    raise OSError(
+        f'Unrecognized image file format: {filename_str}'
+    ) from cause
 
 
 def read_pds_labeled_image_array(
     filename: str | os.PathLike[str], obj: Any = None
-) -> tuple[Any, bool, tuple[Any, Any, Any]] | None:
+) -> ReadResult | None:
     """Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.
 
     Parameters:
@@ -382,7 +418,7 @@ def read_pds_labeled_image_array(
     inst_name = label_dict.get('INSTRUMENT_HOST_NAME', '')
     filter_name = label_dict.get('FILTER_NAME', '')
 
-    return (array3d, False, (inst_host, inst_name, filter_name))
+    return ReadResult(array3d, False, (inst_host, inst_name, filter_name))
 
 
 def read_pil(infile: str | os.PathLike[str]) -> Any:
@@ -451,7 +487,7 @@ def get_outfile(
     infile: str | os.PathLike[str],
     outdir: str | os.PathLike[str] | None = None,
     strip: Any = None,
-    suffix: str = '',
+    suffix: str | None = '',
     extension: str = 'jpg',
     replace: str = 'all',
 ) -> str:
@@ -518,6 +554,8 @@ def get_outfile(
 
 
 __all__ = [
+    'FilterInfo',
+    'ReadResult',
     'get_outfile',
     'read_array',
     'read_image_array',

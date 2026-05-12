@@ -1,8 +1,6 @@
 """tinted_colormap: tint + HST wavelength-inference + dict-lookup paths."""
 
-from __future__ import annotations
-
-from picmaker.picmaker import tinted_colormap
+from picmaker import tinted_colormap
 
 
 class TestNoneInputs:

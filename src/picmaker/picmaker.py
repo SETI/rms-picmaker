@@ -44,6 +44,7 @@ from picmaker.io import (
     read_pds_labeled_image_array,
     read_pil,
 )
+from picmaker.options import PicmakerOptions
 from picmaker.pil_utils import _one_pil_to_array, array_to_pil, pil_to_array, write_pil
 from picmaker.pipeline import find_common_path, images_to_pics, process_images
 from picmaker.tiff16 import ReadTiff16, WriteTiff16
@@ -59,6 +60,7 @@ __all__ = [
     'RGB_BY_NM',
     'VOYAGER_ISS_DICT',
     'ColorNames',
+    'PicmakerOptions',
     'ReadTiff16',
     'VicarError',
     'VicarImage',

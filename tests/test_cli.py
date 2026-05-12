@@ -5,8 +5,6 @@ exit codes, --versions semantics, baseline help text). They're necessarily
 slow (one subprocess per test); each test is small to keep total time low.
 """
 
-from __future__ import annotations
-
 import subprocess
 from pathlib import Path
 

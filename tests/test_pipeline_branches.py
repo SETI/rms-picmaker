@@ -3,8 +3,6 @@ mutex checks, movie mode, the ``--proceed`` error path, ``--zebra``,
 HST mosaic dispatch, and the reuse path of ``process_images``.
 """
 
-from __future__ import annotations
-
 import shutil
 from pathlib import Path
 from typing import Any
@@ -264,7 +262,7 @@ def _basic_option_dict() -> dict[str, Any]:
         'display_upward': False,
         'display_downward': False,
         'rotate': 'none',
-        'filter': 'none',
+        'filter_name': 'none',
         'zebra': False,
     }
 

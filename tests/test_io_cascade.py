@@ -1,10 +1,9 @@
 """Cover the reader-cascade branches in :mod:`picmaker.io` that the
 existing tests don't reach: 2-D-array reshape paths, FITS object
-selection, the multi-file ``read_image_array`` stacking path, and the
-HST mosaic dispatch.
+selection, the multi-file ``read_image_array`` stacking path, the HST
+mosaic dispatch, and the cascade-end ``Unrecognized image file format``
+error.
 """
-
-from __future__ import annotations
 
 import pickle
 from pathlib import Path
@@ -12,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from picmaker.io import read_image_array, read_one_image_array
+from picmaker.io import get_outfile, read_array, read_image_array, read_one_image_array, read_pil
 
 # ---------------------------------------------------------------------------
 # 2-D reshape paths (pickle + numpy)
@@ -126,7 +125,6 @@ def test_read_image_array_list_stacks_frames(tmp_path: Path) -> None:
         paths.append(str(p))
 
     arr, default_is_up, filter_info = read_image_array(paths, None)
-    # Each .npy is reshaped to (1, 8, 8) and the three are vstacked into (3, 8, 8).
     assert arr.shape == (3, 8, 8)
     assert default_is_up is False
     assert filter_info is None
@@ -184,51 +182,8 @@ def test_cascade_falls_through_to_pds3(fixtures_dir: Path) -> None:
     assert arr.shape == (1, 8, 8)
 
 
-def test_pds3_prefix_bytes_misaligned_raises(tmp_path: Path) -> None:
-    """``PREFIX_BYTES`` not divisible by ``SAMPLE_BITS / 8`` raises ValueError."""
-    from picmaker.io import read_pds_labeled_image_array
-    (tmp_path / 'data.dat').write_bytes(np.zeros(64, dtype='uint8').tobytes())
-    lbl = tmp_path / 'bad.LBL'
-    lbl.write_text(
-        "PDS_VERSION_ID = PDS3\r\n"
-        '^IMAGE = "data.dat"\r\n'
-        "OBJECT = IMAGE\r\n"
-        "  LINES = 8\r\n"
-        "  LINE_SAMPLES = 8\r\n"
-        "  SAMPLE_BITS = 16\r\n"
-        "  SAMPLE_TYPE = UNSIGNED_INTEGER\r\n"
-        "  PREFIX_BYTES = 1\r\n"
-        "END_OBJECT = IMAGE\r\n"
-        "END\r\n"
-    )
-    with pytest.raises(ValueError, match='PREFIX_BYTES'):
-        read_pds_labeled_image_array(str(lbl))
-
-
-def test_pds3_suffix_bytes_misaligned_raises(tmp_path: Path) -> None:
-    """``SUFFIX_BYTES`` not divisible by ``SAMPLE_BITS / 8`` raises ValueError."""
-    from picmaker.io import read_pds_labeled_image_array
-    (tmp_path / 'data.dat').write_bytes(np.zeros(64, dtype='uint8').tobytes())
-    lbl = tmp_path / 'bad.LBL'
-    lbl.write_text(
-        "PDS_VERSION_ID = PDS3\r\n"
-        '^IMAGE = "data.dat"\r\n'
-        "OBJECT = IMAGE\r\n"
-        "  LINES = 8\r\n"
-        "  LINE_SAMPLES = 8\r\n"
-        "  SAMPLE_BITS = 16\r\n"
-        "  SAMPLE_TYPE = UNSIGNED_INTEGER\r\n"
-        "  SUFFIX_BYTES = 1\r\n"
-        "END_OBJECT = IMAGE\r\n"
-        "END\r\n"
-    )
-    with pytest.raises(ValueError, match='SUFFIX_BYTES'):
-        read_pds_labeled_image_array(str(lbl))
-
-
 def test_get_outfile_creates_nested_output_dir(tmp_path: Path) -> None:
     """``get_outfile`` creates the parent directory tree when it's missing."""
-    from picmaker.io import get_outfile
     src = tmp_path / 'in.IMG'
     src.write_bytes(b'')
     out_dir = tmp_path / 'a' / 'b' / 'c'
@@ -239,12 +194,11 @@ def test_get_outfile_creates_nested_output_dir(tmp_path: Path) -> None:
 
 def test_get_outfile_none_suffix_normalizes_to_empty(tmp_path: Path) -> None:
     """``suffix=None`` is normalised to ``''`` before the join."""
-    from picmaker.io import get_outfile
     src = tmp_path / 'in.IMG'
     result = get_outfile(
         str(src),
         outdir=str(tmp_path),
-        suffix=None,  # type: ignore[arg-type]
+        suffix=None,
         extension='png',
     )
     assert result == str(tmp_path / 'in.png')
@@ -258,14 +212,8 @@ def test_read_array_tiff_with_bogus_content_falls_through_to_pil(
     """
     from PIL import Image as PILImage
 
-    from picmaker.io import read_array
-    # Save a valid 8-bit PNG with a .tiff extension so ReadTiff16 raises
-    # OSError and the function falls through to PIL's reader.
     fake = tmp_path / 'fake.tiff'
     PILImage.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
-    # ReadTiff16 expects a 16-bit grayscale TIFF; an 8-bit one trips its
-    # bits-per-sample assertion and surfaces as OSError. The function then
-    # falls through to the PIL reader for the same file.
     arr = read_array(str(fake), rescale=False)
     assert arr.shape == (4, 4)
 
@@ -276,7 +224,6 @@ def test_read_pil_tiff_with_bogus_content_falls_through_to_pil(
     """Same fall-through behaviour for :func:`read_pil`."""
     from PIL import Image as PILImage
 
-    from picmaker.io import read_pil
     fake = tmp_path / 'fake.tiff'
     PILImage.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
     img = read_pil(str(fake))

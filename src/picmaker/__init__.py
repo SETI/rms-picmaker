@@ -11,10 +11,11 @@ public names is in :data:`__all__`.
 """
 
 try:
+    from importlib.metadata import PackageNotFoundError
     from importlib.metadata import version as _version
 
     __version__ = _version('rms-picmaker')
-except Exception:  # pragma: no cover — only fires when the package isn't installed
+except PackageNotFoundError:  # pragma: no cover — only fires when the package isn't installed
     try:
         from picmaker._version import __version__
     except ImportError:
@@ -40,6 +41,8 @@ from picmaker.geometry import (
     wrap_image,
 )
 from picmaker.io import (
+    FilterInfo,
+    ReadResult,
     get_outfile,
     read_array,
     read_image_array,
@@ -47,6 +50,7 @@ from picmaker.io import (
     read_pds_labeled_image_array,
     read_pil,
 )
+from picmaker.options import PicmakerOptions
 from picmaker.pil_utils import array_to_pil, pil_to_array, write_pil
 from picmaker.pipeline import find_common_path, images_to_pics, process_images
 
@@ -56,6 +60,9 @@ __all__ = [
     'GFUNC',
     'RFUNC',
     'RGB_BY_NM',
+    'FilterInfo',
+    'PicmakerOptions',
+    'ReadResult',
     '__version__',
     'apply_colormap',
     'apply_gamma',

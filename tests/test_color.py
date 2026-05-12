@@ -61,3 +61,22 @@ class TestRgbExpression:
     def test_rgb_out_of_range_raises(self) -> None:
         with pytest.raises(ValueError, match='Color value out of range'):
             ColorNames.lookup('(300, 0, 0)')
+
+    def test_rgb_partial_match_raises_keyerror(self) -> None:
+        """A regex match that doesn't span the whole input is rejected.
+
+        Regression: previously the function silently returned None when the
+        RGB regex matched a prefix; callers expected a KeyError.
+        """
+        with pytest.raises(KeyError, match='Unrecognized color name'):
+            ColorNames.lookup('(1, 2, 3) garbage')
+
+    def test_rgb_injection_payload_rejected(self) -> None:
+        """A trailing expression after the RGB tuple is rejected.
+
+        Regression: the parser must not allow arbitrary Python expressions
+        appended to a valid-looking RGB triple. `ast.literal_eval` and the
+        end-of-string regex check together guarantee this.
+        """
+        with pytest.raises(KeyError, match='Unrecognized color name'):
+            ColorNames.lookup('(1, 2, 3); __import__("os").system("ls")')

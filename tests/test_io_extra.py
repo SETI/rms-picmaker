@@ -1,12 +1,10 @@
 """Cover the leaf I/O helpers that aren't exercised by the main cascade test."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np
 
-from picmaker.picmaker import (
+from picmaker import (
     read_array,
     read_pds_labeled_image_array,
     read_pil,
@@ -28,7 +26,9 @@ class TestReadArray:
     def test_sixteen_bit_tiff(self, fixtures_dir: Path) -> None:
         # ReadTiff16 branch: rescale=False returns the raw uint16 array.
         arr = read_array(str(fixtures_dir / 'small_tiff16.tiff'), rescale=False)
-        assert arr.shape == (8, 8) or arr.shape == (8, 8, 1)
+        # small_tiff16.tiff is a grayscale 8x8 written by WriteTiff16, so
+        # ReadTiff16 returns the 2-D shape directly.
+        assert arr.shape == (8, 8)
 
     def test_sixteen_bit_tiff_rescale(self, fixtures_dir: Path) -> None:
         arr = read_array(str(fixtures_dir / 'small_tiff16.tiff'), rescale=True)

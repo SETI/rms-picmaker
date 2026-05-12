@@ -1,13 +1,11 @@
 """find_common_path and get_outfile unit tests."""
 
-from __future__ import annotations
-
 import warnings
 from pathlib import Path
 
 import pytest
 
-from picmaker.picmaker import find_common_path, get_outfile
+from picmaker import find_common_path, get_outfile
 
 
 class TestFindCommonPath:

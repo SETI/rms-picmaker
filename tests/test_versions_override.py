@@ -7,8 +7,6 @@ Two sub-cases:
     main CLI wins: processing continues on errors.
 """
 
-from __future__ import annotations
-
 import subprocess
 from pathlib import Path
 

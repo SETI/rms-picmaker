@@ -10,13 +10,11 @@ This is a deliberate user-observable behavior change documented in the
 PR 3 description.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
 
-from picmaker.picmaker import read_one_image_array
+from picmaker import read_one_image_array
 
 
 def test_falls_through_to_unrecognized_format_error(tmp_path: Path) -> None:

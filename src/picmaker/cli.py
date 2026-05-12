@@ -31,6 +31,7 @@ import os
 import sys
 from typing import Any
 
+from picmaker.options import PicmakerOptions
 from picmaker.pipeline import find_common_path, process_images
 
 logger = logging.getLogger(__name__)
@@ -324,7 +325,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     processing = parser.add_argument_group('processing options')
     processing.add_argument(
-        '-f', '--filter', dest='filter', default='none', choices=_FILTER_CHOICES,
+        '-f', '--filter', dest='filter_name', default='none', choices=_FILTER_CHOICES,
         help='name of image processing filter to apply.',
     )
     processing.add_argument(
@@ -388,24 +389,13 @@ def _normalize_and_validate(
     if options.scale is not None and options.hscale is not None:
         raise ValueError('scale and hscale options are incompatible')
 
-    if options.frame is not None and options.size is not None:
-        raise ValueError('frame and size options are incompatible')
-
     if options.overlap is not None and options.overlaps is not None:
         raise ValueError('overlap and overlaps options are incompatible')
 
-    if options.display_upward and options.display_downward:
-        raise ValueError('--up and --down options are incompatible')
-
-    if options.twobytes:
-        if (
-            options.extension is not None
-            and options.extension.lower()[0:3] != 'tif'
-        ):
-            raise ValueError('only tiffs can be written in 16-bit mode')
-
-        if options.filter is not None and options.filter.lower() != 'none':
-            raise ValueError('16-bit filter options are not supported')
+    # The frame/size, up/down, and twobytes-mode checks moved into
+    # PicmakerOptions.validate() (called at the bottom of this function);
+    # keeping them inline here would duplicate the post-normalization
+    # invariants the dataclass owns.
 
     if not options.hst:
         if options.band is None:
@@ -498,9 +488,14 @@ def _normalize_and_validate(
         'display_downward': options.display_downward,
         'rotate': options.rotate.lower(),
         # special processing options
-        'filter': options.filter.lower(),
+        'filter_name': options.filter_name.lower(),
         'zebra': options.zebra,
     }
+    # Single source of truth for post-normalization mutex / value-validity
+    # checks. The CLI runs this here so failures surface immediately
+    # (before any I/O); pipeline.images_to_pics runs the same check on
+    # its own so library callers that bypass the CLI get the same guarantee.
+    PicmakerOptions(**option_dict).validate()
     return option_dict
 
 
@@ -578,7 +573,7 @@ def main() -> None:
                     if not f_filtered:
                         continue
                     if verbose:
-                        print(this_dir)
+                        logger.info('%s', this_dir)
                     filepaths = [os.path.join(this_dir, f) for f in f_filtered]
                     out_dir = (
                         None
@@ -594,7 +589,7 @@ def main() -> None:
                     )
             else:
                 if verbose:
-                    print(dirpath)
+                    logger.info('%s', dirpath)
                 files_in_dir = os.listdir(dirpath)
                 f_filtered = fnmatch.filter(files_in_dir, pattern)
                 if not f_filtered:

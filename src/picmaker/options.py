@@ -1,0 +1,123 @@
+"""Configuration dataclass for the :func:`picmaker.pipeline.images_to_pics` pipeline.
+
+:class:`PicmakerOptions` consolidates the ~45 keyword arguments accepted by
+:func:`picmaker.pipeline.images_to_pics` into a single value object, and owns
+the cross-field mutex / value-validity checks that previously lived inline in
+both :func:`picmaker.cli._normalize_and_validate` and
+:func:`picmaker.pipeline.images_to_pics`.
+
+The public function signature of :func:`images_to_pics` is unchanged for
+backward compatibility — internally it builds a :class:`PicmakerOptions` and
+calls :meth:`PicmakerOptions.validate` so the duplicated mutex checks live in
+exactly one place.
+"""
+
+from dataclasses import asdict, dataclass
+from typing import Any
+
+
+@dataclass
+class PicmakerOptions:
+    """All post-normalization knobs that drive :func:`images_to_pics`.
+
+    Each field's default matches the corresponding kwarg default on
+    :func:`picmaker.pipeline.images_to_pics`. Call :meth:`validate` once after
+    construction (or after any in-place mutation) to enforce the cross-field
+    invariants.
+
+    The :meth:`to_kwargs` and :meth:`from_kwargs` helpers let the legacy
+    ``**option_dict`` call form continue to work unchanged.
+    """
+
+    # control
+    replace: str = 'all'
+    proceed: bool = False
+    # output
+    extension: str | None = 'jpg'
+    suffix: str = ''
+    strip: Any = None
+    quality: int = 75
+    twobytes: bool = False
+    # selection
+    bands: Any = None
+    lines: Any = None
+    samples: Any = None
+    obj: Any = None
+    pointer: Any = None
+    # sizing
+    size: Any = None
+    scale: Any = (100.0, 100.0)
+    crop: Any = None
+    frame: Any = None
+    pad: bool = False
+    pad_color: Any = 'black'
+    frame_max: int | None = None
+    # layout
+    wrap: bool = False
+    wrap_ratio: float | None = None
+    overlap: tuple[float, float] = (0.0, 0.0)
+    gap_size: int = 1
+    gap_color: Any = 'white'
+    hst: bool = False
+    # scaling
+    valid: Any = None
+    limits: Any = None
+    percentiles: Any = None
+    trim: int = 0
+    trim_zeros: bool = False
+    footprint: int = 0
+    histogram: bool = False
+    # enhancement
+    colormap: Any = None
+    below_color: Any = None
+    above_color: Any = None
+    invalid_color: Any = None
+    gamma: float = 1.0
+    tint: bool = False
+    # orientation
+    display_upward: bool = False
+    display_downward: bool = False
+    rotate: Any = None
+    # processing
+    filter_name: str = 'NONE'
+    zebra: bool = False
+
+    def validate(self) -> None:
+        """Run cross-field mutex / value-validity checks.
+
+        Raises:
+            ValueError: When two options that cannot be set together are
+                both set, or when ``twobytes`` is combined with a
+                non-TIFF extension or a non-trivial filter.
+        """
+        if self.hst and self.bands is not None:
+            raise ValueError('hst and bands options are incompatible')
+        if self.frame is not None and self.size is not None:
+            raise ValueError('frame and size options are incompatible')
+        if self.frame is not None and self.wrap_ratio:
+            raise ValueError('frame and wrap_ratio options are incompatible')
+        if self.display_upward and self.display_downward:
+            raise ValueError('--up and --down options are incompatible')
+        if self.twobytes:
+            if (
+                self.extension is not None
+                and self.extension.lower()[:3] != 'tif'
+            ):
+                raise ValueError('only tiffs can be written in 16-bit mode')
+            if (
+                self.filter_name is not None
+                and self.filter_name.lower() != 'none'
+            ):
+                raise ValueError('16-bit filter options are not supported')
+
+    def to_kwargs(self) -> dict[str, Any]:
+        """Return a kwargs dict that unpacks back into :func:`images_to_pics`."""
+        return asdict(self)
+
+    @classmethod
+    def from_kwargs(cls, **kwargs: Any) -> 'PicmakerOptions':
+        """Build a :class:`PicmakerOptions` from a kwargs dict."""
+        return cls(**kwargs)
+
+
+__all__ = ['PicmakerOptions']

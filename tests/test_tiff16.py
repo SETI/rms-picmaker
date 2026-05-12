@@ -47,19 +47,8 @@ def test_rgb_round_trip(tmp_path: Path) -> None:
     np.testing.assert_array_equal(new_arr, arr)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        'Pre-PR3: WriteTiff16 checks `palette != None` which returns a numpy '
-        'array (not a bool) for non-None palettes — modern numpy raises '
-        'ValueError. PR 3 will switch to `palette is not None`.'
-    ),
-)
 def test_palette_round_trip_translate_true(tmp_path: Path) -> None:
-    """Test palette TIFF with translate=True converts to RGB on write.
-
-    Known to fail due to palette != None comparison bug.
-    """
+    """Test palette TIFF with translate=True converts to RGB on write."""
     arr = np.arange(64, dtype=np.int32).reshape(8, 8)
     palette = np.zeros((65536, 3), dtype=np.int32)
     for dn in range(64):
@@ -73,17 +62,8 @@ def test_palette_round_trip_translate_true(tmp_path: Path) -> None:
     assert new_arr.shape == (8, 8, 3)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        'Pre-PR3: same `palette != None` ambiguity as the translate-true case.'
-    ),
-)
 def test_palette_round_trip_translate_false(tmp_path: Path) -> None:
-    """Test palette TIFF with translate=False preserves palette format.
-
-    Known to fail due to palette != None comparison bug.
-    """
+    """Test palette TIFF with translate=False preserves palette format."""
     arr = np.arange(64, dtype=np.int32).reshape(8, 8)
     palette = np.zeros((65536, 3), dtype=np.int32)
     for dn in range(64):
@@ -124,3 +104,16 @@ def test_invalid_file_raises(tmp_path: Path) -> None:
     with pytest.raises(IOError) as excinfo:
         ReadTiff16(str(bad))
     assert 'File format is not TIFF' in str(excinfo.value)
+
+
+def test_wrong_tiff_version_raises(tmp_path: Path) -> None:
+    """A file with valid byte-order magic but a non-42 TIFF version field is rejected.
+
+    Regression: ReadTiff16 built an OSError for this case but did not raise it,
+    silently accepting the file and proceeding with corrupt IFD parsing.
+    """
+    bad = tmp_path / 'bad_version.tiff'
+    # Little-endian 'II' magic, version=43 (not 42), IFD offset=8.
+    bad.write_bytes(b'II' + (43).to_bytes(2, 'little') + (8).to_bytes(4, 'little'))
+    with pytest.raises(OSError, match='File format is not TIFF'):
+        ReadTiff16(str(bad))

@@ -1,12 +1,10 @@
 """Geometry helpers — wrap_image, pad_image, get_size, resize_image, rotate."""
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 from PIL import Image
 
-from picmaker.picmaker import (
+from picmaker import (
     get_size,
     pad_image,
     resize_image,

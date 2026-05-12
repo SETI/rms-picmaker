@@ -7,8 +7,6 @@ counts them and so each validation rule has a focused assertion that
 fails with a clear locator.
 """
 
-from __future__ import annotations
-
 import argparse
 import sys
 from pathlib import Path
@@ -66,7 +64,7 @@ def test_build_parser_parses_typical_args() -> None:
     assert ns.quality == 90
     assert ns.gamma == 2.0
     assert ns.rotate == 'rot90'
-    assert ns.filter == 'sharpen'
+    assert ns.filter_name == 'sharpen'
     assert ns.tint is True
     assert ns.files == ['in.vic']
 
@@ -322,7 +320,7 @@ def test_normalize_filter_and_rotate_lowercased() -> None:
     """``--filter`` and ``--rotate`` are normalised to lowercase."""
     ns = _parse('--filter', 'SHARPEN', '--rotate', 'ROT90')
     out = _normalize_and_validate(ns, 'all', False)
-    assert out['filter'] == 'sharpen'
+    assert out['filter_name'] == 'sharpen'
     assert out['rotate'] == 'rot90'
 
 

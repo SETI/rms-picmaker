@@ -6,13 +6,11 @@ internally to ``[]``) and ``pointer=None`` (normalized to
 change re-introduces a mutable default the test fails immediately.
 """
 
-from __future__ import annotations
-
 import inspect
 from collections.abc import Callable
 from typing import Any
 
-from picmaker.picmaker import get_outfile, images_to_pics
+from picmaker import get_outfile, images_to_pics
 
 
 def _default(func: Callable[..., Any], name: str) -> Any:

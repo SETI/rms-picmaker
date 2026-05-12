@@ -7,8 +7,6 @@ contents (cheap) and by spot-checking that `picmaker --foo` parses without
 error (sub-process invocation).
 """
 
-from __future__ import annotations
-
 import subprocess
 from pathlib import Path
 

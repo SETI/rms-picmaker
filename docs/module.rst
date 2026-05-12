@@ -10,6 +10,11 @@ Pipeline
 .. automodule:: picmaker.pipeline
    :members:
 
+Options
+-------
+.. automodule:: picmaker.options
+   :members:
+
 I/O
 ---
 .. automodule:: picmaker.io

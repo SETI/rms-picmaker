@@ -1,13 +1,11 @@
 """End-to-end read_one_image_array tests for all instrument fixtures + the
 malformed cascade."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
 
-from picmaker.picmaker import read_one_image_array
+from picmaker import read_one_image_array
 
 # (fixture_name, expected detect tuple, expected is_color flag)
 INSTRUMENT_FIXTURES = [
@@ -29,7 +27,10 @@ def test_instrument_detection(
     array, color, detect = read_one_image_array(str(fixtures_dir / fixture), None)
     assert detect == expected
     assert color is is_color
-    assert array.ndim == 3  # always 3-D after reshape
+    # All instrument fixtures are 16x16 single-band synthetic frames.
+    # ACS/WFC and WFPC2 are multi-band when read with hst=True; this
+    # test exercises the default `hst=False` path so each is 1 band.
+    assert array.shape == (1, 16, 16)
 
 
 @pytest.mark.parametrize('fixture', [

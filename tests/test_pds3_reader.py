@@ -6,8 +6,6 @@ plus the sibling-label fallback (``foo.LBL`` next to ``foo.IMG``) and
 several error paths. Each test covers one branch.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np
@@ -276,6 +274,7 @@ def test_pds3_falls_back_to_spacecraft_name(tmp_path: Path) -> None:
     result = read_pds_labeled_image_array(str(lbl))
     assert result is not None
     _, _, filter_info = result
+    assert filter_info is not None
     assert filter_info[0] == 'VOYAGER 1'
 
 

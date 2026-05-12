@@ -36,14 +36,17 @@ def filter_image(image: Any, filter_name: str) -> Any:
     Parameters:
         image: A PIL image as 8-bit RGB or grayscale.
         filter_name: Name of the filter to be applied. Valid choices are the
-            keys of ``FILTER_DICT`` (case-insensitive).
+            keys of ``FILTER_DICT`` (case-insensitive). ``'NONE'`` returns
+            the input image unchanged.
 
     Returns:
-        The filtered PIL image (or the original image if the filter is
-        ``'NONE'`` or unknown).
+        The filtered PIL image. For ``filter_name='NONE'`` the input
+        image is returned unchanged.
 
     Raises:
         ValueError: If ``image`` is a list (16-bit two-byte image).
+        KeyError: If ``filter_name`` (case-folded) is not a key of
+            :data:`FILTER_DICT`.
     """
     if isinstance(image, list):
         raise ValueError('filtering of 2-byte images is not supported')

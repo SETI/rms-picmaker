@@ -1,10 +1,8 @@
 """fill_zebra_stripes unit tests."""
 
-from __future__ import annotations
-
 import numpy as np
 
-from picmaker.picmaker import fill_zebra_stripes
+from picmaker import fill_zebra_stripes
 
 
 class TestFillZebraStripes:
