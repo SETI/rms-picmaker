@@ -97,7 +97,7 @@ def read_image_array(
     for k in range(len(arrays)):
         array = arrays[k]
         if len(array.shape) < 3:
-            arrays[k] = np.reshape(array, (1,) + array.shape)
+            arrays[k] = np.reshape(array, (1, *array.shape))
 
     array = np.vstack(arrays)
     return ReadResult(array, results[0].default_is_up, results[0].filter_info)
@@ -145,7 +145,7 @@ def read_one_image_array(
         with open(filename_str, 'rb') as f:
             array3d = pickle.load(f)
         if len(array3d.shape) == 2:
-            array3d = array3d.reshape((1,) + array3d.shape)
+            array3d = array3d.reshape((1, *array3d.shape))
         return ReadResult(array3d, False, None)
     except Exception as exc:
         cascade_errors.append(exc)
@@ -154,7 +154,7 @@ def read_one_image_array(
     try:
         array3d = np.load(filename_str)
         if len(array3d.shape) == 2:
-            array3d = array3d.reshape((1,) + array3d.shape)
+            array3d = array3d.reshape((1, *array3d.shape))
         return ReadResult(array3d, False, None)
     except (OSError, ValueError) as exc:
         cascade_errors.append(exc)
@@ -204,7 +204,7 @@ def read_one_image_array(
                         array = hdulist[1].data
                         try:
                             array2 = hdulist[4].data
-                            shape = (2,) + array.shape
+                            shape = (2, *array.shape)
                             array3d = np.empty(shape)
                             array3d[0] = array
                             array3d[1] = array2
@@ -245,7 +245,7 @@ def read_one_image_array(
                     raise OSError('Image array not found in FITS file')
 
                 if len(array3d.shape) == 2:
-                    array3d = array3d.reshape((1,) + array3d.shape)
+                    array3d = array3d.reshape((1, *array3d.shape))
 
                 return ReadResult(array3d, True, filter_info)
 
@@ -255,7 +255,7 @@ def read_one_image_array(
     # ---- PIL / 16-bit TIFF attempt ----
     try:
         array2d = read_array(filename_str, False)
-        array3d = array2d.reshape((1,) + array2d.shape)
+        array3d = array2d.reshape((1, *array2d.shape))
         return ReadResult(array3d, False, None)
     except OSError as exc:
         cascade_errors.append(exc)

@@ -370,15 +370,17 @@ def _normalize_and_validate(
         The ``option_dict`` consumed by ``images_to_pics``. Validation
         failures raise :class:`ValueError`.
     """
-    if options.hst:
-        if options.band is not None or options.bands is not None:
-            raise ValueError('hst and band options are incompatible')
-    elif options.band is not None and options.bands is not None:
-        if (
+    if options.hst and (options.band is not None or options.bands is not None):
+        raise ValueError('hst and band options are incompatible')
+    if (
+        options.band is not None
+        and options.bands is not None
+        and (
             options.band != options.bands[0]
             or options.band != options.bands[1]
-        ):
-            raise ValueError('band and bands options are incompatible')
+        )
+    ):
+        raise ValueError('band and bands options are incompatible')
 
     if options.hst and options.movie:
         raise ValueError('hst and movie options are incompatible')

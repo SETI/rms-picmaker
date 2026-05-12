@@ -73,6 +73,13 @@ filterwarnings = [
   # pil_utils.py and the snapshot fixtures; tracked in
   # https://github.com/SETI/rms-picmaker/issues/9.
   "ignore:Image.Image.getdata is deprecated:DeprecationWarning",
+  # Astropy warns at import time when XDG_CONFIG_HOME is set but
+  # ~/.astropy/config already exists. On GitHub-hosted runners the
+  # warning fires only in workers that lose a TOCTOU race against the
+  # config-dir-creation step in astropy init, so xdist sees different
+  # tests collected per worker and aborts. Ignoring it is safe — the
+  # warning is purely informational about astropy's own config path.
+  "ignore:XDG_CONFIG_HOME is set:UserWarning",
 ]
 
 [tool.setuptools]
@@ -170,22 +177,10 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "A", "N", "PT", "RUF"]
 extend-ignore = ["PT011", "SIM105", "SIM108"]
 
 [tool.ruff.lint.per-file-ignores]
-# `arrayRGB`, `arraysRGB`, `panelsRGB`, `quadsRGB` are preserved camelCase
-# names from the legacy API; renaming them would break BC for callers that
-# import these helpers from `picmaker.picmaker`.
-"src/picmaker/cli.py" = ["SIM102"]
-# RUF005 = `(N,) + shape` vs `(N, *shape)` — both legal, the former is the
-# legacy idiom and produces byte-identical numpy arrays.
-"src/picmaker/pipeline.py" = ["N806", "RUF005"]
-"src/picmaker/geometry.py" = ["N806", "SIM102"]
-"src/picmaker/io.py" = ["RUF005"]
-# tiff16.py per-file ignores narrowed in the 2026-05 modernisation pass to
-# just N802 — `WriteTiff16` / `ReadTiff16` / `my_assert` keep their legacy
-# names (BC verified by `tests/test_api_compat.py`).
+# N802 = function names should be lowercase. `WriteTiff16` and `ReadTiff16`
+# are public-API entry points pinned by `tests/test_api_compat.py`; the
+# PascalCase spelling is the documented call signature.
 "src/picmaker/tiff16.py" = ["N802"]
-# colornames.py per-file ignores removed in the 2026-05 modernisation pass.
-# Tests import legacy camelCase names for BC verification.
-"tests/test_*.py" = ["N806"]
 
 [tool.pymarkdown.plugins.md013]
 # Line length (disable so README/CONTRIBUTING can use longer lines).

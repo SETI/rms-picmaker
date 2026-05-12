@@ -400,7 +400,7 @@ def images_to_pics(
 
                 this_display_upward = False
 
-                arraysRGB: list[Any] = []
+                arrays_rgb: list[Any] = []
                 for b in range(array3d.shape[0]):
                     (array2d, invalid_mask) = slice_array(
                         array3d, samples, lines, (b, b + 1), valid, crop
@@ -420,7 +420,7 @@ def images_to_pics(
                         footprint=footprint,
                     )
 
-                    arrayRGB = apply_colormap(
+                    array_rgb = apply_colormap(
                         array2d,
                         these_limits,
                         histogram,
@@ -431,58 +431,58 @@ def images_to_pics(
                         invalid_color,
                     )
 
-                    arraysRGB.append(arrayRGB)
+                    arrays_rgb.append(array_rgb)
 
                 if filter_info[1] == 'WFPC2':
-                    quadsRGB = np.zeros((4,) + arraysRGB[0].shape)
+                    quads_rgb = np.zeros((4, *arrays_rgb[0].shape))
 
                     for b in range(array3d.shape[0]):
                         if isinstance(imagefile, str):
-                            quadsRGB[b] = np.rot90(arraysRGB[b], b)
+                            quads_rgb[b] = np.rot90(arrays_rgb[b], b)
                         else:
                             testfile = imagefile[b].upper()
                             if 'PC1' in testfile:
-                                quadsRGB[0] = arraysRGB[b]
+                                quads_rgb[0] = arrays_rgb[b]
                             elif 'WF2' in testfile:
-                                quadsRGB[1] = np.rot90(arraysRGB[b], 1)
+                                quads_rgb[1] = np.rot90(arrays_rgb[b], 1)
                             elif 'WF3' in testfile:
-                                quadsRGB[2] = np.rot90(arraysRGB[b], 2)
+                                quads_rgb[2] = np.rot90(arrays_rgb[b], 2)
                             elif 'WF4' in testfile:
-                                quadsRGB[3] = np.rot90(arraysRGB[b], 3)
+                                quads_rgb[3] = np.rot90(arrays_rgb[b], 3)
                             else:
-                                quadsRGB[b] = np.rot90(arraysRGB[b], b)
+                                quads_rgb[b] = np.rot90(arrays_rgb[b], b)
 
-                    (_, dl, ds, db) = quadsRGB.shape
-                    arrayRGB = np.empty((2 * dl, 2 * ds, db))
-                    arrayRGB[:dl, -ds:] = quadsRGB[0]
-                    arrayRGB[:dl, :ds] = quadsRGB[1]
-                    arrayRGB[-dl:, :ds] = quadsRGB[2]
-                    arrayRGB[-dl:, -ds:] = quadsRGB[3]
+                    (_, dl, ds, db) = quads_rgb.shape
+                    array_rgb = np.empty((2 * dl, 2 * ds, db))
+                    array_rgb[:dl, -ds:] = quads_rgb[0]
+                    array_rgb[:dl, :ds] = quads_rgb[1]
+                    array_rgb[-dl:, :ds] = quads_rgb[2]
+                    array_rgb[-dl:, -ds:] = quads_rgb[3]
 
                 else:
-                    if len(arraysRGB) > 1:
-                        panelsRGB = np.zeros((2,) + arraysRGB[0].shape)
+                    if len(arrays_rgb) > 1:
+                        panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
 
                         for b in range(2):
                             if isinstance(imagefile, str):
-                                panelsRGB[1 - b] = arraysRGB[b]
+                                panels_rgb[1 - b] = arrays_rgb[b]
                             else:
                                 testfile = imagefile[b].upper()
                                 if 'WFC1' in testfile:
-                                    panelsRGB[0] = arraysRGB[b]
+                                    panels_rgb[0] = arrays_rgb[b]
                                 elif 'WFC2' in testfile:
-                                    panelsRGB[1] = arraysRGB[b]
+                                    panels_rgb[1] = arrays_rgb[b]
                                 else:
-                                    panelsRGB[b] = arraysRGB[b]
+                                    panels_rgb[b] = arrays_rgb[b]
 
-                        (dl, ds, db) = arraysRGB[0].shape
-                        arrayRGB = np.zeros((2 * dl, ds, db))
+                        (dl, ds, db) = arrays_rgb[0].shape
+                        array_rgb = np.zeros((2 * dl, ds, db))
 
-                        arrayRGB[:dl] = panelsRGB[0]
-                        arrayRGB[-dl:] = panelsRGB[1]
+                        array_rgb[:dl] = panels_rgb[0]
+                        array_rgb[-dl:] = panels_rgb[1]
 
                     else:
-                        arrayRGB = arraysRGB[0]
+                        array_rgb = arrays_rgb[0]
 
             else:
                 (array2d, invalid_mask) = slice_array(
@@ -506,7 +506,7 @@ def images_to_pics(
                 min_limits.append(these_limits[0])
                 max_limits.append(these_limits[1])
 
-                arrayRGB = apply_colormap(
+                array_rgb = apply_colormap(
                     array2d,
                     these_limits,
                     histogram,
@@ -517,12 +517,12 @@ def images_to_pics(
                     invalid_color,
                 )
 
-            arrayRGB = rotate_array_rgb(arrayRGB, this_display_upward, rotate)
+            array_rgb = rotate_array_rgb(array_rgb, this_display_upward, rotate)
 
-            arrayRGB = apply_gamma(arrayRGB, gamma)
+            array_rgb = apply_gamma(array_rgb, gamma)
 
             (unwrapped_size, wrapped_size, sections, wrap_axis) = get_size(
-                arrayRGB.shape,
+                array_rgb.shape,
                 size,
                 scale,
                 frame,
@@ -533,7 +533,7 @@ def images_to_pics(
                 frame_max,
             )
 
-            image = array_to_pil(arrayRGB, twobytes)
+            image = array_to_pil(array_rgb, twobytes)
 
             image = filter_image(image, filter_name)
 

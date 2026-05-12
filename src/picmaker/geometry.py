@@ -154,14 +154,14 @@ def crop_array(
 
 
 def rotate_array_rgb(
-    arrayRGB: Any,  # noqa: N803 — preserved kwarg name
+    array_rgb: Any,
     display_upward: bool,
     rotation_name: str | None,
 ) -> Any:
     """Apply an orientation to an RGB array.
 
     Parameters:
-        arrayRGB: An RGB array.
+        array_rgb: An RGB array.
         display_upward: True to flip the image upward (top-of-image
             becomes top-of-display); False leaves it as is.
         rotation_name: One of ``'NONE'``, ``'FLIPLR'``, ``'FLIPTB'``,
@@ -175,7 +175,7 @@ def rotate_array_rgb(
             choices.
     """
     if display_upward:
-        arrayRGB = np.flipud(arrayRGB)
+        array_rgb = np.flipud(array_rgb)
 
     if rotation_name:
         rotation_name = rotation_name.upper()
@@ -183,19 +183,19 @@ def rotate_array_rgb(
         if rotation_name == 'NONE':
             pass
         elif rotation_name == 'FLIPLR':
-            arrayRGB = np.fliplr(arrayRGB)
+            array_rgb = np.fliplr(array_rgb)
         elif rotation_name == 'FLIPTB':
-            arrayRGB = np.flipud(arrayRGB)
+            array_rgb = np.flipud(array_rgb)
         elif rotation_name == 'ROT90':
-            arrayRGB = np.rot90(arrayRGB, 1)
+            array_rgb = np.rot90(array_rgb, 1)
         elif rotation_name == 'ROT180':
-            arrayRGB = np.rot90(arrayRGB, 2)
+            array_rgb = np.rot90(array_rgb, 2)
         elif rotation_name == 'ROT270':
-            arrayRGB = np.rot90(arrayRGB, 3)
+            array_rgb = np.rot90(array_rgb, 3)
         else:
             raise KeyError(f'Unrecognized rotation method: {rotation_name}')
 
-    return arrayRGB
+    return array_rgb
 
 
 def get_size(
@@ -231,17 +231,14 @@ def get_size(
     Returns:
         ``(unwrapped_size, wrapped_size, sections, wrap_axis)``.
     """
-    if size is not None:
-        if not isinstance(size, (list, tuple)):
-            size = (size, size)
+    if size is not None and not isinstance(size, (list, tuple)):
+        size = (size, size)
 
-    if scale is not None:
-        if not isinstance(scale, (list, tuple)):
-            scale = (scale, scale)
+    if scale is not None and not isinstance(scale, (list, tuple)):
+        scale = (scale, scale)
 
-    if frame is not None:
-        if not isinstance(frame, (list, tuple)):
-            frame = (frame, frame)
+    if frame is not None and not isinstance(frame, (list, tuple)):
+        frame = (frame, frame)
 
     array_size = [array_shape[1], array_shape[0]]
     if scale is not None:
