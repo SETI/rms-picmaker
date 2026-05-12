@@ -1,0 +1,293 @@
+Pipeline
+========
+
+This section covers the CLI-to-output-file path: a flowchart of the
+major functions and a walk-through of each.
+
+Flowchart
+---------
+
+The diagram below shows the path from a CLI invocation to a written
+output file. Cross-references below link each box to its API entry;
+the diagram itself uses bare names so it stays legible. The diagram is
+rendered as inline SVG by Mermaid (client-side); use the browser's
+zoom controls to read the labels at any size.
+
+.. mermaid::
+   :align: center
+
+   flowchart TD
+       A[picmaker CLI<br/>argv] --> B[cli.main]
+       B --> C[_build_parser<br/>argparse]
+       B --> D[_separate_files_and_dirs]
+       B --> E[_normalize_and_validate<br/>per --versions line]
+       E --> F[PicmakerOptions.validate]
+       F --> G[process_images<br/>per directory]
+       G -->|movie=True| H[images_to_pics<br/>pass 1: collect limits]
+       H --> I[images_to_pics<br/>pass 2: shared stretch]
+       G -->|movie=False| J[images_to_pics<br/>per file]
+       I --> K[per-file pipeline]
+       J --> K
+       K --> L[get_outfile]
+       L -->|skip if replace='none'| M[Done]
+       L --> N[read_image_array]
+       N --> O[read_one_image_array<br/>format cascade]
+       O --> P[pickle / numpy / VICAR / FITS / PIL / PDS3]
+       P --> Q[ReadResult<br/>array3d, default_is_up, filter_info]
+       Q --> R{hst=True?}
+       R -->|yes| S[per-detector slice + colormap<br/>WFPC2 quad or ACS panel mosaic]
+       R -->|no| T[slice_array]
+       T --> U[fill_zebra_stripes<br/>optional]
+       U --> V[get_limits]
+       V --> W[apply_colormap]
+       W --> X[rotate_array_rgb]
+       X --> Y[apply_gamma]
+       Y --> Z[get_size + array_to_pil]
+       S --> Z
+       Z --> AA[filter_image]
+       AA --> BB[resize_image]
+       BB --> CC{sections > 1?}
+       CC -->|yes| DD[wrap_image]
+       CC -->|no| EE[skip wrap]
+       DD --> FF{pad?}
+       EE --> FF
+       FF -->|yes| GG[pad_image]
+       FF -->|no| HH[skip pad]
+       GG --> II[write_pil]
+       HH --> II
+       II --> M
+
+Two short observations on the diagram:
+
+* The ``movie=True`` branch runs :func:`~picmaker.pipeline.images_to_pics`
+  twice. The first pass computes the per-frame limits, the second
+  pass uses the median of those limits so every frame shares one
+  stretch.
+* The HST mosaic branch (``hst=True``) handles WFPC2 quad-panel and
+  ACS/WFC two-panel composites; it is the only branch that bypasses
+  the single-band :func:`~picmaker.geometry.slice_array` →
+  :func:`~picmaker.enhance.apply_colormap` flow.
+
+
+Major functions
+---------------
+
+This subsection walks through the major library functions in pipeline
+order. Cross-references resolve to the :doc:`/module` reference; each
+public symbol is a clickable link to its full signature, docstring,
+and source code (via :mod:`sphinx.ext.viewcode`).
+
+CLI entry point
+~~~~~~~~~~~~~~~
+
+:func:`picmaker.cli.main` is the function bound to the ``picmaker``
+console script. It builds the argparse parser, splits ``args.files``
+into files and directories with
+:func:`!picmaker.cli._separate_files_and_dirs`, and dispatches each
+``--versions FILE`` line as its own option dict via
+:func:`!picmaker.cli._normalize_and_validate`.
+
+The library equivalent of "run the CLI from Python" is to import
+:func:`picmaker.pipeline.images_to_pics` directly; the kwarg names
+match the CLI flags one-to-one. The CLI does no I/O of its own —
+every file operation flows through :mod:`picmaker.io`.
+
+Option validation
+~~~~~~~~~~~~~~~~~
+
+:class:`picmaker.options.PicmakerOptions` is a frozen-by-convention
+dataclass that holds the ~45 post-normalization knobs that drive the
+pipeline. Its :meth:`~picmaker.options.PicmakerOptions.validate`
+method runs every mutex / value-validity check that does not depend
+on raw argparse fields:
+
+* ``hst`` + ``bands`` is rejected (HST mosaic mode consumes every
+  detector).
+* ``frame`` + ``size`` is rejected (both specify output dimensions).
+* ``frame`` + ``wrap_ratio`` is rejected (incompatible layout
+  decisions).
+* ``display_upward`` + ``display_downward`` is rejected.
+* ``twobytes`` requires a TIFF extension and rejects any
+  ``filter_name`` other than ``'NONE'``.
+
+The CLI's :func:`!picmaker.cli._normalize_and_validate` does a few
+more checks that are CLI-specific (band/bands mismatch,
+``--scale`` + ``--wscale``, ``--overlap`` + ``--overlaps``,
+``--movie`` + ``--versions``) because those operate on raw flags that
+get collapsed before the dataclass is built. Adding a new mutex rule
+that applies to both surfaces should go in
+:meth:`~picmaker.options.PicmakerOptions.validate`.
+
+The reader cascade
+~~~~~~~~~~~~~~~~~~
+
+:func:`picmaker.io.read_one_image_array` is the single-file reader.
+It tries every supported format in turn (pickle → numpy → VICAR →
+FITS → PIL → PDS3) and returns a :class:`~picmaker.io.ReadResult`
+triple. Each branch catches its specific exception types so an
+unrecognized file falls through to the next; the cascade-end
+:class:`OSError` is chained from a :class:`ExceptionGroup` that
+carries every per-reader failure for diagnostic purposes.
+
+The FITS branch sniffs the first 9 bytes for ``b'SIMPLE  ='`` before
+calling :func:`astropy.io.fits.open` so that wrong-extension files do
+not trigger astropy's expensive parser, and so that warnings raised
+from inside :func:`astropy.io.fits.open` are converted to exceptions
+by :class:`warnings.catch_warnings` + ``filterwarnings('error')`` and
+swallowed at the branch boundary.
+
+:func:`picmaker.io.read_image_array` is the multi-file wrapper: it
+delegates to :func:`~picmaker.io.read_one_image_array` per file and
+stacks the resulting arrays along the band axis with
+:func:`numpy.vstack`. The combined result inherits the
+``default_is_up`` and ``filter_info`` of the first file.
+
+:func:`picmaker.io.read_pds_labeled_image_array` handles the PDS3
+label / detached-data case. Pointer resolution lives here:
+``^IMAGE = 2`` (attached integer offset), ``^IMAGE = "data.dat"``
+(detached, full file), and ``^IMAGE = ("data.dat", 3)`` (detached
+with record offset) are all distinct branches.
+
+:func:`picmaker.io.read_pil` and :func:`picmaker.io.read_array` are
+the Pillow-side helpers used by PIL-readable inputs and by
+:func:`~picmaker.io.read_one_image_array`'s PIL branch.
+
+Path planning
+~~~~~~~~~~~~~
+
+:func:`picmaker.io.get_outfile` derives the output file path for one
+input. It honors four ``replace=`` policies (``'all'`` — silent
+overwrite; ``'none'`` — return ``''`` to signal the loop should
+skip; ``'warn'`` — overwrite and emit :class:`UserWarning`;
+``'error'`` — raise :class:`OSError`). It creates the parent
+directory tree if it does not already exist.
+
+:func:`picmaker.pipeline.find_common_path` derives the recursive
+output tree's root by calling :func:`os.path.commonpath` over the
+input directories. The legacy hand-rolled version of this function
+used ``/`` as a literal separator and was wrong on Windows; the
+current implementation handles platform separators correctly and
+returns ``''`` when the inputs share only the root.
+
+Per-image pipeline
+~~~~~~~~~~~~~~~~~~
+
+:func:`picmaker.pipeline.images_to_pics` runs the per-image pipeline
+shown in the flowchart above. The body is roughly 400 lines and runs
+through the following phases for each input filename:
+
+1. Build the output path (:func:`~picmaker.io.get_outfile`); skip if
+   ``replace='none'`` returned ``''``.
+2. Read the array (:func:`~picmaker.io.read_image_array`), or reuse
+   the previous read result if ``obj`` and ``pointer`` have not
+   changed.
+3. If ``hst=True`` and the instrument is ACS/WFC or WFPC2, run the
+   per-detector branch that stitches the panels.
+4. Otherwise: slice (:func:`~picmaker.geometry.slice_array`),
+   optionally fill zebra stripes
+   (:func:`~picmaker.enhance.fill_zebra_stripes`), compute limits
+   (:func:`~picmaker.enhance.get_limits`), apply the colormap
+   (:func:`~picmaker.enhance.apply_colormap`).
+5. Apply the orientation override
+   (:func:`~picmaker.geometry.rotate_array_rgb`) and gamma
+   (:func:`~picmaker.enhance.apply_gamma`).
+6. Convert to a PIL image (:func:`~picmaker.pil_utils.array_to_pil`),
+   apply the PIL filter (:func:`~picmaker._filters.filter_image`),
+   resize (:func:`~picmaker.geometry.resize_image`), optionally wrap
+   (:func:`~picmaker.geometry.wrap_image`), optionally pad
+   (:func:`~picmaker.geometry.pad_image`).
+7. Write (:func:`~picmaker.pil_utils.write_pil`), which dispatches
+   16-bit output to :func:`picmaker.tiff16.WriteTiff16` and
+   everything else to :meth:`PIL.Image.Image.save`.
+
+The function returns ``(low, high, reuse)`` so callers (or the
+``--movie`` second pass) can either consume the limits or replay the
+read.
+
+:func:`picmaker.pipeline.process_images` is the thin loop that drives
+:func:`~picmaker.pipeline.images_to_pics` per file; its only real
+job is the movie-mode two-pass dance described above.
+
+Enhancement helpers
+~~~~~~~~~~~~~~~~~~~
+
+:func:`picmaker.enhance.get_limits` is the most option-heavy function
+in the codebase. It supports four ways of choosing the stretch range
+that can be combined:
+
+* Explicit ``limits=(lo, hi)`` — passed through unchanged.
+* ``percentiles=(lo%, hi%)`` — uses :func:`numpy.histogram` over the
+  valid pixels and linear interpolation to find the corresponding DN
+  values.
+* ``trim=N`` — drop ``N`` pixels from each edge before computing.
+* ``trim_zeros=True`` — peel all-zero exterior rows and columns
+  before computing.
+* ``footprint=D`` — apply a circular median filter (footprint
+  diameter ``D``) and tighten the limits to the filter output.
+
+:func:`picmaker.enhance.apply_colormap` maps a 2-D stretched array to
+a 3-D RGB array using either a named hyphen-separated colormap (e.g.
+``'red-blue'``), a list of ``(R, G, B)`` tuples, or the per-instrument
+tint from :func:`picmaker.color.tinted_colormap`. It also handles the
+out-of-range and invalid-pixel highlight colors.
+
+:func:`picmaker.enhance.apply_gamma` is the final power-law correction
+(``array ** gamma``).
+
+:func:`picmaker.enhance.fill_zebra_stripes` cleans up leading- and
+trailing-zero artifacts in compressed spacecraft images. The
+implementation is currently a Python pixel loop; vectorization is
+tracked in `issue #18
+<https://github.com/SETI/rms-picmaker/issues/18>`__.
+
+Geometry helpers
+~~~~~~~~~~~~~~~~
+
+:func:`picmaker.geometry.slice_array` takes the raw 3-D
+``(bands, lines, samples)`` array and returns a 2-D band-averaged
+array plus an optional invalid-pixel mask. It honors ``samples``,
+``lines``, ``bands``, ``valid``, and ``crop`` slice arguments.
+
+:func:`picmaker.geometry.crop_array` strips constant-value borders
+(typically ``crop=0`` for zero-padded fields). It returns the input
+unchanged if the whole array equals the crop value.
+
+:func:`picmaker.geometry.rotate_array_rgb` applies the
+``--rotate {fliplr,fliptb,rot90,rot180,rot270}`` choice and the
+``display_upward`` override.
+
+:func:`picmaker.geometry.get_size` is the resize planner. It returns
+``(unwrapped_size, wrapped_size, sections, wrap_axis)``; the caller
+uses ``unwrapped_size`` to resize the image and the remaining three
+fields to wrap it (when ``sections > 1``).
+
+:func:`picmaker.geometry.resize_image`,
+:func:`picmaker.geometry.wrap_image`, and
+:func:`picmaker.geometry.pad_image` execute the plan against a PIL
+image. :func:`~picmaker.geometry.resize_image` upscales with
+``NEAREST`` and downscales with ``LANCZOS`` so the output is
+pixel-art-friendly for small inputs and Lanczos-smoothed for large
+ones.
+
+Color, filter, and PIL bridges
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:func:`picmaker.color.tinted_colormap` is the entry point for
+per-filter tinting. It normalizes HST's ``CL1`` / ``CL2`` /
+``CLEAR*`` / ``N/A`` filter-tuple quirks, picks the right instrument
+module via :func:`picmaker.instruments.lookup`, and delegates to its
+``tint_for`` callable (e.g.
+:func:`picmaker.instruments.cassini.tint_for`).
+
+:func:`picmaker._filters.filter_image` applies one of the
+:data:`picmaker._filters.FILTER_DICT` PIL presets to a PIL image,
+or raises :class:`KeyError` if the case-folded filter name is not in
+the dict.
+
+:func:`picmaker.pil_utils.array_to_pil`,
+:func:`picmaker.pil_utils.pil_to_array`, and
+:func:`picmaker.pil_utils.write_pil` are the three numpy ↔ PIL
+bridges. :func:`~picmaker.pil_utils.write_pil` dispatches 16-bit
+output (list-of-three ``'I'``-mode images, or a single ``'I'``-mode
+image) through :func:`picmaker.tiff16.WriteTiff16` and the 8-bit
+path through :meth:`PIL.Image.Image.save`.

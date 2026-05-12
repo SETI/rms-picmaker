@@ -1,10 +1,8 @@
 """apply_gamma unit tests — identity, exact boundary values, NaN/Inf safety."""
 
-from __future__ import annotations
-
 import numpy as np
 
-from picmaker.picmaker import apply_gamma
+from picmaker import apply_gamma
 
 
 class TestIdentity:

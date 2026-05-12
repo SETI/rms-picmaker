@@ -81,11 +81,12 @@ def matches(inst_host: str, inst_id: str) -> bool:
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
     """Return the full ``[black, tint, white]`` colormap for an HST filter.
 
-    The tint colour comes from inferring a wavelength out of the numeric
+    The tint color comes from inferring a wavelength out of the numeric
     characters in ``filter_name`` (e.g. ``'F606W'`` → 606 nm) and looking
     that wavelength up in :data:`picmaker._rgb.RGB_BY_NM` via the
-    :data:`RFUNC` / :data:`GFUNC` / :data:`BFUNC` splines. Each detector
-    family has its own correction:
+    :data:`picmaker._rgb.RFUNC` / :data:`picmaker._rgb.GFUNC` /
+    :data:`picmaker._rgb.BFUNC` splines. Each detector family has its
+    own correction:
 
     * NICMOS scales the inferred number by 3.5 (its filter names encode
       tens of nm rather than nm).

@@ -1,16 +1,11 @@
 """Enhancement-stage tests: get_limits, _percentile_lookup, apply_colormap."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import numpy as np
 
-from picmaker.picmaker import (
-    _percentile_lookup,
-    apply_colormap,
-    get_limits,
-)
+from picmaker import apply_colormap, get_limits
+from picmaker.enhance import _percentile_lookup
 
 
 class TestGetLimits:

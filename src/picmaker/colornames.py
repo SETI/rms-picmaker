@@ -7,15 +7,31 @@
 # Mark R. Showalter, SETI Institute
 ################################################################################
 
+import ast
 import re
-from typing import Any
+from typing import ClassVar
 
 
 class ColorNames:
+    """Standard X11 color-name → RGB lookup.
 
-# Extracted from /usr/X11/share/X11/rgb.txt
+    Exposes the X11 ``rgb.txt`` color table as
+    :attr:`COLOR_NAME_DICT` (and the case-insensitive,
+    whitespace-stripped variant :attr:`COLOR_NAME_LOWER_DICT`) plus a
+    single entry point :meth:`lookup` that resolves the following
+    input forms:
 
-    COLOR_NAME_DICT = {
+    * A canonical name (``'IndianRed'``, ``'red'``, ``'white smoke'``).
+    * A case-insensitive variant with spaces, dashes, or underscores
+      stripped (``'INDIAN_RED'``, ``'mint-cream'``).
+    * An RGB container expressed as ``'(r, g, b)'`` or ``'[r, g, b]'``.
+
+    The class has no instance state; every entry point is a
+    :func:`staticmethod`.
+    """
+
+    # Extracted from /usr/X11/share/X11/rgb.txt
+    COLOR_NAME_DICT: ClassVar[dict[str, tuple[int, int, int]]] = {
     "snow"                   : (255,250,250),
     "ghost white"            : (248,248,255),
     "GhostWhite"             : (248,248,255),
@@ -768,26 +784,51 @@ class ColorNames:
     "light green"            : (144,238,144),
     "LightGreen"             : (144,238,144) }
 
-    COLOR_NAME_LOWER_DICT = {k.lower().replace(' ',''):v
-                             for k,v in COLOR_NAME_DICT.items()}
+    # Derived once at class-body time from COLOR_NAME_DICT. Cheap (~800
+    # entries, ~10us total), and the dict is referenced on every
+    # `ColorNames.lookup` call so lazy init buys nothing in practice.
+    COLOR_NAME_LOWER_DICT: ClassVar[dict[str, tuple[int, int, int]]] = {
+        k.lower().replace(' ', ''): v for k, v in COLOR_NAME_DICT.items()
+    }
 
-    RGB_PATTERN = re.compile(
+    RGB_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
         r" *[\[\(] *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *[\)\]] *",
         re.IGNORECASE)
 
     @staticmethod
-    def lookup(name: str) -> Any:
+    def lookup(name: str) -> tuple[int, int, int]:
+        """Resolve a color name or RGB expression to a ``(r, g, b)`` triple.
 
+        Parameters:
+            name: A canonical X11 color name (case-sensitive), a
+                case-insensitive variant with spaces / dashes /
+                underscores stripped, or an RGB container expressed as
+                ``'(r, g, b)'`` or ``'[r, g, b]'`` (parsed via
+                :func:`ast.literal_eval`).
+
+        Returns:
+            The ``(r, g, b)`` triple with each channel in ``[0, 255]``.
+            Bracketed ``'[r, g, b]'`` inputs are also returned as
+            tuples (the parser normalizes lists to tuples on the way
+            out).
+
+        Raises:
+            TypeError: If ``name`` is not a string.
+            KeyError: If ``name`` matches no known X11 color and no
+                RGB expression in ``()`` / ``[]``.
+            ValueError: If a parsed RGB component exceeds 255.
+        """
         # Make sure it's a string
         if not isinstance(name, str):
             raise TypeError("Colorname must be a string: " + str(name))
 
         # Strip quotes and white space if any
         test = name.strip()
-        if test:
-            if ((test[0] == '"' and test[-1] == '"') or
-                (test[0] == "'" and test[-1] == "'")):
-                    test = test[1:-1].strip()
+        if test and (
+            (test[0] == '"' and test[-1] == '"')
+            or (test[0] == "'" and test[-1] == "'")
+        ):
+            test = test[1:-1].strip()
 
         # Look up the color as a name
         try:
@@ -811,14 +852,24 @@ class ColorNames:
 
         # Failing that, see if it is an RGB expression in () or []
         match = ColorNames.RGB_PATTERN.match(name)
-        if match is None:
+        if match is None or match.end() != len(name):
             raise KeyError("Unrecognized color name: " + name.strip())
 
-        # If so, evaluate and check values
-        if match.end() == len(name):
-            tuple = eval(name)
-            for i in tuple:
-                if i > 255:
-                    raise ValueError("Color value out of range: " + name)
+        # Parse the expression with ast.literal_eval (NOT eval) so that
+        # only Python literals are accepted; this guards against any
+        # injection vector the regex might otherwise admit.
+        try:
+            rgb = ast.literal_eval(name)
+        except (ValueError, SyntaxError) as exc:
+            raise KeyError(
+                "Unrecognized color name: " + name.strip()
+            ) from exc
 
-            return tuple
+        for i in rgb:
+            if i > 255:
+                raise ValueError("Color value out of range: " + name)
+
+        # Normalize ``[r, g, b]`` lists to ``(r, g, b)`` tuples so the
+        # return type is consistent regardless of the bracketing the
+        # caller used.
+        return tuple(rgb)

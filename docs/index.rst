@@ -11,6 +11,8 @@ Welcome to the Documentation for rms-picmaker!
    :maxdepth: 2
    :caption: Contents:
 
+   user_guide
+   developer_guide
    module
    contributing
    code_of_conduct

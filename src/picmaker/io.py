@@ -10,12 +10,14 @@ non-``picmaker`` file unchanged.
 import os
 import pickle
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple, cast
 
 import astropy.io.fits as pyfits
 import numpy as np
 import pdsparser
+from numpy.typing import NDArray
 from PIL import Image
 from vicar import VicarError, VicarImage
 
@@ -23,13 +25,46 @@ from picmaker import instruments
 from picmaker.pil_utils import array_to_pil, pil_to_array
 from picmaker.tiff16 import ReadTiff16
 
+# Reader-cascade ``filter_info`` element: ``(inst_host, inst_id, filter_name)``
+# or ``None``. The inner ``filter_name`` may be a 2-tuple for HST (see
+# :func:`picmaker.instruments.hst.detect_fits`), which keeps the static type as
+# ``tuple[str, str, Any] | None`` rather than ``tuple[str, str, str] | None``.
+FilterInfo = tuple[str, str, Any] | None
+
+# Selector for multi-image files. FITS and PDS3 both accept an integer index
+# or a pointer/HDU name; FITS additionally accepts a list/tuple of such
+# selectors when stacking multiple HDUs into one 3-D array. Sequence is
+# spelled out as list/tuple (not Sequence[...]) because ``str`` is itself
+# a Sequence[str] and the runtime branches use ``isinstance(obj, (list,
+# tuple))`` to discriminate.
+ObjectSelector = int | str | list[int | str] | tuple[int | str, ...] | None
+
+
+class ReadResult(NamedTuple):
+    """Triple returned by the reader cascade.
+
+    A :class:`typing.NamedTuple` so callers can use either positional
+    unpacking (``array, up, info = read_one_image_array(...)``) or
+    attribute access (``result.array3d``) interchangeably.
+    """
+
+    #: 3-D numpy array indexed ``(bands, lines, samples)``.
+    array3d: NDArray[Any]
+    #: True if the per-instrument default display orientation is upward
+    #: (line numbers increase upward).
+    default_is_up: bool
+    #: ``(inst_host, inst_id, filter_name)`` or ``None`` if no registered
+    #: instrument matched. ``filter_name`` is usually a string but is a
+    #: 2-tuple for some HST conventions.
+    filter_info: FilterInfo
+
 
 def read_image_array(
-    filename: Any,
-    labelfile: Any,
-    obj: Any = None,
+    filename: str | Sequence[str | os.PathLike[str]],
+    labelfile: str | os.PathLike[str] | None,
+    obj: ObjectSelector = None,
     hst: bool = False,
-) -> tuple[Any, bool, Any]:
+) -> ReadResult:
     """Read one or more image files and return a stacked 3-D array.
 
     Parameters:
@@ -62,18 +97,18 @@ def read_image_array(
     for k in range(len(arrays)):
         array = arrays[k]
         if len(array.shape) < 3:
-            arrays[k] = np.reshape(array, (1,) + array.shape)
+            arrays[k] = np.reshape(array, (1, *array.shape))
 
     array = np.vstack(arrays)
-    return (array,) + results[0][1:]
+    return ReadResult(array, results[0].default_is_up, results[0].filter_info)
 
 
 def read_one_image_array(
     filename: str | os.PathLike[str],
-    labelfile: Any,
-    obj: Any = None,
+    labelfile: str | os.PathLike[str] | None,
+    obj: ObjectSelector = None,
     hst: bool = False,
-) -> tuple[Any, bool, Any]:
+) -> ReadResult:
     """Read a single image array, trying each known format in turn.
 
     The try-cascade is: pickle → numpy ``.npy`` → VICAR → FITS → PIL
@@ -91,64 +126,66 @@ def read_one_image_array(
         ``None`` if no instrument is detected.
 
     Raises:
-        OSError: If none of the format readers succeed.
+        OSError: If none of the format readers succeed. The per-reader
+            failure causes are attached via ``__cause__`` as an
+            :class:`ExceptionGroup` so callers can inspect what each
+            reader rejected.
     """
     filename_str = str(filename)
+    cascade_errors: list[Exception] = []
 
     # ---- Pickle attempt ----
+    # The pickle branch is the only one that catches the broad ``Exception``
+    # because pickle.load can raise nearly anything (OSError on missing/unreadable
+    # files, pickle.UnpicklingError on bad streams, AttributeError/ImportError
+    # during object reconstruction, TypeError on .shape access if the unpickled
+    # value isn't a numpy array, etc.). The exception is collected for the
+    # diagnostic ExceptionGroup at the cascade end.
     try:
         with open(filename_str, 'rb') as f:
             array3d = pickle.load(f)
         if len(array3d.shape) == 2:
-            array3d = array3d.reshape((1,) + array3d.shape)
-        return (array3d, False, None)
-    except Exception:
-        # Not a pickle file (or unreadable as one) — fall through. The
-        # original picmaker.py:1543-1544 had a `raise e` on IOError that
-        # would propagate "file not found" early; PR 3 removes that so
-        # the final failure message ("Unrecognized image file format")
-        # is consistent across all unreadable-file cases.
-        pass
+            array3d = array3d.reshape((1, *array3d.shape))
+        return ReadResult(array3d, False, None)
+    except Exception as exc:
+        cascade_errors.append(exc)
 
     # ---- numpy .npy attempt ----
     try:
         array3d = np.load(filename_str)
         if len(array3d.shape) == 2:
-            array3d = array3d.reshape((1,) + array3d.shape)
-        return (array3d, False, None)
-    except (OSError, ValueError):
-        pass
+            array3d = array3d.reshape((1, *array3d.shape))
+        return ReadResult(array3d, False, None)
+    except (OSError, ValueError) as exc:
+        cascade_errors.append(exc)
 
     # ---- VICAR attempt ----
     # Also catch OSError so a missing-file error propagates through to the
     # final OSError("Unrecognized image file format ...") below rather than
-    # surfacing as the rms-vicar FileNotFoundError. The lose-traceback fix
-    # in the pickle branch above removed the early `raise e` that previously
-    # short-circuited; this keeps the cascade behavior consistent for missing
-    # files.
+    # surfacing as the rms-vicar FileNotFoundError.
     try:
         vic = VicarImage.from_file(filename_str, extraneous='print')
         array3d = vic.data_3d
         for instrument in instruments.VICAR_INSTRUMENTS:
             filter_info = instrument.detect_vicar(vic)
             if filter_info is not None:
-                return (array3d, False, filter_info)
-        return (array3d, False, None)
-    except (VicarError, OSError):
-        pass
+                return ReadResult(array3d, False, filter_info)
+        return ReadResult(array3d, False, None)
+    except (VicarError, OSError) as exc:
+        cascade_errors.append(exc)
 
     # ---- FITS attempt (preserves the magic-byte sniff at picmaker.py:1602-1605) ----
     try:
         with open(filename_str, 'rb') as f:
             test = f.read(9)
-    except OSError:
+    except OSError as exc:
+        cascade_errors.append(exc)
         test = b''
 
     if test == b'SIMPLE  =':
         try:
-            with warnings.catch_warnings():
+            with warnings.catch_warnings(), pyfits.open(filename_str) as hdulist:
                 warnings.filterwarnings('error')
-                hdulist = pyfits.open(filename_str)
                 _fitsobj = hdulist[0]  # IndexError if not FITS
 
                 filter_info = None
@@ -167,7 +204,7 @@ def read_one_image_array(
                         array = hdulist[1].data
                         try:
                             array2 = hdulist[4].data
-                            shape = (2,) + array.shape
+                            shape = (2, *array.shape)
                             array3d = np.empty(shape)
                             array3d[0] = array
                             array3d[1] = array2
@@ -208,21 +245,20 @@ def read_one_image_array(
                     raise OSError('Image array not found in FITS file')
 
                 if len(array3d.shape) == 2:
-                    array3d = array3d.reshape((1,) + array3d.shape)
+                    array3d = array3d.reshape((1, *array3d.shape))
 
-                hdulist.close()
-                return (array3d, True, filter_info)
+                return ReadResult(array3d, True, filter_info)
 
-        except (UserWarning, OSError):
-            pass
+        except (UserWarning, OSError) as exc:
+            cascade_errors.append(exc)
 
     # ---- PIL / 16-bit TIFF attempt ----
     try:
         array2d = read_array(filename_str, False)
-        array3d = array2d.reshape((1,) + array2d.shape)
-        return (array3d, False, None)
-    except OSError:
-        pass
+        array3d = array2d.reshape((1, *array2d.shape))
+        return ReadResult(array3d, False, None)
+    except OSError as exc:
+        cascade_errors.append(exc)
 
     # ---- PDS3 label attempt ----
     if labelfile:
@@ -230,12 +266,19 @@ def read_one_image_array(
         if result is not None:
             return result
 
-    raise OSError(f'Unrecognized image file format: {filename_str}')
+    cause: BaseException | None = (
+        ExceptionGroup('No reader matched', cascade_errors)
+        if cascade_errors
+        else None
+    )
+    raise OSError(
+        f'Unrecognized image file format: {filename_str}'
+    ) from cause
 
 
 def read_pds_labeled_image_array(
-    filename: str | os.PathLike[str], obj: Any = None
-) -> tuple[Any, bool, tuple[Any, Any, Any]] | None:
+    filename: str | os.PathLike[str], obj: ObjectSelector = None
+) -> ReadResult | None:
     """Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.
 
     Parameters:
@@ -250,39 +293,46 @@ def read_pds_labeled_image_array(
     label = None
     try:
         label = pdsparser.PdsLabel(filename_str)
-    except pdsparser.ParseException:
+    except (pdsparser.ParseException, SyntaxError):
         (head, ext) = os.path.splitext(filename_str)
         if ext.lower() != '.lbl':
             if os.path.exists(head + '.lbl'):
                 try:
                     label = pdsparser.PdsLabel(head + '.lbl')
-                except pdsparser.ParseException:
+                except (pdsparser.ParseException, SyntaxError):
                     pass
             elif os.path.exists(head + '.LBL'):
                 try:
                     label = pdsparser.PdsLabel(head + '.LBL')
-                except pdsparser.ParseException:
+                except (pdsparser.ParseException, SyntaxError):
                     pass
 
     if not label:
         return None
 
+    # pdsparser.Pds3Label proxies every dict operation through to its
+    # underlying ``.dict`` attribute, which is a plain dict. Pull it out
+    # once and use it directly for the rest of the function.
+    label_dict = label.dict
+
     if isinstance(obj, str):
         pname = '^' + obj
-        if pname not in label:
+        if pname not in label_dict:
             raise KeyError(f'Object {obj} not found in {filename_str}')
 
     else:
         pnames = [
-            node.name
-            for node in label
-            if node.name.startswith('^') and node.name.endswith('IMAGE')
+            key
+            for key in label_dict
+            if key.startswith('^') and key.endswith('IMAGE')
         ]
         if not pnames:
             raise KeyError(f'No IMAGE objects found in {filename_str}')
 
         if obj is None:
             obj = 0
+        elif not isinstance(obj, int):
+            raise TypeError(f'Invalid index type {obj} for {filename_str}')
 
         try:
             pname = pnames[obj]
@@ -290,36 +340,45 @@ def read_pds_labeled_image_array(
             raise IndexError(
                 f'Object index {obj} is out of range in {filename_str}'
             ) from e
-        except TypeError as e:
-            raise TypeError(f'Invalid index type {obj} for {filename_str}') from e
 
-    node = label[pname]
-    if isinstance(node, pdsparser.PdsOffsetPointer):
-        imagefile = node.value
-        offset = node.offset - 1
-        if node.unit == 'RECORDS':
-            offset *= label['FILE_RECORDS'].value
+    # Resolve the pointer to ``(imagefile, byte_offset)``. The current
+    # pdsparser API stores the pointer value in ``label_dict[pname]`` and
+    # the offset and unit in companion keys ``<pname>_offset`` /
+    # ``<pname>_unit``. The unit is either ``'<BYTES>'`` or an empty
+    # string (RECORDS default).
+    node = label_dict[pname]
+    record_bytes = label_dict.get('RECORD_BYTES', 0) or 0
+    unit = label_dict.get(pname + '_unit', '') or ''
+
+    if isinstance(node, int):
+        imagefile = filename_str
+        offset_value = node
+    elif isinstance(node, str):
+        imagefile = os.path.join(os.path.split(filename_str)[0], node)
+        offset_value = label_dict.get(pname + '_offset', 1) or 1
+    elif isinstance(node, (list, tuple)):
+        if isinstance(node[0], str):
+            imagefile = os.path.join(os.path.split(filename_str)[0], node[0])
+            offset_value = int(node[1]) if len(node) >= 2 else 1
+        else:
+            imagefile = filename_str
+            offset_value = int(node[0])
     else:
-        imagefile = node.value
-        offset = 0
+        raise TypeError(f'Unsupported pointer value {node!r} in {filename_str}')
 
-    imagefile = os.path.join(os.path.split(filename_str)[0], imagefile)
+    if 'BYTES' in unit:
+        offset = max(int(offset_value) - 1, 0)
+    else:
+        offset = max(int(offset_value) - 1, 0) * record_bytes
 
-    image = label[pname[1:]]
-    lines = image['LINES'].value
-    samples = image['LINE_SAMPLES'].value
-    bytes_ = image['SAMPLE_BITS'].value // 8
-    fmt = image['SAMPLE_TYPE'].value
+    image = label_dict[pname[1:]]
+    lines = image['LINES']
+    samples = image['LINE_SAMPLES']
+    bytes_ = image['SAMPLE_BITS'] // 8
+    fmt = image['SAMPLE_TYPE']
 
-    try:
-        prefix_bytes = image['PREFIX_BYTES'].value
-    except KeyError:
-        prefix_bytes = 0
-
-    try:
-        suffix_bytes = image['SUFFIX_BYTES'].value
-    except KeyError:
-        suffix_bytes = 0
+    prefix_bytes = image.get('PREFIX_BYTES', 0)
+    suffix_bytes = image.get('SUFFIX_BYTES', 0)
 
     prefix_samples = prefix_bytes // bytes_
     if prefix_samples * bytes_ != prefix_bytes:
@@ -336,7 +395,7 @@ def read_pds_labeled_image_array(
     row_samples = prefix_samples + samples + suffix_samples
 
     offset_samples = offset // bytes_
-    if suffix_samples * bytes_ != suffix_bytes:
+    if offset_samples * bytes_ != offset:
         raise ValueError(
             f'SAMPLE_BITS and file offset values are incompatible in {imagefile}'
         )
@@ -359,28 +418,17 @@ def read_pds_labeled_image_array(
     array3d = data.reshape(1, lines, row_samples)
     array3d = array3d[..., prefix_samples : prefix_samples + samples]
 
-    try:
-        inst_host = label['INSTRUMENT_NAME'].value
-    except KeyError:
-        try:
-            inst_host = label['SPACECRAFT_NAME'].value
-        except KeyError:
-            inst_host = ''
+    inst_host = (
+        label_dict.get('INSTRUMENT_NAME', '')
+        or label_dict.get('SPACECRAFT_NAME', '')
+    )
+    inst_name = label_dict.get('INSTRUMENT_HOST_NAME', '')
+    filter_name = label_dict.get('FILTER_NAME', '')
 
-    try:
-        inst_name = label['INSTRUMENT_HOST_NAME'].value
-    except KeyError:
-        inst_name = ''
-
-    try:
-        filter_name = label['FILTER_NAME'].value
-    except KeyError:
-        filter_name = ''
-
-    return (array3d, False, (inst_host, inst_name, filter_name))
+    return ReadResult(array3d, False, (inst_host, inst_name, filter_name))
 
 
-def read_pil(infile: str | os.PathLike[str]) -> Any:
+def read_pil(infile: str | os.PathLike[str]) -> Image.Image | list[Image.Image]:
     """Read a PIL image (or 16-bit TIFF expanded to a PIL image) from a file.
 
     Parameters:
@@ -402,14 +450,17 @@ def read_pil(infile: str | os.PathLike[str]) -> Any:
             if palette is not None:
                 raise OSError('16-bit palette option is not supported')
 
-            return array_to_pil(array, twobytes=True, rescale=False)
+            return cast(
+                'Image.Image | list[Image.Image]',
+                array_to_pil(array, twobytes=True, rescale=False),
+            )
 
     im = Image.open(infile_str)
     im.load()
     return im
 
 
-def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
+def read_array(infile: str | os.PathLike[str], rescale: bool) -> NDArray[Any]:
     """Read a numpy array from a PIL-readable file (or a 16-bit TIFF).
 
     Parameters:
@@ -417,7 +468,10 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
         rescale: True to scale values to the range 0-1.
 
     Returns:
-        A 2-D or 3-D numpy array.
+        A 2-D or 3-D numpy array. The dtype depends on the input format
+        and on ``rescale``: ``uint8`` for 8-bit PIL inputs without
+        rescaling, ``uint16`` for 16-bit TIFF, and ``float64`` whenever
+        ``rescale`` is true.
     """
     infile_str = str(infile)
     array = None
@@ -437,16 +491,16 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> Any:
         if rescale:
             array = array.astype('float') / 65535.0
 
-        return array
+        return cast('NDArray[Any]', array)
 
-    return pil_to_array(Image.open(infile_str), rescale)
+    return cast('NDArray[Any]', pil_to_array(Image.open(infile_str), rescale))
 
 
 def get_outfile(
     infile: str | os.PathLike[str],
     outdir: str | os.PathLike[str] | None = None,
     strip: Any = None,
-    suffix: str = '',
+    suffix: str | None = '',
     extension: str = 'jpg',
     replace: str = 'all',
 ) -> str:
@@ -513,6 +567,8 @@ def get_outfile(
 
 
 __all__ = [
+    'FilterInfo',
+    'ReadResult',
     'get_outfile',
     'read_array',
     'read_image_array',

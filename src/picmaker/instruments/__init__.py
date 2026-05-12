@@ -13,13 +13,17 @@ Each instrument module exposes a uniform 4-method protocol:
   HST unknown-wavelength case.
 """
 
+from types import ModuleType
 from typing import Any
 
 from picmaker.instruments import cassini, galileo, hst, nh, voyager
 
-VICAR_INSTRUMENTS = [cassini, galileo, voyager]
-FITS_INSTRUMENTS = [hst, nh]
-ALL_INSTRUMENTS = [cassini, voyager, galileo, hst, nh]
+#: Instrument modules whose ``detect_vicar`` may match a VICAR input.
+VICAR_INSTRUMENTS: list[ModuleType] = [cassini, galileo, voyager]
+#: Instrument modules whose ``detect_fits`` may match a FITS input.
+FITS_INSTRUMENTS: list[ModuleType] = [hst, nh]
+#: Every registered instrument module.
+ALL_INSTRUMENTS: list[ModuleType] = [cassini, voyager, galileo, hst, nh]
 
 
 def lookup(inst_host: str | None, inst_id: str | None) -> Any | None:

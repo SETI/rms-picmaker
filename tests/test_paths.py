@@ -1,13 +1,12 @@
 """find_common_path and get_outfile unit tests."""
 
-from __future__ import annotations
-
+import os
 import warnings
 from pathlib import Path
 
 import pytest
 
-from picmaker.picmaker import find_common_path, get_outfile
+from picmaker import find_common_path, get_outfile
 
 
 class TestFindCommonPath:
@@ -22,11 +21,16 @@ class TestFindCommonPath:
         assert find_common_path(['/a/b', '/c/d']) == ''
 
     def test_two_sharing_foo_bar(self) -> None:
-        assert find_common_path(['/foo/bar/x', '/foo/bar/y']) == '/foo/bar'
+        # find_common_path delegates to os.path.commonpath, which
+        # returns the platform-native separator (``/`` on POSIX,
+        # ``\`` on Windows) — normalize the expectation to match.
+        assert find_common_path(
+            ['/foo/bar/x', '/foo/bar/y']
+        ) == os.path.normpath('/foo/bar')
 
     def test_three_sharing_two_levels(self) -> None:
         result = find_common_path(['/foo/bar/x', '/foo/bar/y', '/foo/bar/zzz'])
-        assert result == '/foo/bar'
+        assert result == os.path.normpath('/foo/bar')
 
 
 class TestGetOutfile:

@@ -6,13 +6,11 @@ This is what makes an `AstropyUserWarning`/`VerifyWarning` cause the FITS
 parser to be rejected and let the cascade continue.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
 
-from picmaker.picmaker import read_one_image_array
+from picmaker import read_one_image_array
 
 
 def test_corrupt_fits_falls_through_via_warning_elevation(

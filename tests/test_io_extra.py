@@ -1,13 +1,11 @@
 """Cover the leaf I/O helpers that aren't exercised by the main cascade test."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np
-import pytest
+from PIL import Image
 
-from picmaker.picmaker import (
+from picmaker import (
     read_array,
     read_pds_labeled_image_array,
     read_pil,
@@ -29,7 +27,9 @@ class TestReadArray:
     def test_sixteen_bit_tiff(self, fixtures_dir: Path) -> None:
         # ReadTiff16 branch: rescale=False returns the raw uint16 array.
         arr = read_array(str(fixtures_dir / 'small_tiff16.tiff'), rescale=False)
-        assert arr.shape == (8, 8) or arr.shape == (8, 8, 1)
+        # small_tiff16.tiff is a grayscale 8x8 written by WriteTiff16, so
+        # ReadTiff16 returns the 2-D shape directly.
+        assert arr.shape == (8, 8)
 
     def test_sixteen_bit_tiff_rescale(self, fixtures_dir: Path) -> None:
         arr = read_array(str(fixtures_dir / 'small_tiff16.tiff'), rescale=True)
@@ -40,11 +40,13 @@ class TestReadArray:
 class TestReadPil:
     def test_png_returns_pil_image(self, fixtures_dir: Path) -> None:
         img = read_pil(str(fixtures_dir / 'small_grayscale.png'))
+        assert isinstance(img, Image.Image)
         assert img.size == (8, 8)
         assert img.mode == 'L'
 
     def test_sixteen_bit_tiff(self, fixtures_dir: Path) -> None:
         img = read_pil(str(fixtures_dir / 'small_tiff16.tiff'))
+        assert isinstance(img, Image.Image)
         assert img.size == (8, 8)
 
 
@@ -62,16 +64,6 @@ class TestWritePil:
 
 
 class TestReadPdsLabeledImageArray:
-    @pytest.mark.skip(
-        reason=(
-            'read_pds_labeled_image_array is broken against the current '
-            'pdsparser API. The constructor was patched on this branch '
-            '(PdsLabel.from_file → PdsLabel) but the body still iterates '
-            '`for node in label` expecting `node.name` and references '
-            '`pdsparser.PdsOffsetPointer`, which raises AttributeError. '
-            'PR 3 will rewrite the reader against the dict-style API.'
-        )
-    )
     def test_minimal_pds3_sample(self, fixtures_dir: Path) -> None:
         # read_pds_labeled_image_array returns (array3d, default_is_up,
         # filter_info) or None — matches the read_one_image_array contract.
@@ -79,5 +71,7 @@ class TestReadPdsLabeledImageArray:
             str(fixtures_dir / 'pds3_sample.IMG'), 'IMAGE'
         )
         assert result is not None
-        arr, _default_is_up, _filter_info = result
+        arr, default_is_up, filter_info = result
         assert arr.shape == (1, 8, 8)
+        assert default_is_up is False
+        assert filter_info == ('', '', '')

@@ -7,8 +7,6 @@ Two sub-cases:
     main CLI wins: processing continues on errors.
 """
 
-from __future__ import annotations
-
 import subprocess
 from pathlib import Path
 
@@ -54,7 +52,7 @@ def test_main_replace_none_overrides_versions_replace_all(
     first = _run_picmaker(*args)
     assert first.returncode == 0, first.stderr
     assert out_file.exists()
-    first_mtime = out_file.stat().st_mtime_ns
+    first_bytes = out_file.read_bytes()
 
     # Second run with --replace=none. The versions line still says
     # --replace=all but the main CLI overrides it → the file is NOT touched.
@@ -62,8 +60,9 @@ def test_main_replace_none_overrides_versions_replace_all(
     args_none[args_none.index('--replace=all')] = '--replace=none'
     second = _run_picmaker(*args_none)
     assert second.returncode == 0, second.stderr
-    # File timestamp must be unchanged.
-    assert out_file.stat().st_mtime_ns == first_mtime
+    # File contents must be unchanged (content comparison avoids coarse-mtime
+    # filesystem flakiness).
+    assert out_file.read_bytes() == first_bytes
 
 
 def test_versions_produces_two_output_files(

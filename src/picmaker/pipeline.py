@@ -2,17 +2,11 @@
 
 :func:`process_images` and :func:`images_to_pics` are the CLI's main
 entry points; everything else in this module is plumbing.
-
-The ``filter`` keyword on :func:`images_to_pics` deliberately shadows
-the builtin; the per-file ruff ignore for ``A002`` lives in
-``pyproject.toml``.
 """
 
 
 import logging
 import os
-import sys
-import traceback
 from typing import Any
 
 import numpy as np
@@ -35,44 +29,50 @@ from picmaker.geometry import (
     wrap_image,
 )
 from picmaker.io import get_outfile, read_image_array
+from picmaker.options import PicmakerOptions
 from picmaker.pil_utils import array_to_pil, write_pil
 
 logger = logging.getLogger(__name__)
 
 
 def find_common_path(directories: list[str]) -> str:
-    """Return the longest path prefix shared by every directory in the list.
+    """Return the longest directory prefix shared by every directory in the list.
+
+    Uses :func:`os.path.commonpath` so the result honors the current
+    platform's separator (``/`` on POSIX, ``\\`` on Windows).
 
     Parameters:
         directories: A list of directory path strings.
 
     Returns:
-        The longest common path prefix, trimmed at the last ``/``. An
-        empty string if the directories share no useful prefix or the
-        list is empty.
+        The longest common directory path. An empty string if the list
+        is empty or the directories share no common ancestor (e.g. paths
+        on different drives on Windows, or a mix of absolute and
+        relative paths).
     """
-
-    def longest_match(str1: str, str2: str) -> str:
-        kmax = min(len(str1), len(str2))
-        for k in range(kmax):
-            if str1[k] != str2[k]:
-                return str1[:k]
-        return str1[:kmax]
-
     if len(directories) == 0:
         return ''
     if len(directories) == 1:
         return directories[0]
 
-    longest = longest_match(directories[0], directories[1])
-    for d in directories[2:]:
-        longest = longest_match(longest, d)
-
-    last_slash = longest.rfind('/')
-    if last_slash < 1:
+    try:
+        result = os.path.commonpath(directories)
+    except ValueError:
+        # commonpath raises ValueError when the inputs share no common
+        # prefix (e.g. mix of absolute / relative, different Windows
+        # drives). Preserve the legacy "no common ancestor" return.
         return ''
 
-    return longest[:last_slash]
+    # Treat root-only common paths ('/' on POSIX, '\\' on Windows, or a
+    # bare drive root like 'C:\\') as "no useful prefix" so the legacy
+    # behavior is preserved (the old implementation rejected commons
+    # that had no slash at position >= 1). os.path.splitdrive separates
+    # the drive anchor from the rest so we can detect drive-only roots
+    # on Windows in addition to the platform separator.
+    _drive, rest = os.path.splitdrive(result)
+    if not rest or rest == os.sep:
+        return ''
+    return result
 
 
 def process_images(
@@ -101,7 +101,22 @@ def process_images(
 
     results: Any
     if movie:
-        assert all(d['proceed'] == option_dicts[0]['proceed'] for d in option_dicts)
+        # Validate input shape before indexing option_dicts[0]. An empty
+        # option_dicts in movie mode is a programming error from the
+        # caller; raising up-front is clearer than the IndexError that
+        # the next line would otherwise produce.
+        if not option_dicts:
+            raise ValueError('movie mode requires at least one option_dict')
+        # Use ValueError (not `assert`) so the check survives `python -O`,
+        # which strips assertions and would otherwise let an inconsistent
+        # `proceed` slip through movie mode silently.
+        if any(
+            d['proceed'] != option_dicts[0]['proceed'] for d in option_dicts
+        ):
+            raise ValueError(
+                'movie mode requires all option_dicts to share the same '
+                "'proceed' value"
+            )
 
         results = images_to_pics(
             filenames, directory, reuse=None, verbose=verbose, **option_dicts[0]
@@ -192,16 +207,16 @@ def images_to_pics(
     display_upward: bool = False,
     display_downward: bool = False,
     rotate: Any = None,
-    filter: str = 'NONE',
+    filter_name: str = 'NONE',
     zebra: bool = False,
     reuse: Any = None,
 ) -> tuple[Any, Any, Any]:
     """Convert one or more image files to picture files.
 
     See ``picmaker --help`` for the meaning of each keyword argument.
-    Note that ``filter`` deliberately shadows the builtin: the CLI's
-    ``--filter`` flag binds to this name and the rule is silenced by a
-    per-file ruff ignore.
+    The CLI's ``--filter`` flag binds to the ``filter_name`` keyword on
+    this function (the rename in 2026-05 dropped the legacy
+    builtin-shadowing ``filter`` kwarg).
 
     Parameters:
         filenames: List of image file names to convert.
@@ -213,19 +228,30 @@ def images_to_pics(
         stretch and the reuse tuple if the caller wants to call again
         without re-reading the file.
     """
+    # Single source of truth for mutex / value-validity checks: build a
+    # PicmakerOptions and let its `validate()` method raise on any
+    # cross-field conflict. The CLI does this earlier via
+    # _normalize_and_validate; library callers get the same checks here.
+    PicmakerOptions(
+        replace=replace, proceed=proceed, extension=extension,
+        suffix=suffix, strip=strip, quality=quality, twobytes=twobytes,
+        bands=bands, lines=lines, samples=samples, obj=obj, pointer=pointer,
+        size=size, scale=scale, crop=crop, frame=frame, pad=pad,
+        pad_color=pad_color, frame_max=frame_max, wrap=wrap,
+        wrap_ratio=wrap_ratio, overlap=overlap, gap_size=gap_size,
+        gap_color=gap_color, hst=hst, valid=valid, limits=limits,
+        percentiles=percentiles, trim=trim, trim_zeros=trim_zeros,
+        footprint=footprint, histogram=histogram, colormap=colormap,
+        below_color=below_color, above_color=above_color,
+        invalid_color=invalid_color, gamma=gamma, tint=tint,
+        display_upward=display_upward, display_downward=display_downward,
+        rotate=rotate, filter_name=filter_name, zebra=zebra,
+    ).validate()
+
     if strip is None:
         strip = []
     if pointer is None:
         pointer = ['IMAGE']
-
-    if hst and bands is not None:
-        raise ValueError('hst and bands options are incompatible')
-
-    if frame is not None and size is not None:
-        raise ValueError('frame and size options are incompatible')
-
-    if frame is not None and wrap_ratio:
-        raise ValueError('frame and wrap_ratio options are incompatible')
 
     if bands is None:
         bands = (0, 1)
@@ -287,12 +313,15 @@ def images_to_pics(
                         else:
                             inst_id = None
 
+                        # Local PDS3-label "FILTER_NAME" value; do NOT
+                        # shadow the function parameter ``filter_name``
+                        # (the PIL filter name to apply downstream).
                         if 'FILTER_NAME' in labeldict:
-                            filter_name = labeldict['FILTER_NAME']
+                            pds_filter_name = labeldict['FILTER_NAME']
                         else:
-                            filter_name = None
+                            pds_filter_name = None
 
-                        filter_info = (inst_host, inst_id, filter_name)
+                        filter_info = (inst_host, inst_id, pds_filter_name)
 
                     if isinstance(pointer, str):
                         pointer = [pointer]
@@ -371,7 +400,7 @@ def images_to_pics(
 
                 this_display_upward = False
 
-                arraysRGB: list[Any] = []
+                arrays_rgb: list[Any] = []
                 for b in range(array3d.shape[0]):
                     (array2d, invalid_mask) = slice_array(
                         array3d, samples, lines, (b, b + 1), valid, crop
@@ -391,7 +420,7 @@ def images_to_pics(
                         footprint=footprint,
                     )
 
-                    arrayRGB = apply_colormap(
+                    array_rgb = apply_colormap(
                         array2d,
                         these_limits,
                         histogram,
@@ -402,58 +431,58 @@ def images_to_pics(
                         invalid_color,
                     )
 
-                    arraysRGB.append(arrayRGB)
+                    arrays_rgb.append(array_rgb)
 
                 if filter_info[1] == 'WFPC2':
-                    quadsRGB = np.zeros((4,) + arraysRGB[0].shape)
+                    quads_rgb = np.zeros((4, *arrays_rgb[0].shape))
 
                     for b in range(array3d.shape[0]):
                         if isinstance(imagefile, str):
-                            quadsRGB[b] = np.rot90(arraysRGB[b], b)
+                            quads_rgb[b] = np.rot90(arrays_rgb[b], b)
                         else:
                             testfile = imagefile[b].upper()
                             if 'PC1' in testfile:
-                                quadsRGB[0] = arraysRGB[b]
+                                quads_rgb[0] = arrays_rgb[b]
                             elif 'WF2' in testfile:
-                                quadsRGB[1] = np.rot90(arraysRGB[b], 1)
+                                quads_rgb[1] = np.rot90(arrays_rgb[b], 1)
                             elif 'WF3' in testfile:
-                                quadsRGB[2] = np.rot90(arraysRGB[b], 2)
+                                quads_rgb[2] = np.rot90(arrays_rgb[b], 2)
                             elif 'WF4' in testfile:
-                                quadsRGB[3] = np.rot90(arraysRGB[b], 3)
+                                quads_rgb[3] = np.rot90(arrays_rgb[b], 3)
                             else:
-                                quadsRGB[b] = np.rot90(arraysRGB[b], b)
+                                quads_rgb[b] = np.rot90(arrays_rgb[b], b)
 
-                    (_, dl, ds, db) = quadsRGB.shape
-                    arrayRGB = np.empty((2 * dl, 2 * ds, db))
-                    arrayRGB[:dl, -ds:] = quadsRGB[0]
-                    arrayRGB[:dl, :ds] = quadsRGB[1]
-                    arrayRGB[-dl:, :ds] = quadsRGB[2]
-                    arrayRGB[-dl:, -ds:] = quadsRGB[3]
+                    (_, dl, ds, db) = quads_rgb.shape
+                    array_rgb = np.empty((2 * dl, 2 * ds, db))
+                    array_rgb[:dl, -ds:] = quads_rgb[0]
+                    array_rgb[:dl, :ds] = quads_rgb[1]
+                    array_rgb[-dl:, :ds] = quads_rgb[2]
+                    array_rgb[-dl:, -ds:] = quads_rgb[3]
 
                 else:
-                    if len(arraysRGB) > 1:
-                        panelsRGB = np.zeros((2,) + arraysRGB[0].shape)
+                    if len(arrays_rgb) > 1:
+                        panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
 
                         for b in range(2):
                             if isinstance(imagefile, str):
-                                panelsRGB[1 - b] = arraysRGB[b]
+                                panels_rgb[1 - b] = arrays_rgb[b]
                             else:
                                 testfile = imagefile[b].upper()
                                 if 'WFC1' in testfile:
-                                    panelsRGB[0] = arraysRGB[b]
+                                    panels_rgb[0] = arrays_rgb[b]
                                 elif 'WFC2' in testfile:
-                                    panelsRGB[1] = arraysRGB[b]
+                                    panels_rgb[1] = arrays_rgb[b]
                                 else:
-                                    panelsRGB[b] = arraysRGB[b]
+                                    panels_rgb[b] = arrays_rgb[b]
 
-                        (dl, ds, db) = arraysRGB[0].shape
-                        arrayRGB = np.zeros((2 * dl, ds, db))
+                        (dl, ds, db) = arrays_rgb[0].shape
+                        array_rgb = np.zeros((2 * dl, ds, db))
 
-                        arrayRGB[:dl] = panelsRGB[0]
-                        arrayRGB[-dl:] = panelsRGB[1]
+                        array_rgb[:dl] = panels_rgb[0]
+                        array_rgb[-dl:] = panels_rgb[1]
 
                     else:
-                        arrayRGB = arraysRGB[0]
+                        array_rgb = arrays_rgb[0]
 
             else:
                 (array2d, invalid_mask) = slice_array(
@@ -477,7 +506,7 @@ def images_to_pics(
                 min_limits.append(these_limits[0])
                 max_limits.append(these_limits[1])
 
-                arrayRGB = apply_colormap(
+                array_rgb = apply_colormap(
                     array2d,
                     these_limits,
                     histogram,
@@ -488,12 +517,12 @@ def images_to_pics(
                     invalid_color,
                 )
 
-            arrayRGB = rotate_array_rgb(arrayRGB, this_display_upward, rotate)
+            array_rgb = rotate_array_rgb(array_rgb, this_display_upward, rotate)
 
-            arrayRGB = apply_gamma(arrayRGB, gamma)
+            array_rgb = apply_gamma(array_rgb, gamma)
 
             (unwrapped_size, wrapped_size, sections, wrap_axis) = get_size(
-                arrayRGB.shape,
+                array_rgb.shape,
                 size,
                 scale,
                 frame,
@@ -504,9 +533,9 @@ def images_to_pics(
                 frame_max,
             )
 
-            image = array_to_pil(arrayRGB, twobytes)
+            image = array_to_pil(array_rgb, twobytes)
 
-            image = filter_image(image, filter)
+            image = filter_image(image, filter_name)
 
             image = resize_image(image, unwrapped_size)
 
@@ -527,10 +556,11 @@ def images_to_pics(
 
         except Exception:
             if proceed:
-                (etype, value, tb) = sys.exc_info()
-                traceback.print_tb(tb)
-                etype_name = etype.__name__ if etype is not None else 'Exception'
-                logger.error('%s **** %s: %s', infile, etype_name, value)
+                # `logger.exception` logs the type, message, AND the full
+                # traceback in one call through the configured handler, so
+                # output ordering stays deterministic under `pytest -n auto`
+                # and `caplog` captures it cleanly.
+                logger.exception('%s', infile)
             else:
                 raise
 

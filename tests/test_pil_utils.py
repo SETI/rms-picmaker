@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from picmaker.picmaker import array_to_pil, pil_to_array
+from picmaker import array_to_pil, pil_to_array
 
 
 class TestRoundTrip:
@@ -25,13 +25,23 @@ class TestRoundTrip:
         back = pil_to_array(img, rescale=False)
         np.testing.assert_array_equal(back, arr)
 
-    def test_rescale_grayscale_returns_uint8_bug(self) -> None:
-        """Document bug where rescale=True is ignored for grayscale images."""
-        # Pre-PR3 bug at picmaker.py:3029-3034: _one_pil_to_array returns BEFORE
-        # the `if rescale: array.astype(float)/255` line, so for 'L' mode
-        # images, rescale=True is a no-op. Document the current behavior here.
+    def test_rescale_grayscale_returns_float_in_unit_range(self) -> None:
+        """rescale=True returns a float array in [0, 1] for grayscale.
+
+        Regression test for issue #10: ``_one_pil_to_array`` previously
+        ignored ``rescale`` for ``'L'`` mode and returned a raw
+        ``uint8`` array.
+
+        The input ``arange(64).reshape(8, 8)`` (values 0..63) is
+        deliberately outside the documented ``[0, 1]`` range, so
+        ``array_to_pil(rescale=True)`` saturates every non-zero pixel
+        to ``uint8`` 255. After ``pil_to_array(rescale=True)`` divides
+        by 255 those pixels round-trip to exactly ``1.0`` and the
+        ``arr[0, 0] == 0`` pixel comes back as ``0.0``.
+        """
         arr = np.arange(64, dtype=np.float64).reshape(8, 8)
         img = array_to_pil(arr, rescale=True)
         back = pil_to_array(img, rescale=True)
-        assert back.dtype == np.uint8
-        assert back.max() == 255  # not 1.0
+        expected = np.ones((8, 8), dtype=np.float64)
+        expected[0, 0] = 0.0
+        np.testing.assert_array_equal(back, expected)

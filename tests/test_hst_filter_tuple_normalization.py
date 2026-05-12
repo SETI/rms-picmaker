@@ -1,8 +1,6 @@
 """HST filter-tuple CL1/CL2/N/A/CLEAR* normalization (picmaker.py:2314-2327)."""
 
-from __future__ import annotations
-
-from picmaker.picmaker import tinted_colormap
+from picmaker import tinted_colormap
 
 
 def test_cl1_grn_normalizes_to_grn() -> None:

@@ -5,13 +5,11 @@ unknown filter names emit ``logger.warning('Unknown HST filter: ...')``
 instead of the legacy ``print('******UNKNOWN FILTER: ...')`` line.
 """
 
-from __future__ import annotations
-
 import logging
 
 import pytest
 
-from picmaker.picmaker import tinted_colormap
+from picmaker import tinted_colormap
 
 
 def test_unknown_filter_logs_warning(caplog: pytest.LogCaptureFixture) -> None:

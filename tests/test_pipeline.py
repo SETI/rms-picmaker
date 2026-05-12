@@ -6,14 +6,12 @@ for each option combination, and that the HST-specific branches at
 picmaker.py:1656 + 1667 (ACS/WFC and WFPC2) execute without error.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from picmaker.picmaker import images_to_pics
+from picmaker import images_to_pics
 
 ALL_FIXTURES = [
     'cassini_iss.vic',
@@ -35,8 +33,9 @@ def test_default_options_writes_jpeg(
     expected = tmp_path / (Path(fixture).stem + '.jpg')
     assert expected.exists()
     with Image.open(expected) as img:
-        assert img.size[0] > 0
-        assert img.size[1] > 0
+        # Every instrument fixture is a 16x16 synthetic frame and the
+        # default pipeline preserves that size (no --frame / --scale).
+        assert img.size == (16, 16)
 
 
 @pytest.mark.parametrize('fixture', ALL_FIXTURES)
@@ -81,7 +80,7 @@ def test_movie_option_writes_outputs(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
     # Movie mode runs the pipeline twice; both passes write to the same dir.
-    from picmaker.picmaker import process_images
+    from picmaker import process_images
 
     option_dict = {
         'replace': 'all', 'proceed': False, 'extension': 'jpg', 'suffix': '',
@@ -95,7 +94,7 @@ def test_movie_option_writes_outputs(
         'histogram': False, 'colormap': None, 'below_color': None,
         'above_color': None, 'invalid_color': None, 'gamma': 1.0,
         'tint': False, 'display_upward': False, 'display_downward': False,
-        'rotate': None, 'filter': 'NONE', 'zebra': False,
+        'rotate': None, 'filter_name': 'NONE', 'zebra': False,
     }
     process_images(
         [str(fixtures_dir / 'cassini_iss.vic')],

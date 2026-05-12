@@ -1,10 +1,8 @@
 """slice_array, crop_array, circle_mask unit tests."""
 
-from __future__ import annotations
-
 import numpy as np
 
-from picmaker.picmaker import circle_mask, crop_array, slice_array
+from picmaker import circle_mask, crop_array, slice_array
 
 
 class TestCircleMask:

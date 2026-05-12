@@ -5,16 +5,18 @@ consumers can write::
 
     from picmaker import images_to_pics, read_one_image_array
 
-The top-level pipeline entry point is :func:`images_to_pics`; the
-single-image reader is :func:`read_one_image_array`. The full set of
-public names is in :data:`__all__`.
+The top-level pipeline entry point is
+:func:`picmaker.pipeline.images_to_pics`; the single-image reader is
+:func:`picmaker.io.read_one_image_array`. The full set of public
+names is in this module's ``__all__`` list.
 """
 
 try:
+    from importlib.metadata import PackageNotFoundError
     from importlib.metadata import version as _version
 
     __version__ = _version('rms-picmaker')
-except Exception:
+except PackageNotFoundError:  # pragma: no cover — only fires when the package isn't installed
     try:
         from picmaker._version import __version__
     except ImportError:
@@ -40,6 +42,8 @@ from picmaker.geometry import (
     wrap_image,
 )
 from picmaker.io import (
+    FilterInfo,
+    ReadResult,
     get_outfile,
     read_array,
     read_image_array,
@@ -47,6 +51,7 @@ from picmaker.io import (
     read_pds_labeled_image_array,
     read_pil,
 )
+from picmaker.options import PicmakerOptions
 from picmaker.pil_utils import array_to_pil, pil_to_array, write_pil
 from picmaker.pipeline import find_common_path, images_to_pics, process_images
 
@@ -56,6 +61,9 @@ __all__ = [
     'GFUNC',
     'RFUNC',
     'RGB_BY_NM',
+    'FilterInfo',
+    'PicmakerOptions',
+    'ReadResult',
     '__version__',
     'apply_colormap',
     'apply_gamma',

@@ -1,12 +1,10 @@
 """--frame_max regression test — output dims must not exceed `frame_max%` of frame."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from PIL import Image
 
-from picmaker.picmaker import images_to_pics
+from picmaker import images_to_pics
 
 
 def test_frame_max_caps_at_half_frame(fixtures_dir: Path, tmp_path: Path) -> None:
