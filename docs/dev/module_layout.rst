@@ -2,7 +2,7 @@ Module-by-module description
 ============================
 
 Each leaf module under :mod:`picmaker` has one responsibility. The
-prose below summarizes that responsibility and links to the API
+summary below describes that responsibility and links to the API
 reference for each public symbol.
 
 :mod:`picmaker` (``src/picmaker/__init__.py``)
@@ -12,22 +12,9 @@ Top-level package. Re-exports the public API surface from the leaf
 modules, defines :data:`__all__`, and resolves :data:`__version__`
 from ``importlib.metadata`` (with a fallback to the
 ``setuptools_scm``-generated ``_version.py`` when the package is run
-from a source checkout that has not been installed).
-
-:mod:`picmaker.picmaker` (``src/picmaker/picmaker.py``)
--------------------------------------------------------
-
-Backward-compatibility shim. Re-exports every public name plus
-several BC-only aliases (:class:`picmaker.colornames.ColorNames`,
-:func:`picmaker.tiff16.ReadTiff16`,
-:func:`picmaker.tiff16.WriteTiff16`,
-:class:`vicar.VicarError`, :class:`vicar.VicarImage`, and the
-legacy :data:`picmaker.picmaker.GALILEO_SSI_DICT` /
-:data:`picmaker.picmaker.GALILEO_SSI_NAMES` /
-:data:`picmaker.picmaker.NH_MVIC_DICT` /
-:data:`picmaker.picmaker.VOYAGER_ISS_DICT` aliases). New code
-should import from the canonical leaf modules instead; the shim
-exists so callers of the pre-PR-3 1.x API keep working.
+from a source checkout that has not been installed). New code
+should import from here (``from picmaker import images_to_pics``)
+rather than from the individual leaf modules.
 
 :mod:`picmaker.cli` (``src/picmaker/cli.py``)
 ---------------------------------------------

@@ -28,7 +28,4 @@ Where to look next
 * End-user documentation: :doc:`user_guide`.
 * Open work tracked in
   `GitHub issues <https://github.com/SETI/rms-picmaker/issues>`__.
-* The two maintainer audits:
-  :file:`CODEBASE_CRITIQUE.md` (code quality) and
-  :file:`TEST_SUITE_CRITIQUE.md` (test quality).
 * The contributor workflow: :doc:`contributing`.

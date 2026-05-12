@@ -2,17 +2,19 @@ Pipeline
 ========
 
 This section covers the CLI-to-output-file path: a flowchart of the
-major functions and a prose walk-through of each.
+major functions and a walk-through of each.
 
 Flowchart
 ---------
 
 The diagram below shows the path from a CLI invocation to a written
-output file. Cross-references in the surrounding prose link each box
-to its API entry; the diagram itself uses bare names so it stays
-legible.
+output file. Cross-references below link each box to its API entry;
+the diagram itself uses bare names so it stays legible. The diagram is
+rendered as inline SVG by Mermaid (client-side); use the browser's
+zoom controls to read the labels at any size.
 
 .. mermaid::
+   :align: center
 
    flowchart TD
        A[picmaker CLI<br/>argv] --> B[cli.main]
@@ -67,8 +69,8 @@ Two short observations on the diagram:
   :func:`~picmaker.enhance.apply_colormap` flow.
 
 
-Major functions in prose
-------------------------
+Major functions
+---------------
 
 This subsection walks through the major library functions in pipeline
 order. Cross-references resolve to the :doc:`/module` reference; each

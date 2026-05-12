@@ -1,11 +1,11 @@
 Repository overview
 ===================
 
-``rms-picmaker`` is a SETI / PDS Rings Node tool that converts binary
-astronomy images (PDS3-labeled, VICAR, FITS, plus a handful of common
-raster formats) into JPEG, PNG, BMP, GIF, or TIFF files. It ships as
-both a command-line tool (the ``picmaker`` console script) and an
-importable Python library (``import picmaker``).
+``rms-picmaker`` is a SETI / PDS Ring-Moon Systems Node tool that
+converts binary astronomy images (PDS3-labeled, VICAR, FITS, plus a
+handful of common raster formats) into JPEG, PNG, BMP, GIF, or TIFF
+files. It ships as both a command-line tool (the ``picmaker`` console
+script) and an importable Python library (``import picmaker``).
 
 The project is a single Python package under ``src/picmaker/`` with a
 small flat module layout (no deep sub-packages except for the
@@ -15,6 +15,26 @@ around the library: every ``--flag`` binds to a keyword argument of
 that gate both surfaces live in one place
 (:class:`~picmaker.options.PicmakerOptions`).
 
+Setting up a development environment
+------------------------------------
+
+Clone the repository and create a virtual environment in the project
+root. The scripts under :file:`scripts/` and the lint / type / test
+configuration all expect the venv to live at ``./venv``::
+
+   git clone https://github.com/SETI/rms-picmaker.git
+   cd rms-picmaker
+   python -m venv venv
+   source venv/bin/activate          # On Windows: venv\Scripts\activate
+   pip install -e ".[dev]"
+
+The ``[dev]`` extra pulls in the test runner, linters, type checker,
+documentation builder, and packaging audit tools used by
+:file:`scripts/run-all-checks.sh` and CI. Once installed, a fast
+end-to-end check is::
+
+   bash scripts/run-all-checks.sh
+
 Layout
 ------
 
@@ -23,7 +43,7 @@ Layout
    rms-picmaker/
    ├── src/picmaker/             # Importable Python package.
    │   ├── __init__.py           # Public API re-exports + __version__.
-   │   ├── picmaker.py           # BC shim re-exporting the legacy 1.x surface.
+   │   ├── picmaker.py           # Alternate import path; re-exports the same names as __init__.py.
    │   ├── cli.py                # argparse CLI; builds option_dict; dispatches.
    │   ├── pipeline.py           # process_images + images_to_pics (the pipeline).
    │   ├── options.py            # PicmakerOptions dataclass + validate().
@@ -62,6 +82,4 @@ Layout
    ├── pyproject.toml            # Single source of truth for build + tools.
    ├── README.md
    ├── CONTRIBUTING.md
-   ├── CODE_OF_CONDUCT.md
-   ├── CODEBASE_CRITIQUE.md      # Maintainer audit of code quality.
-   └── TEST_SUITE_CRITIQUE.md    # Maintainer audit of test quality.
+   └── CODE_OF_CONDUCT.md

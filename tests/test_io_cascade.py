@@ -211,10 +211,8 @@ def test_read_array_tiff_with_bogus_content_falls_through_to_pil(
     """A file with ``.tiff`` extension that is not a 16-bit TIFF falls
     through to the PIL path inside :func:`read_array`.
     """
-    from PIL import Image as PILImage
-
     fake = tmp_path / 'fake.tiff'
-    PILImage.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
+    Image.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
     arr = read_array(str(fake), rescale=False)
     assert arr.shape == (4, 4)
 
@@ -223,10 +221,8 @@ def test_read_pil_tiff_with_bogus_content_falls_through_to_pil(
     tmp_path: Path,
 ) -> None:
     """Same fall-through behaviour for :func:`read_pil`."""
-    from PIL import Image as PILImage
-
     fake = tmp_path / 'fake.tiff'
-    PILImage.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
+    Image.new('L', (4, 4), color=128).save(str(fake), format='TIFF')
     img = read_pil(str(fake))
     assert isinstance(img, Image.Image)
     assert img.size == (4, 4)

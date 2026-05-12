@@ -121,9 +121,9 @@ def test_apply_colormap_below_above_colors() -> None:
         above_color='red',
     )
     # arr[0, 0]=0 < lower → blue (0,0,1)
-    assert out[0, 0, 2] == pytest.approx(1.0)
+    np.testing.assert_allclose(out[0, 0], (0.0, 0.0, 1.0))
     # arr[0, 3]=200 > upper → red (1,0,0)
-    assert out[0, 3, 0] == pytest.approx(1.0)
+    np.testing.assert_allclose(out[0, 3], (1.0, 0.0, 0.0))
 
 
 def test_apply_colormap_named_two_stop() -> None:
