@@ -1,15 +1,6 @@
 # git
 .git  # git already ignores this, but some other tools don't
 
-# Local-only maintainer notes (audits, planning docs, agent context).
-# Live in the working tree but are not tracked.
-CLAUDE.md
-CODEBASE_CRITIQUE.md
-CODEBASE_REVIEW.md
-TEST_SUITE_CRITIQUE.md
-MODERNIZATION_PLAN.md
-MODERNIZATION_PLAN copy.md
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
