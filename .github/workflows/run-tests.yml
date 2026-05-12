@@ -88,6 +88,12 @@ jobs:
         run: |
           python -m pytest --cov=picmaker --cov-report=xml -n auto tests
 
+      - name: Snapshot freshness check
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: |
+          python tests/fixture_recipes/generate_snapshots.py
+          git diff --exit-code tests/fixtures/expected/ tests/snapshots_index.py
+
       - name: Print coverage report
         run: |
           coverage report -m
