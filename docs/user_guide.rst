@@ -279,7 +279,7 @@ Sizing options
    * - ``--pad-color NAME``
      - ``pad_color``
      - ``'black'``
-     - Padding fill colour (any X11 name from
+     - Padding fill color (any X11 name from
        :class:`picmaker.colornames.ColorNames` or ``#RRGGBB``).
    * - ``--frame_max PCT``
      - ``frame_max``
@@ -324,7 +324,7 @@ Layout options
    * - ``--gap-color NAME``, ``--gapcolor NAME``
      - ``gap_color``
      - ``'white'``
-     - Gap colour (X11 name or ``#RRGGBB``).
+     - Gap color (X11 name or ``#RRGGBB``).
    * - ``--hst``
      - ``hst``
      - ``False``
@@ -347,7 +347,7 @@ Scaling options (histogram and intensity controls)
      - ``valid``
      - ``None``
      - Pixels outside ``[LO, HI]`` are treated as invalid (filled with
-       ``--invalid`` colour, excluded from the histogram).
+       ``--invalid`` color, excluded from the histogram).
    * - ``-l LO HI``, ``--limits LO HI``
      - ``limits``
      - ``None``
@@ -629,7 +629,7 @@ FITS keywords ``TELESCOP``, ``INSTRUME``, and (optionally)
 ``FILTER1``/``FILTER2``, or ``FILTNAM1``/``FILTNAM2`` — whichever is
 present last in that order.
 
-The tint colour is derived from the wavelength inferred by parsing the
+The tint color is derived from the wavelength inferred by parsing the
 digits out of the filter name (e.g. ``'F606W'`` → 606 nm) and looking
 that wavelength up in the
 :data:`picmaker._rgb.RGB_BY_NM` CIE-style table via the
@@ -666,7 +666,7 @@ New Horizons MVIC
 
 Detected via :func:`picmaker.instruments.nh.detect_fits` from the FITS
 keywords ``HOSTNAME``, ``INSTRU``, and ``FILTER``. Only the ``MVIC``
-camera gets a coloured tint:
+camera gets a colored tint:
 
 .. list-table::
    :header-rows: 1
@@ -739,7 +739,7 @@ occurrence of their value from ``<input-stem>``.
 The intensity pipeline runs in this order:
 
 1. ``--valid LO HI`` masks pixels outside the range (replaced with
-   ``--invalid`` colour).
+   ``--invalid`` color).
 2. ``--limits`` or ``--percentiles`` chooses the linear stretch
    endpoints (``--limits`` wins when both are set). ``--trim`` /
    ``--trim-zeros`` / ``--footprint`` further refine which pixels are
@@ -747,10 +747,10 @@ The intensity pipeline runs in this order:
 3. ``--histogram`` switches the stretch from linear to
    flat-histogram-equalised.
 4. ``--colormap NAME`` maps the stretched values into RGB. Names are
-   hyphen-separated lists of X11 colour names, resolved by
+   hyphen-separated lists of X11 color names, resolved by
    :class:`picmaker.colornames.ColorNames`. ``--tint`` overrides this
    step with the per-instrument tint from section 6.
-5. ``--below``, ``--above``, ``--invalid`` override the colours used
+5. ``--below``, ``--above``, ``--invalid`` override the colors used
    for the three special cases.
 6. ``--gamma G`` applies a final power-law correction (``out =
    in ** (1 / G)``).

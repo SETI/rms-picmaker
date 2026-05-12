@@ -19,8 +19,6 @@ the run so the bulk of the gallery still regenerates if one instrument
 fixture goes missing.
 """
 
-from __future__ import annotations
-
 import shutil
 import sys
 import tempfile
@@ -89,7 +87,8 @@ def _generate_one(
     Parameters:
         slug: Output stem (e.g. ``cassini_iss_tint``).
         fixture_name: File name under ``tests/fixtures/``.
-        kwargs: Keyword arguments forwarded to ``images_to_pics``.
+        kwargs: Keyword arguments forwarded to
+            :func:`picmaker.pipeline.images_to_pics`.
         ext: Output extension (``jpg``, ``png``, ``tiff``).
         out_dir: Final destination directory.
 
@@ -130,6 +129,16 @@ def _generate_one(
 
 
 def main() -> int:
+    """Render every gallery entry in :data:`ALL_GALLERIES` into :data:`OUT_DIR`.
+
+    Creates :data:`OUT_DIR` if it does not already exist, then calls
+    :func:`_generate_one` for each ``(slug, fixture, kwargs, ext)``
+    tuple. Per-entry failures are logged and skipped rather than aborting
+    the run. Prints a one-line summary of survivors / total.
+
+    Returns:
+        Process exit code (always ``0`` — failures are logged, not raised).
+    """
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     survivors = 0
     for slug, fixture_name, kwargs, ext in ALL_GALLERIES:

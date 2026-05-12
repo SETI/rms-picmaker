@@ -66,7 +66,7 @@ def test_user_guide_documents_every_cli_flag() -> None:
 
     guide_path = Path(__file__).parent.parent / 'docs' / 'user_guide.rst'
     guide = guide_path.read_text()
-    guide_flags = set(re.findall(r'--[a-z_-]+', guide))
+    guide_flags = set(re.findall(r'--[a-z0-9_-]+', guide))
 
     missing = expected - guide_flags
     assert not missing, (
