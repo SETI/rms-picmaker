@@ -18,12 +18,16 @@ from a source checkout that has not been installed).
 -------------------------------------------------------
 
 Backward-compatibility shim. Re-exports every public name plus
-several BC-only aliases (``ColorNames``, ``ReadTiff16``,
-``WriteTiff16``, ``VicarError``, ``VicarImage``, and the legacy
-``GALILEO_SSI_DICT`` / ``GALILEO_SSI_NAMES`` / ``NH_MVIC_DICT`` /
-``VOYAGER_ISS_DICT`` aliases). New code should import from the
-canonical leaf modules instead; the shim exists so callers of the
-pre-PR-3 1.x API keep working.
+several BC-only aliases (:class:`picmaker.colornames.ColorNames`,
+:func:`picmaker.tiff16.ReadTiff16`,
+:func:`picmaker.tiff16.WriteTiff16`,
+:class:`vicar.VicarError`, :class:`vicar.VicarImage`, and the
+legacy :data:`picmaker.picmaker.GALILEO_SSI_DICT` /
+:data:`picmaker.picmaker.GALILEO_SSI_NAMES` /
+:data:`picmaker.picmaker.NH_MVIC_DICT` /
+:data:`picmaker.picmaker.VOYAGER_ISS_DICT` aliases). New code
+should import from the canonical leaf modules instead; the shim
+exists so callers of the pre-PR-3 1.x API keep working.
 
 :mod:`picmaker.cli` (``src/picmaker/cli.py``)
 ---------------------------------------------

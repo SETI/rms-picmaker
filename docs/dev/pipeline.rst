@@ -130,8 +130,8 @@ carries every per-reader failure for diagnostic purposes.
 The FITS branch sniffs the first 9 bytes for ``b'SIMPLE  ='`` before
 calling :func:`astropy.io.fits.open` so that wrong-extension files do
 not trigger astropy's expensive parser, and so that warnings raised
-from inside ``fits.open`` are converted to exceptions by
-:class:`warnings.catch_warnings` + ``filterwarnings('error')`` and
+from inside :func:`astropy.io.fits.open` are converted to exceptions
+by :class:`warnings.catch_warnings` + ``filterwarnings('error')`` and
 swallowed at the branch boundary.
 
 :func:`picmaker.io.read_image_array` is the multi-file wrapper: it
@@ -274,7 +274,8 @@ Color, filter, and PIL bridges
 per-filter tinting. It normalizes HST's ``CL1`` / ``CL2`` /
 ``CLEAR*`` / ``N/A`` filter-tuple quirks, picks the right instrument
 module via :func:`picmaker.instruments.lookup`, and delegates to its
-``tint_for`` callable.
+``tint_for`` callable (e.g.
+:func:`picmaker.instruments.cassini.tint_for`).
 
 :func:`picmaker._filters.filter_image` applies one of the
 :data:`picmaker._filters.FILTER_DICT` PIL presets to a PIL image,
@@ -284,7 +285,7 @@ the dict.
 :func:`picmaker.pil_utils.array_to_pil`,
 :func:`picmaker.pil_utils.pil_to_array`, and
 :func:`picmaker.pil_utils.write_pil` are the three numpy ↔ PIL
-bridges. ``write_pil`` dispatches 16-bit output (list-of-three
-``'I'``-mode images, or a single ``'I'``-mode image) through
-:func:`picmaker.tiff16.WriteTiff16` and the 8-bit path through
-:meth:`PIL.Image.Image.save`.
+bridges. :func:`~picmaker.pil_utils.write_pil` dispatches 16-bit
+output (list-of-three ``'I'``-mode images, or a single ``'I'``-mode
+image) through :func:`picmaker.tiff16.WriteTiff16` and the 8-bit
+path through :meth:`PIL.Image.Image.save`.

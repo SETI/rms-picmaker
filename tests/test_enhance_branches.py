@@ -63,7 +63,12 @@ def test_get_limits_trim_zeros_with_mask() -> None:
     mask = np.zeros_like(arr, dtype=bool)
     mask[3, 3] = True
     lo, hi = get_limits(arr, mask, None, (0.0, 100.0), trim_zeros=True)
-    assert lo == hi - 1  # all 100s except one masked
+    # The border rows / columns are trimmed away, leaving a 6x6 inner
+    # block that is uniform 100 except for the single masked cell. The
+    # ``array_min == array_max`` branch in get_limits returns
+    # ``(value, value + 1)`` for integer dtypes.
+    assert lo == 100
+    assert hi == 101
 
 
 def test_get_limits_with_footprint_filter() -> None:
@@ -82,9 +87,11 @@ def test_get_limits_with_trim() -> None:
     """``trim=N`` excludes ``N`` pixels around the edge."""
     arr = np.arange(256, dtype='uint16').reshape(16, 16)
     lo, hi = get_limits(arr, None, None, (0.0, 100.0), trim=4)
-    # After trimming, the 8x8 inner block runs from row 4..12.
-    assert lo == arr[4:-4, 4:-4].min() - 0.5
-    assert hi == arr[4:-4, 4:-4].max() + 0.5
+    # After trimming the 4-pixel border, the inner 8x8 block runs from
+    # arr[4, 4] = 68 to arr[11, 11] = 187; integer limits extend by
+    # 0.5 on each side.
+    assert lo == 67.5
+    assert hi == 187.5
 
 
 def test_apply_colormap_with_invalid_mask() -> None:
@@ -124,6 +131,15 @@ def test_apply_colormap_named_two_stop() -> None:
     arr = np.arange(8, dtype='uint8').reshape(2, 4)
     out = apply_colormap(arr, (0.0, 7.0), colormap='red-blue')
     assert out.shape == (2, 4, 3)
+    assert out.dtype == np.float64
+    # Two-stop ``'red-blue'`` linearly interpolates from
+    # ``red = (1, 0, 0)`` at value 0 to ``blue = (0, 0, 1)`` at value 7
+    # for each input pixel. The middle (green) channel stays at 0.
+    frac = (arr / 7.0).astype(np.float64)
+    expected = np.zeros((2, 4, 3), dtype=np.float64)
+    expected[..., 0] = 1.0 - frac
+    expected[..., 2] = frac
+    np.testing.assert_allclose(out, expected)
 
 
 def test_apply_gamma_identity_is_noop() -> None:

@@ -79,6 +79,7 @@ def _generate_one(
     slug: str,
     fixture_name: str,
     kwargs: dict[str, Any],
+    *,
     ext: str,
     out_dir: Path,
 ) -> Path | None:
@@ -142,7 +143,9 @@ def main() -> int:
     _OUT_DIR.mkdir(parents=True, exist_ok=True)
     survivors = 0
     for slug, fixture_name, kwargs, ext in ALL_GALLERIES:
-        path = _generate_one(slug, fixture_name, kwargs, ext, _OUT_DIR)
+        path = _generate_one(
+            slug, fixture_name, kwargs, ext=ext, out_dir=_OUT_DIR
+        )
         if path is not None:
             survivors += 1
             print(f'  ok {path.name}')

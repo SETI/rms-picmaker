@@ -397,15 +397,15 @@ Enhancement options
    * - ``--below COLOR``
      - ``below_color``
      - ``None``
-     - Colour used for pixels below the lower limit.
+     - Color used for pixels below the lower limit.
    * - ``--above COLOR``
      - ``above_color``
      - ``None``
-     - Colour used for pixels above the upper limit.
+     - Color used for pixels above the upper limit.
    * - ``--invalid COLOR``
      - ``invalid_color``
      - ``'black'``
-     - Colour used for invalid pixel values and NaNs.
+     - Color used for invalid pixel values and NaNs.
    * - ``-g G``, ``--gamma G``
      - ``gamma``
      - ``1.0``

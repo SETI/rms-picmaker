@@ -3,6 +3,7 @@ mutex checks, movie mode, the ``--proceed`` error path, ``--zebra``,
 HST mosaic dispatch, and the reuse path of ``process_images``.
 """
 
+import logging
 import shutil
 from pathlib import Path
 from typing import Any
@@ -120,7 +121,6 @@ def test_verbose_emits_log(
     fixtures_dir: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     """``verbose=True`` logs the input filename via ``picmaker.pipeline``."""
-    import logging
     with caplog.at_level(logging.INFO, logger='picmaker.pipeline'):
         images_to_pics(
             [str(fixtures_dir / 'cassini_iss.vic')],
@@ -140,7 +140,6 @@ def test_proceed_swallows_errors(
     fixtures_dir: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     """``proceed=True`` logs and continues past a per-file failure."""
-    import logging
     bogus = tmp_path / 'bogus.bin'
     bogus.write_bytes(b'not-an-image')
     good = fixtures_dir / 'cassini_iss.vic'
