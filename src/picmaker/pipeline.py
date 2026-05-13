@@ -10,7 +10,7 @@ pipeline so that :func:`images_to_pics` reads as a flat loop.
 
 import logging
 import os
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pdsparser
@@ -392,12 +392,13 @@ def _process_one_image(
         caller persists for a possible later reuse.
     """
     # ``images_to_pics`` backfills ``options.extension`` to ``'jpg'`` or
-    # ``'tiff'`` before calling this helper; the assert documents that
-    # contract for both readers and mypy.
-    assert options.extension is not None
+    # ``'tiff'`` before calling this helper. The cast narrows the
+    # ``str | None`` field for mypy without introducing an ``assert``
+    # that ``python -O`` would strip.
+    extension = cast(str, options.extension)
     outfile = get_outfile(
         infile, directory, options.strip, options.suffix,
-        options.extension, options.replace,
+        extension, options.replace,
     )
     if outfile == '':
         return None
