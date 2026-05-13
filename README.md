@@ -25,7 +25,7 @@
 ![GitHub License](https://img.shields.io/github/license/SETI/rms-picmaker)
 [![Number of GitHub stars](https://img.shields.io/github/stars/SETI/rms-picmaker)](https://github.com/SETI/rms-picmaker/stargazers)
 ![GitHub forks](https://img.shields.io/github/forks/SETI/rms-picmaker)
-[![DOI](https://zenodo.org/badge/rms-picmaker.svg)](https://zenodo.org/badge/latestdoi/rms-picmaker)
+[![DOI](https://zenodo.org/badge/713118372.svg)](https://zenodo.org/badge/latestdoi/713118372)
 <!-- start-after-point -->
 
 # Features
