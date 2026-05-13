@@ -20,22 +20,27 @@ zoom controls to read the labels at any size.
        A[picmaker CLI<br/>argv] --> B[cli.main]
        B --> C[_build_parser<br/>argparse]
        B --> D[_separate_files_and_dirs]
-       B --> E[_normalize_and_validate<br/>per --versions line]
+       B --> CO[_collect_option_dicts]
+       CO --> E[_normalize_and_validate<br/>per --versions line]
        E --> F[PicmakerOptions.validate]
+       B --> PD[_process_directory<br/>per dirpath, recursive or not]
        F --> G[process_images<br/>per directory]
+       PD --> G
        G -->|movie=True| H[images_to_pics<br/>pass 1: collect limits]
        H --> I[images_to_pics<br/>pass 2: shared stretch]
        G -->|movie=False| J[images_to_pics<br/>per file]
-       I --> K[per-file pipeline]
+       I --> K[_process_one_image]
        J --> K
        K --> L[get_outfile]
        L -->|skip if replace='none'| M[Done]
-       L --> N[read_image_array]
+       L --> PR[_pds3_resolve_pointer<br/>only for .LBL inputs]
+       PR --> N[read_image_array]
+       L --> N
        N --> O[read_one_image_array<br/>format cascade]
        O --> P[pickle / numpy / VICAR / FITS / PIL / PDS3]
        P --> Q[ReadResult<br/>array3d, default_is_up, filter_info]
        Q --> R{hst=True?}
-       R -->|yes| S[per-detector slice + colormap<br/>WFPC2 quad or ACS panel mosaic]
+       R -->|yes| S[_hst_mosaic_rgb<br/>WFPC2 quad or ACS panel mosaic]
        R -->|no| T[slice_array]
        T --> U[fill_zebra_stripes<br/>optional]
        U --> V[get_limits]
@@ -83,9 +88,13 @@ CLI entry point
 :func:`picmaker.cli.main` is the function bound to the ``picmaker``
 console script. It builds the argparse parser, splits ``args.files``
 into files and directories with
-:func:`!picmaker.cli._separate_files_and_dirs`, and dispatches each
-``--versions FILE`` line as its own option dict via
-:func:`!picmaker.cli._normalize_and_validate`.
+:func:`!picmaker.cli._separate_files_and_dirs`, and delegates the two
+remaining phases to two private helpers:
+:func:`!picmaker.cli._collect_option_dicts` (the ``--versions FILE``
+re-parse loop, returning one normalized option_dict per line) and
+:func:`!picmaker.cli._process_directory` (the per-directory walk in
+recursive or non-recursive mode). Each helper is unit-tested directly
+in :file:`tests/test_cli_helpers.py`.
 
 The library equivalent of "run the CLI from Python" is to import
 :func:`picmaker.pipeline.images_to_pics` directly; the kwarg names
@@ -173,16 +182,22 @@ Per-image pipeline
 ~~~~~~~~~~~~~~~~~~
 
 :func:`picmaker.pipeline.images_to_pics` runs the per-image pipeline
-shown in the flowchart above. The body is roughly 400 lines and runs
-through the following phases for each input filename:
+shown in the flowchart above. The body is now a thin loop that builds
+a :class:`~picmaker.options.PicmakerOptions`, backfills the legacy
+``None``-means-default kwargs, and delegates each filename to
+:func:`!picmaker.pipeline._process_one_image`. That helper runs the
+following phases for one input file:
 
 1. Build the output path (:func:`~picmaker.io.get_outfile`); skip if
    ``replace='none'`` returned ``''``.
-2. Read the array (:func:`~picmaker.io.read_image_array`), or reuse
-   the previous read result if ``obj`` and ``pointer`` have not
-   changed.
-3. If ``hst=True`` and the instrument is ACS/WFC or WFPC2, run the
-   per-detector branch that stitches the panels.
+2. Read the array (:func:`~picmaker.io.read_image_array`), with PDS3
+   detached-label pointer resolution delegated to
+   :func:`!picmaker.pipeline._pds3_resolve_pointer`. The caller's
+   ``reuse`` tuple short-circuits the read for the single-file batches
+   that :func:`process_images` builds per ``option_dict``.
+3. If ``hst=True`` and the instrument is ACS/WFC or WFPC2, dispatch to
+   :func:`!picmaker.pipeline._hst_mosaic_rgb` for the per-detector
+   stack-and-mosaic flow.
 4. Otherwise: slice (:func:`~picmaker.geometry.slice_array`),
    optionally fill zebra stripes
    (:func:`~picmaker.enhance.fill_zebra_stripes`), compute limits
@@ -203,6 +218,14 @@ through the following phases for each input filename:
 The function returns ``(low, high, reuse)`` so callers (or the
 ``--movie`` second pass) can either consume the limits or replay the
 read.
+
+:func:`!picmaker.pipeline._hst_mosaic_rgb` itself further delegates
+the panel-assembly geometry to two private helpers,
+:func:`!picmaker.pipeline._hst_wfpc2_mosaic` (four detectors,
+PC1/WF2/WF3/WF4 in a 2x2 quadrant) and
+:func:`!picmaker.pipeline._hst_acs_panel_mosaic` (two detectors,
+WFC1 above and WFC2 below). Each helper is unit-tested directly in
+:file:`tests/test_pipeline_helpers.py`.
 
 :func:`picmaker.pipeline.process_images` is the thin loop that drives
 :func:`~picmaker.pipeline.images_to_pics` per file; its only real

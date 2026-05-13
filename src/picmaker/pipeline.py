@@ -1,7 +1,10 @@
 """Top-level orchestration: walk directories, process one image, drive a movie.
 
 :func:`process_images` and :func:`images_to_pics` are the CLI's main
-entry points; everything else in this module is plumbing.
+entry points; the module-private helpers
+:func:`!_pds3_resolve_pointer`, :func:`!_hst_mosaic_rgb`, and
+:func:`!_process_one_image` each handle one phase of the per-image
+pipeline so that :func:`images_to_pics` reads as a flat loop.
 """
 
 
@@ -73,6 +76,445 @@ def find_common_path(directories: list[str]) -> str:
     if not rest or rest == os.sep:
         return ''
     return result
+
+
+def _pds3_resolve_pointer(
+    infile: str,
+    pointer: Any,
+    obj: Any,
+) -> tuple[Any, tuple[Any, Any, Any] | None]:
+    """Parse a PDS3 ``.LBL`` and resolve its image-object pointer.
+
+    The pointer name list is tried in order; the first one present in
+    the label wins. When the pointer resolves to multiple objects, the
+    ``obj`` argument selects which (an integer selects one, a sequence
+    selects several, ``None`` selects all).
+
+    Parameters:
+        infile: Path to a PDS3 ``.LBL`` detached-label file.
+        pointer: Pointer name (e.g. ``'IMAGE'``) or list of pointer
+            names to try in order. A leading ``^`` is optional.
+        obj: ``None`` (all objects), an ``int`` (one object), or a
+            sequence of ``int`` (several objects).
+
+    Returns:
+        ``(imagefile, filter_info)`` — ``imagefile`` is either a single
+        path (``obj`` was an int) or a list of paths; ``filter_info`` is
+        the ``(host, instrument, filter)`` triple extracted from the
+        label, or ``None`` when no instrument metadata is present.
+
+    Raises:
+        KeyError: When none of the pointer names is present in the
+            label.
+        IndexError: When ``obj`` selects an index past the end of the
+            resolved pointer list.
+    """
+    labeldict = pdsparser.PdsLabel(infile).as_dict()
+
+    if 'INSTRUMENT_HOST_ID' in labeldict:
+        inst_host = labeldict['INSTRUMENT_HOST_ID']
+    elif 'SPACECRAFT_ID' in labeldict:
+        inst_host = labeldict['SPACECRAFT_ID']
+    elif 'SPACECRAFT_NAME' in labeldict:
+        inst_host = labeldict['SPACECRAFT_NAME']
+    else:
+        inst_host = None
+
+    filter_info: tuple[Any, Any, Any] | None = None
+    if inst_host is not None:
+        if 'INSTRUMENT_ID' in labeldict:
+            inst_id = labeldict['INSTRUMENT_ID']
+            if 'DETECTOR_ID' in labeldict:
+                detector_id = labeldict['DETECTOR_ID']
+                if isinstance(detector_id, str):
+                    inst_id += '/' + detector_id
+        elif 'INSTRUMENT_NAME' in labeldict:
+            inst_id = labeldict['INSTRUMENT_NAME']
+        else:
+            inst_id = None
+
+        pds_filter_name = labeldict.get('FILTER_NAME')
+        filter_info = (inst_host, inst_id, pds_filter_name)
+
+    if isinstance(pointer, str):
+        pointer = [pointer]
+
+    pds_obj: Any = None
+    pname: str = ''
+    for pname in pointer:
+        pname = pname.upper()
+        if not pname.startswith('^'):
+            pname = '^' + pname
+        if pname in labeldict:
+            pds_obj = labeldict[pname]
+            if isinstance(pds_obj, tuple):
+                pds_obj = pds_obj[0]
+            break
+
+    if pds_obj is None:
+        raise KeyError(f'PDS pointer {pointer[0].upper()} not found')
+
+    if isinstance(pds_obj, str):
+        pds_obj = [pds_obj]
+
+    parent = os.path.split(infile)[0]
+    if obj is None:
+        max_obj = len(pds_obj) - 1
+        imagefile: Any = [os.path.join(parent, p) for p in pds_obj]
+    elif isinstance(obj, int):
+        max_obj = obj
+        imagefile = os.path.join(parent, pds_obj[obj])
+    else:
+        max_obj = max(obj)
+        imagefile = [os.path.join(parent, pds_obj[o]) for o in obj]
+
+    if max_obj >= len(pds_obj):
+        raise IndexError(
+            f'index {max_obj + 1} for PDS pointer {pname[1:]} out of range'
+        )
+
+    return imagefile, filter_info
+
+
+def _hst_wfpc2_mosaic(
+    arrays_rgb: list[Any],
+    imagefile: Any,
+) -> Any:
+    """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
+
+    When ``imagefile`` is a list of per-detector file paths, the band
+    order is inferred from substrings (``PC1``, ``WF2``, ``WF3``,
+    ``WF4``) in each filename. When ``imagefile`` is a single string
+    (e.g. a multi-extension FITS file), bands are placed in ``b``-order
+    with a ``b``-step ``np.rot90`` rotation. Each non-PC1 detector is
+    rotated to share the PC1's pixel orientation.
+
+    Parameters:
+        arrays_rgb: Per-band RGB arrays (length 4), each
+            ``(lines, samples, 3)``.
+        imagefile: Either a single string or a list of strings.
+
+    Returns:
+        The assembled 2x2 mosaic, shape
+        ``(2 * lines, 2 * samples, 3)``.
+    """
+    quads_rgb = np.zeros((4, *arrays_rgb[0].shape))
+    for b in range(len(arrays_rgb)):
+        if isinstance(imagefile, str):
+            quads_rgb[b] = np.rot90(arrays_rgb[b], b)
+        else:
+            testfile = imagefile[b].upper()
+            if 'PC1' in testfile:
+                quads_rgb[0] = arrays_rgb[b]
+            elif 'WF2' in testfile:
+                quads_rgb[1] = np.rot90(arrays_rgb[b], 1)
+            elif 'WF3' in testfile:
+                quads_rgb[2] = np.rot90(arrays_rgb[b], 2)
+            elif 'WF4' in testfile:
+                quads_rgb[3] = np.rot90(arrays_rgb[b], 3)
+            else:
+                quads_rgb[b] = np.rot90(arrays_rgb[b], b)
+
+    (_, dl, ds, db) = quads_rgb.shape
+    mosaic = np.empty((2 * dl, 2 * ds, db))
+    mosaic[:dl, -ds:] = quads_rgb[0]
+    mosaic[:dl, :ds] = quads_rgb[1]
+    mosaic[-dl:, :ds] = quads_rgb[2]
+    mosaic[-dl:, -ds:] = quads_rgb[3]
+    return mosaic
+
+
+def _hst_acs_panel_mosaic(
+    arrays_rgb: list[Any],
+    imagefile: Any,
+) -> Any:
+    """Assemble ACS/WFC's two detectors (WFC1 above, WFC2 below).
+
+    When ``imagefile`` is a list of per-detector file paths, the panel
+    order is inferred from substrings (``WFC1``, ``WFC2``) in each
+    filename. When ``imagefile`` is a single string, band 0 is placed
+    below and band 1 above (matching the legacy `1 - b` indexing).
+
+    Parameters:
+        arrays_rgb: Per-band RGB arrays (length 2), each
+            ``(lines, samples, 3)``.
+        imagefile: Either a single string or a list of strings.
+
+    Returns:
+        The assembled panel mosaic, shape
+        ``(2 * lines, samples, 3)``.
+    """
+    panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
+    for b in range(2):
+        if isinstance(imagefile, str):
+            panels_rgb[1 - b] = arrays_rgb[b]
+        else:
+            testfile = imagefile[b].upper()
+            if 'WFC1' in testfile:
+                panels_rgb[0] = arrays_rgb[b]
+            elif 'WFC2' in testfile:
+                panels_rgb[1] = arrays_rgb[b]
+            else:
+                panels_rgb[b] = arrays_rgb[b]
+
+    (dl, ds, db) = arrays_rgb[0].shape
+    mosaic = np.zeros((2 * dl, ds, db))
+    mosaic[:dl] = panels_rgb[0]
+    mosaic[-dl:] = panels_rgb[1]
+    return mosaic
+
+
+def _hst_mosaic_rgb(
+    array3d: Any,
+    filter_info: tuple[Any, Any, Any],
+    imagefile: Any,
+    *,
+    options: PicmakerOptions,
+    default_is_up: bool,
+    is_int: bool,
+    colormap: Any,
+) -> tuple[Any, Any]:
+    """Build the HST ACS/WFC or WFPC2 mosaic from a per-detector array stack.
+
+    Each band of ``array3d`` is sliced, stretched, and colormapped
+    independently, then the per-detector RGB arrays are assembled into
+    a single mosaic via :func:`!_hst_wfpc2_mosaic` (4 detectors,
+    instrument ``WFPC2``) or :func:`!_hst_acs_panel_mosaic` (2
+    detectors, instrument ``ACS/WFC``). A single-band ACS/WFC input is
+    returned unmosaicked.
+
+    The optional ``default_is_up`` flip is applied here (and ``array3d``
+    is returned to the caller so the caller's reuse tuple records the
+    flipped variant).
+
+    Parameters:
+        array3d: ``(bands, lines, samples)`` stack.
+        filter_info: Reader-cascade ``(host, instrument, filter)``
+            triple; only ``filter_info[1]`` (``'ACS/WFC'`` or
+            ``'WFPC2'``) is inspected here.
+        imagefile: Source file path or list of paths — used by the
+            assembly helpers to identify per-detector files.
+        options: Picmaker options dataclass for slice, stretch, and
+            colormap parameters.
+        default_is_up: Caller's ``default_is_up`` flag from the reader.
+        is_int: Whether ``array3d.dtype`` is an integer kind (passed
+            through to :func:`~picmaker.enhance.get_limits`).
+        colormap: The resolved colormap (post-``tint`` override).
+
+    Returns:
+        ``(mosaic_rgb, array3d_for_reuse)``. The second element is the
+        possibly-flipped input array — callers persist it in their
+        reuse tuple.
+    """
+    if default_is_up:
+        array3d = array3d[:, ::-1, :]
+
+    arrays_rgb: list[Any] = []
+    for b in range(array3d.shape[0]):
+        (array2d, invalid_mask) = slice_array(
+            array3d, options.samples, options.lines, (b, b + 1),
+            options.valid, options.crop,
+        )
+
+        if options.zebra:
+            array2d = fill_zebra_stripes(array2d)
+
+        these_limits = get_limits(
+            array2d,
+            invalid_mask,
+            options.limits,
+            options.percentiles,
+            assume_int=is_int,
+            trim=options.trim,
+            trim_zeros=options.trim_zeros,
+            footprint=options.footprint,
+        )
+
+        array_rgb = apply_colormap(
+            array2d,
+            these_limits,
+            options.histogram,
+            colormap,
+            invalid_mask,
+            options.below_color,
+            options.above_color,
+            options.invalid_color,
+        )
+        arrays_rgb.append(array_rgb)
+
+    if filter_info[1] == 'WFPC2':
+        mosaic = _hst_wfpc2_mosaic(arrays_rgb, imagefile)
+    elif len(arrays_rgb) > 1:
+        mosaic = _hst_acs_panel_mosaic(arrays_rgb, imagefile)
+    else:
+        mosaic = arrays_rgb[0]
+
+    return mosaic, array3d
+
+
+def _process_one_image(
+    infile: str,
+    options: PicmakerOptions,
+    reuse: tuple[Any, Any, Any, str] | None,
+    *,
+    directory: str | None,
+) -> tuple[tuple[Any, Any], tuple[Any, Any, Any, str]] | None:
+    """Run the per-image pipeline on one input file.
+
+    Encapsulates the loop body of :func:`images_to_pics`: it builds the
+    output path, optionally reuses a prior read, decides between the
+    HST mosaic branch and the single-detector branch, applies the
+    orientation / gamma / size / wrap / pad chain, and writes the
+    result.
+
+    Parameters:
+        infile: Input file path.
+        options: Validated and post-normalized
+            :class:`~picmaker.options.PicmakerOptions`. The caller is
+            responsible for filling in defaults that the legacy
+            ``images_to_pics`` kwarg interface used to set inline
+            (``strip`` defaults to ``[]``, ``pointer`` to ``['IMAGE']``,
+            ``bands`` to ``(0, 1)``, ``extension`` to ``'jpg'`` /
+            ``'tiff'``).
+        reuse: A 4-tuple ``(array3d, default_is_up, filter_info,
+            infile)`` from a previous call, or ``None`` to read from
+            disk.
+        directory: Output directory, or ``None`` to write next to the
+            input.
+
+    Returns:
+        ``None`` when ``get_outfile`` returned ``''`` (the
+        ``replace='none'`` skip path). Otherwise
+        ``((min_limit, max_limit), reuse_tuple)`` where ``min_limit`` /
+        ``max_limit`` are the stretch endpoints (or ``None`` in the HST
+        mosaic branch, which computes per-detector stretches
+        internally) and ``reuse_tuple`` is the read-result tuple the
+        caller persists for a possible later reuse.
+    """
+    # ``images_to_pics`` backfills ``options.extension`` to ``'jpg'`` or
+    # ``'tiff'`` before calling this helper; the assert documents that
+    # contract for both readers and mypy.
+    assert options.extension is not None
+    outfile = get_outfile(
+        infile, directory, options.strip, options.suffix,
+        options.extension, options.replace,
+    )
+    if outfile == '':
+        return None
+
+    if reuse is not None:
+        (array3d, default_is_up, filter_info, infile) = reuse
+        labelfile: Any = ''
+        imagefile: Any = infile
+    else:
+        upperfile = infile.upper()
+        if upperfile.endswith('.LBL'):
+            labelfile = infile
+            imagefile, filter_info = _pds3_resolve_pointer(
+                infile, options.pointer, options.obj,
+            )
+        else:
+            labelfile = ''
+            imagefile = infile
+            filter_info = None
+
+        (array3d, default_is_up, filter_info2) = read_image_array(
+            imagefile, labelfile, options.obj, options.hst,
+        )
+        filter_info = filter_info or filter_info2
+
+    if options.display_upward:
+        this_display_upward = True
+    elif options.display_downward:
+        this_display_upward = False
+    else:
+        this_display_upward = default_is_up
+
+    is_int = array3d.dtype.kind in ('i', 'u')
+
+    # Resolve the effective colormap: tint mode overrides the user's
+    # colormap when the instrument has a known per-filter tint.
+    colormap = options.colormap
+    if options.tint:
+        tint_override = tinted_colormap(filter_info)
+        if tint_override is not None:
+            colormap = tint_override
+
+    use_hst_mosaic = (
+        options.hst
+        and filter_info is not None
+        and filter_info[0] == 'HST'
+        and filter_info[1] in ('ACS/WFC', 'WFPC2')
+    )
+
+    limits_pair: tuple[Any, Any] = (None, None)
+
+    if use_hst_mosaic:
+        array_rgb, array3d = _hst_mosaic_rgb(
+            array3d, filter_info, imagefile,
+            options=options,
+            default_is_up=default_is_up,
+            is_int=is_int,
+            colormap=colormap,
+        )
+        this_display_upward = False
+    else:
+        (array2d, invalid_mask) = slice_array(
+            array3d, options.samples, options.lines, options.bands,
+            options.valid, options.crop,
+        )
+
+        if options.zebra:
+            array2d = fill_zebra_stripes(array2d)
+
+        these_limits = get_limits(
+            array2d,
+            invalid_mask,
+            options.limits,
+            options.percentiles,
+            assume_int=is_int,
+            trim=options.trim,
+            trim_zeros=options.trim_zeros,
+            footprint=options.footprint,
+        )
+        limits_pair = (these_limits[0], these_limits[1])
+
+        array_rgb = apply_colormap(
+            array2d,
+            these_limits,
+            options.histogram,
+            colormap,
+            invalid_mask,
+            options.below_color,
+            options.above_color,
+            options.invalid_color,
+        )
+
+    array_rgb = rotate_array_rgb(array_rgb, this_display_upward, options.rotate)
+    array_rgb = apply_gamma(array_rgb, options.gamma)
+
+    (unwrapped_size, wrapped_size, sections, wrap_axis) = get_size(
+        array_rgb.shape, options.size, options.scale, options.frame,
+        options.wrap, options.wrap_ratio, options.overlap,
+        options.gap_size, options.frame_max,
+    )
+
+    image = array_to_pil(array_rgb, options.twobytes)
+    image = filter_image(image, options.filter_name)
+    image = resize_image(image, unwrapped_size)
+
+    if sections > 1:
+        image = wrap_image(
+            image, wrapped_size, sections, wrap_axis,
+            options.gap_size, options.gap_color,
+        )
+
+    if options.pad:
+        image = pad_image(image, options.frame, options.pad_color)
+
+    write_pil(image, outfile, options.quality)
+
+    return limits_pair, (array3d, default_is_up, filter_info, infile)
 
 
 def process_images(
@@ -232,7 +674,7 @@ def images_to_pics(
     # PicmakerOptions and let its `validate()` method raise on any
     # cross-field conflict. The CLI does this earlier via
     # _normalize_and_validate; library callers get the same checks here.
-    PicmakerOptions(
+    options = PicmakerOptions(
         replace=replace, proceed=proceed, extension=extension,
         suffix=suffix, strip=strip, quality=quality, twobytes=twobytes,
         bands=bands, lines=lines, samples=samples, obj=obj, pointer=pointer,
@@ -246,314 +688,40 @@ def images_to_pics(
         invalid_color=invalid_color, gamma=gamma, tint=tint,
         display_upward=display_upward, display_downward=display_downward,
         rotate=rotate, filter_name=filter_name, zebra=zebra,
-    ).validate()
+    )
+    options.validate()
 
-    if strip is None:
-        strip = []
-    if pointer is None:
-        pointer = ['IMAGE']
-
-    if bands is None:
-        bands = (0, 1)
-
-    if extension is None:
-        if twobytes:
-            extension = 'tiff'
-        else:
-            extension = 'jpg'
+    # Backfill the legacy "set inline if None" defaults that the kwarg
+    # interface used to apply before the loop. PicmakerOptions stores
+    # them as-given so library callers that bypass the kwarg interface
+    # still get a consistent shape.
+    if options.strip is None:
+        options.strip = []
+    if options.pointer is None:
+        options.pointer = ['IMAGE']
+    if options.bands is None:
+        options.bands = (0, 1)
+    if options.extension is None:
+        options.extension = 'tiff' if options.twobytes else 'jpg'
 
     min_limits: list[Any] = []
     max_limits: list[Any] = []
-    array3d: Any = None
-    default_is_up = False
-    filter_info: Any = None
-    infile: str = ''
+    last_reuse_tuple: tuple[Any, Any, Any, str] | None = None
+
+    # The caller's ``reuse`` short-circuit is only valid for a one-file
+    # batch (the function returns at most one ``reuse`` tuple). Clamp it
+    # to ``None`` for multi-file batches so the helper signature stays
+    # honest.
+    effective_reuse = reuse if len(filenames) == 1 else None
 
     for infile in filenames:
         if verbose:
             logger.info('%s', infile)
 
         try:
-            outfile = get_outfile(infile, directory, strip, suffix, extension, replace)
-            if outfile == '':
-                continue
-
-            if len(filenames) == 1 and reuse is not None:
-                (array3d, default_is_up, filter_info, infile) = reuse
-
-            else:
-                filter_info = None
-                upperfile = infile.upper()
-                labelfile: Any = ''
-                imagefile: Any = infile
-                if upperfile.endswith('.LBL'):
-                    labelfile = infile
-                    labeldict = pdsparser.PdsLabel(infile).as_dict()
-
-                    filter_info = None
-
-                    if 'INSTRUMENT_HOST_ID' in labeldict:
-                        inst_host = labeldict['INSTRUMENT_HOST_ID']
-                    elif 'SPACECRAFT_ID' in labeldict:
-                        inst_host = labeldict['SPACECRAFT_ID']
-                    elif 'SPACECRAFT_NAME' in labeldict:
-                        inst_host = labeldict['SPACECRAFT_NAME']
-                    else:
-                        inst_host = None
-
-                    if inst_host is not None:
-                        if 'INSTRUMENT_ID' in labeldict:
-                            inst_id = labeldict['INSTRUMENT_ID']
-                            if 'DETECTOR_ID' in labeldict:
-                                detector_id = labeldict['DETECTOR_ID']
-                                if isinstance(detector_id, str):
-                                    inst_id += '/' + detector_id
-                        elif 'INSTRUMENT_NAME' in labeldict:
-                            inst_id = labeldict['INSTRUMENT_NAME']
-                        else:
-                            inst_id = None
-
-                        # Local PDS3-label "FILTER_NAME" value; do NOT
-                        # shadow the function parameter ``filter_name``
-                        # (the PIL filter name to apply downstream).
-                        if 'FILTER_NAME' in labeldict:
-                            pds_filter_name = labeldict['FILTER_NAME']
-                        else:
-                            pds_filter_name = None
-
-                        filter_info = (inst_host, inst_id, pds_filter_name)
-
-                    if isinstance(pointer, str):
-                        pointer = [pointer]
-
-                    pds_obj: Any = None
-                    for pname in pointer:
-                        pname = pname.upper()
-
-                        if not pname.startswith('^'):
-                            pname = '^' + pname
-
-                        if pname in labeldict:
-                            pds_obj = labeldict[pname]
-                            if isinstance(pds_obj, tuple):
-                                pds_obj = pds_obj[0]
-                            break
-
-                    if pds_obj is None:
-                        raise KeyError(
-                            f'PDS pointer {pointer[0].upper()} not found'
-                        )
-
-                    if isinstance(pds_obj, str):
-                        pds_obj = [pds_obj]
-
-                    if obj is None:
-                        max_obj = len(pds_obj) - 1
-                        imagefile = [
-                            os.path.join(os.path.split(infile)[0], p)
-                            for p in pds_obj
-                        ]
-                    elif isinstance(obj, int):
-                        max_obj = obj
-                        imagefile = os.path.join(
-                            os.path.split(infile)[0], pds_obj[obj]
-                        )
-                    else:
-                        max_obj = max(obj)
-                        imagefile = [
-                            os.path.join(os.path.split(infile)[0], pds_obj[o])
-                            for o in obj
-                        ]
-
-                    if max_obj >= len(pds_obj):
-                        raise IndexError(
-                            f'index {max_obj + 1} for PDS pointer {pname[1:]} '
-                            'out of range'
-                        )
-
-                (array3d, default_is_up, filter_info2) = read_image_array(
-                    imagefile, labelfile, obj, hst
-                )
-                filter_info = filter_info or filter_info2
-
-            if display_upward:
-                this_display_upward = True
-            elif display_downward:
-                this_display_upward = False
-            else:
-                this_display_upward = default_is_up
-
-            is_int = array3d.dtype.kind in ('i', 'u')
-
-            if tint:
-                colormap2 = tinted_colormap(filter_info)
-                if colormap2 is not None:
-                    colormap = colormap2
-
-            if (
-                hst
-                and filter_info[0] == 'HST'
-                and (filter_info[1] in ('ACS/WFC', 'WFPC2'))
-            ):
-                if default_is_up:
-                    array3d = array3d[:, ::-1, :]
-
-                this_display_upward = False
-
-                arrays_rgb: list[Any] = []
-                for b in range(array3d.shape[0]):
-                    (array2d, invalid_mask) = slice_array(
-                        array3d, samples, lines, (b, b + 1), valid, crop
-                    )
-
-                    if zebra:
-                        array2d = fill_zebra_stripes(array2d)
-
-                    these_limits = get_limits(
-                        array2d,
-                        invalid_mask,
-                        limits,
-                        percentiles,
-                        assume_int=is_int,
-                        trim=trim,
-                        trim_zeros=trim_zeros,
-                        footprint=footprint,
-                    )
-
-                    array_rgb = apply_colormap(
-                        array2d,
-                        these_limits,
-                        histogram,
-                        colormap,
-                        invalid_mask,
-                        below_color,
-                        above_color,
-                        invalid_color,
-                    )
-
-                    arrays_rgb.append(array_rgb)
-
-                if filter_info[1] == 'WFPC2':
-                    quads_rgb = np.zeros((4, *arrays_rgb[0].shape))
-
-                    for b in range(array3d.shape[0]):
-                        if isinstance(imagefile, str):
-                            quads_rgb[b] = np.rot90(arrays_rgb[b], b)
-                        else:
-                            testfile = imagefile[b].upper()
-                            if 'PC1' in testfile:
-                                quads_rgb[0] = arrays_rgb[b]
-                            elif 'WF2' in testfile:
-                                quads_rgb[1] = np.rot90(arrays_rgb[b], 1)
-                            elif 'WF3' in testfile:
-                                quads_rgb[2] = np.rot90(arrays_rgb[b], 2)
-                            elif 'WF4' in testfile:
-                                quads_rgb[3] = np.rot90(arrays_rgb[b], 3)
-                            else:
-                                quads_rgb[b] = np.rot90(arrays_rgb[b], b)
-
-                    (_, dl, ds, db) = quads_rgb.shape
-                    array_rgb = np.empty((2 * dl, 2 * ds, db))
-                    array_rgb[:dl, -ds:] = quads_rgb[0]
-                    array_rgb[:dl, :ds] = quads_rgb[1]
-                    array_rgb[-dl:, :ds] = quads_rgb[2]
-                    array_rgb[-dl:, -ds:] = quads_rgb[3]
-
-                else:
-                    if len(arrays_rgb) > 1:
-                        panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
-
-                        for b in range(2):
-                            if isinstance(imagefile, str):
-                                panels_rgb[1 - b] = arrays_rgb[b]
-                            else:
-                                testfile = imagefile[b].upper()
-                                if 'WFC1' in testfile:
-                                    panels_rgb[0] = arrays_rgb[b]
-                                elif 'WFC2' in testfile:
-                                    panels_rgb[1] = arrays_rgb[b]
-                                else:
-                                    panels_rgb[b] = arrays_rgb[b]
-
-                        (dl, ds, db) = arrays_rgb[0].shape
-                        array_rgb = np.zeros((2 * dl, ds, db))
-
-                        array_rgb[:dl] = panels_rgb[0]
-                        array_rgb[-dl:] = panels_rgb[1]
-
-                    else:
-                        array_rgb = arrays_rgb[0]
-
-            else:
-                (array2d, invalid_mask) = slice_array(
-                    array3d, samples, lines, bands, valid, crop
-                )
-
-                if zebra:
-                    array2d = fill_zebra_stripes(array2d)
-
-                these_limits = get_limits(
-                    array2d,
-                    invalid_mask,
-                    limits,
-                    percentiles,
-                    assume_int=is_int,
-                    trim=trim,
-                    trim_zeros=trim_zeros,
-                    footprint=footprint,
-                )
-
-                min_limits.append(these_limits[0])
-                max_limits.append(these_limits[1])
-
-                array_rgb = apply_colormap(
-                    array2d,
-                    these_limits,
-                    histogram,
-                    colormap,
-                    invalid_mask,
-                    below_color,
-                    above_color,
-                    invalid_color,
-                )
-
-            array_rgb = rotate_array_rgb(array_rgb, this_display_upward, rotate)
-
-            array_rgb = apply_gamma(array_rgb, gamma)
-
-            (unwrapped_size, wrapped_size, sections, wrap_axis) = get_size(
-                array_rgb.shape,
-                size,
-                scale,
-                frame,
-                wrap,
-                wrap_ratio,
-                overlap,
-                gap_size,
-                frame_max,
+            result = _process_one_image(
+                infile, options, effective_reuse, directory=directory,
             )
-
-            image = array_to_pil(array_rgb, twobytes)
-
-            image = filter_image(image, filter_name)
-
-            image = resize_image(image, unwrapped_size)
-
-            if sections > 1:
-                image = wrap_image(
-                    image,
-                    wrapped_size,
-                    sections,
-                    wrap_axis,
-                    gap_size,
-                    gap_color,
-                )
-
-            if pad:
-                image = pad_image(image, frame, pad_color)
-
-            write_pil(image, outfile, quality)
-
         except Exception:
             if proceed:
                 # `logger.exception` logs the type, message, AND the full
@@ -561,20 +729,31 @@ def images_to_pics(
                 # output ordering stays deterministic under `pytest -n auto`
                 # and `caplog` captures it cleanly.
                 logger.exception('%s', infile)
-            else:
-                raise
+                continue
+            raise
+        finally:
+            # The caller-supplied reuse only applies to the first
+            # iteration (and only when ``len(filenames) == 1``); clear
+            # it unconditionally so the helper sees ``None`` on any
+            # subsequent iteration.
+            effective_reuse = None
 
-    if min_limits == []:
+        if result is None:
+            continue
+        limits_pair, reuse_tuple = result
+        if limits_pair[0] is not None:
+            min_limits.append(limits_pair[0])
+            max_limits.append(limits_pair[1])
+        last_reuse_tuple = reuse_tuple
+
+    if not min_limits:
+        # HST-mosaic mode never appends to min_limits / max_limits (it
+        # uses per-detector stretches), so an HST-only batch ends here
+        # with no reuse — preserves the legacy return shape that movie
+        # mode and process_images depend on.
         return (None, None, None)
 
-    if array3d is None:
-        return (np.median(min_limits), np.median(max_limits), None)
-
-    return (
-        np.median(min_limits),
-        np.median(max_limits),
-        (array3d, default_is_up, filter_info, infile),
-    )
+    return (np.median(min_limits), np.median(max_limits), last_reuse_tuple)
 
 
 __all__ = ['find_common_path', 'images_to_pics', 'process_images']

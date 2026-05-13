@@ -109,6 +109,7 @@ Source: `src/picmaker/pipeline.py
 
 .. automodule:: picmaker.pipeline
    :members:
+   :private-members: _pds3_resolve_pointer, _hst_mosaic_rgb, _hst_wfpc2_mosaic, _hst_acs_panel_mosaic, _process_one_image
 
 Options
 -------
@@ -174,7 +175,7 @@ Source: `src/picmaker/cli.py
 
 .. automodule:: picmaker.cli
    :members:
-   :private-members: _build_parser, _separate_files_and_dirs, _normalize_and_validate
+   :private-members: _build_parser, _separate_files_and_dirs, _normalize_and_validate, _collect_option_dicts, _process_directory
 
 Instruments
 -----------
