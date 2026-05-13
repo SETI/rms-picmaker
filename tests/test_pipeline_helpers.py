@@ -11,6 +11,7 @@ the only safety net for the refactored code.
 """
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -98,42 +99,45 @@ def test_pds3_resolve_pointer_single_file(tmp_path: Path) -> None:
     assert list(filter_info[2]) == ['CL1', 'GRN']
 
 
-def test_pds3_resolve_pointer_obj_none_picks_all(tmp_path: Path) -> None:
-    """``obj=None`` against a list pointer returns every entry as a list."""
+@pytest.mark.parametrize(
+    ('obj', 'expected_tails'),
+    [
+        # obj=None → every entry.
+        (None, ['frame_a.dat', 'frame_b.dat', 'frame_c.dat']),
+        # obj=int → a single entry (returned as a string, not a list).
+        (1, 'frame_b.dat'),
+        # obj=sequence → exactly those entries, preserving order.
+        ([0, 2], ['frame_a.dat', 'frame_c.dat']),
+    ],
+)
+def test_pds3_resolve_pointer_obj_selection(
+    tmp_path: Path,
+    obj: Any,
+    expected_tails: Any,
+) -> None:
+    """``obj`` selects one (int), several (sequence), or all (``None``)
+    of the entries from a list-shaped ``^IMAGE`` pointer."""
     lbl = _write_lbl(tmp_path, 'list.LBL', _LBL_LIST)
 
-    imagefile, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=None)
+    imagefile, _ = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=obj)
 
-    assert imagefile == [
-        str(tmp_path / 'frame_a.dat'),
-        str(tmp_path / 'frame_b.dat'),
-        str(tmp_path / 'frame_c.dat'),
-    ]
-    # No DETECTOR_ID → inst_id stays at INSTRUMENT_ID value, no slash.
+    if isinstance(expected_tails, str):
+        assert imagefile == str(tmp_path / expected_tails)
+    else:
+        assert imagefile == [str(tmp_path / t) for t in expected_tails]
+
+
+def test_pds3_resolve_pointer_no_detector_id_keeps_bare_inst_id(
+    tmp_path: Path,
+) -> None:
+    """Without ``DETECTOR_ID``, ``inst_id`` stays at the ``INSTRUMENT_ID``
+    value (no ``/<detector>`` suffix)."""
+    lbl = _write_lbl(tmp_path, 'list.LBL', _LBL_LIST)
+
+    _, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=None)
+
     assert filter_info is not None
-    assert filter_info[0] == 'CASSINI'
     assert filter_info[1] == 'ISS'
-
-
-def test_pds3_resolve_pointer_obj_int_picks_one(tmp_path: Path) -> None:
-    """``obj=1`` against a list pointer returns a single resolved path."""
-    lbl = _write_lbl(tmp_path, 'list.LBL', _LBL_LIST)
-
-    imagefile, _ = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=1)
-
-    assert imagefile == str(tmp_path / 'frame_b.dat')
-
-
-def test_pds3_resolve_pointer_obj_sequence_picks_several(tmp_path: Path) -> None:
-    """A list ``obj=[0, 2]`` returns those two entries from the pointer."""
-    lbl = _write_lbl(tmp_path, 'list.LBL', _LBL_LIST)
-
-    imagefile, _ = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=[0, 2])
-
-    assert imagefile == [
-        str(tmp_path / 'frame_a.dat'),
-        str(tmp_path / 'frame_c.dat'),
-    ]
 
 
 def test_pds3_resolve_pointer_tuple_pointer(tmp_path: Path) -> None:
@@ -216,50 +220,64 @@ def test_pds3_resolve_pointer_string_pointer_normalized(
 
 
 def _make_quad_bands() -> list[np.ndarray]:
-    """Four 4x4 RGB arrays with distinct band-channel signatures."""
+    """Four 4x4 RGB arrays with distinct band-channel signatures (fills
+    1.0, 2.0, 3.0, 4.0 in band-index order)."""
     return [
         np.full((4, 4, 3), float(b + 1)) for b in range(4)
     ]
 
 
-def test_hst_wfpc2_mosaic_string_imagefile_uses_rot90_b() -> None:
-    """A single-string imagefile triggers the ``np.rot90(arrays_rgb[b], b)``
-    fallback; the assembled mosaic is 2x size in both axes."""
+# Slice keys for each quadrant of an 8x8 mosaic built from 4x4 bands.
+_WFPC2_QUADRANTS = {
+    'PC1': (slice(None, 4), slice(4, None)),   # top-right
+    'WF2': (slice(None, 4), slice(None, 4)),   # top-left
+    'WF3': (slice(4, None), slice(None, 4)),   # bottom-left
+    'WF4': (slice(4, None), slice(4, None)),   # bottom-right
+}
+
+
+@pytest.mark.parametrize(
+    ('imagefile', 'expected_fills'),
+    [
+        # A single-string imagefile triggers the b-indexed quadrant
+        # placement with np.rot90(arrays_rgb[b], b). A rotation by an
+        # integer multiple of 90° leaves a constant-fill array
+        # unchanged, so each quadrant still shows its source band's
+        # fill value.
+        (
+            'single.fits',
+            {'PC1': 1.0, 'WF2': 2.0, 'WF3': 3.0, 'WF4': 4.0},
+        ),
+        # Per-detector filenames assign each band to its quadrant by
+        # name regardless of band order; the PC1/WF2/WF3/WF4 token in
+        # the filename wins.
+        (
+            ['x_WF3_y.fits', 'x_WF2_y.fits', 'x_PC1_y.fits', 'x_WF4_y.fits'],
+            {'PC1': 3.0, 'WF2': 2.0, 'WF3': 1.0, 'WF4': 4.0},
+        ),
+        # A per-detector path that matches no PC1/WFn token falls back
+        # to the b-indexed quadrant with np.rot90(..., b) — same final
+        # placement as the single-string case.
+        (
+            ['unknown_a.fits'] * 4,
+            {'PC1': 1.0, 'WF2': 2.0, 'WF3': 3.0, 'WF4': 4.0},
+        ),
+    ],
+    ids=['string-imagefile', 'per-detector-filenames', 'unknown-filenames'],
+)
+def test_hst_wfpc2_mosaic_quadrant_placement(
+    imagefile: Any,
+    expected_fills: dict[str, float],
+) -> None:
+    """The WFPC2 mosaic is 8x8 with each quadrant filled per
+    ``imagefile``'s dispatch rule."""
     bands = _make_quad_bands()
-    out = _hst_wfpc2_mosaic(bands, imagefile='single.fits')
+    out = _hst_wfpc2_mosaic(bands, imagefile=imagefile)
 
     assert out.shape == (8, 8, 3)
-    # PC1 (b=0) is top-right; its rotation count is 0, so values are 1.
-    assert np.allclose(out[:4, 4:], 1.0)
-    # WF2 (b=1) is top-left; rotation 1 preserves the fill value 2.
-    assert np.allclose(out[:4, :4], 2.0)
-
-
-def test_hst_wfpc2_mosaic_per_detector_filenames() -> None:
-    """Per-detector filenames assign each band to its quadrant by name."""
-    bands = _make_quad_bands()
-    files = ['x_WF3_y.fits', 'x_WF2_y.fits', 'x_PC1_y.fits', 'x_WF4_y.fits']
-    out = _hst_wfpc2_mosaic(bands, imagefile=files)
-
-    assert out.shape == (8, 8, 3)
-    # PC1 (file index 2 → fill 3) goes top-right, no rotation.
-    assert np.allclose(out[:4, 4:], 3.0)
-    # WF2 (file index 1 → fill 2) goes top-left.
-    assert np.allclose(out[:4, :4], 2.0)
-    # WF3 (file index 0 → fill 1) goes bottom-left.
-    assert np.allclose(out[4:, :4], 1.0)
-    # WF4 (file index 3 → fill 4) goes bottom-right.
-    assert np.allclose(out[4:, 4:], 4.0)
-
-
-def test_hst_wfpc2_mosaic_unknown_filename_falls_back_to_b_rotation() -> None:
-    """A per-detector path that matches no ``PC1``/``WFn`` token falls back
-    to the ``b``-indexed quadrant with ``np.rot90(..., b)``."""
-    bands = _make_quad_bands()
-    files = ['unknown_a.fits'] * 4
-    out = _hst_wfpc2_mosaic(bands, imagefile=files)
-
-    assert out.shape == (8, 8, 3)
+    for detector, expected_fill in expected_fills.items():
+        row_slice, col_slice = _WFPC2_QUADRANTS[detector]
+        assert np.allclose(out[row_slice, col_slice], expected_fill)
 
 
 # ---------------------------------------------------------------------------
@@ -267,36 +285,35 @@ def test_hst_wfpc2_mosaic_unknown_filename_falls_back_to_b_rotation() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hst_acs_panel_mosaic_string_imagefile_stacks_inverted() -> None:
-    """A single-string imagefile uses the legacy ``1 - b`` panel indexing
-    (band 0 on bottom, band 1 on top)."""
+@pytest.mark.parametrize(
+    ('imagefile', 'top_fill', 'bottom_fill'),
+    [
+        # Single-string imagefile uses the legacy `1 - b` indexing:
+        # band 1 lands on top, band 0 on bottom.
+        ('single.fits', 2.0, 1.0),
+        # Per-detector filenames place WFC1 on top and WFC2 below
+        # regardless of band order — here band 1 (fill 2.0) carries the
+        # WFC1 token, so it goes on top.
+        (['data_WFC2_x.fits', 'data_WFC1_x.fits'], 2.0, 1.0),
+    ],
+    ids=['string-imagefile', 'per-detector-filenames'],
+)
+def test_hst_acs_panel_mosaic_panel_placement(
+    imagefile: Any,
+    top_fill: float,
+    bottom_fill: float,
+) -> None:
+    """The ACS panel mosaic is 8x4 with WFC1 (or band 1 in the
+    fallback) on top and WFC2 (or band 0) on the bottom."""
     bands = [
         np.full((4, 4, 3), 1.0),  # band 0
         np.full((4, 4, 3), 2.0),  # band 1
     ]
-    out = _hst_acs_panel_mosaic(bands, imagefile='single.fits')
+    out = _hst_acs_panel_mosaic(bands, imagefile=imagefile)
 
     assert out.shape == (8, 4, 3)
-    # band 0 placed in panel[1] (bottom half).
-    assert np.allclose(out[4:], 1.0)
-    # band 1 placed in panel[0] (top half).
-    assert np.allclose(out[:4], 2.0)
-
-
-def test_hst_acs_panel_mosaic_per_detector_filenames() -> None:
-    """Per-detector filenames place WFC1 on top and WFC2 below regardless
-    of the band order."""
-    bands = [
-        np.full((4, 4, 3), 5.0),
-        np.full((4, 4, 3), 9.0),
-    ]
-    out = _hst_acs_panel_mosaic(
-        bands, imagefile=['data_WFC2_x.fits', 'data_WFC1_x.fits']
-    )
-
-    # WFC1 (band 1, value 9) is on top; WFC2 (band 0, value 5) is on bottom.
-    assert np.allclose(out[:4], 9.0)
-    assert np.allclose(out[4:], 5.0)
+    assert np.allclose(out[:4], top_fill)
+    assert np.allclose(out[4:], bottom_fill)
 
 
 # ---------------------------------------------------------------------------

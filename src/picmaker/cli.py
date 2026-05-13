@@ -585,8 +585,8 @@ def _process_directory(
         option_dicts: List of normalized option dicts (one per
             ``--versions`` line).
         verbose: Per-CLI verbosity level. ``>=1`` logs each visited
-            directory; ``>1`` is propagated as :func:`process_images`'
-            ``verbose`` flag.
+            directory; ``>1`` is propagated as
+            :func:`~picmaker.pipeline.process_images`' ``verbose`` flag.
     """
     if recursive:
         for this_dir, _subdirs, files_in_dir in os.walk(dirpath):
