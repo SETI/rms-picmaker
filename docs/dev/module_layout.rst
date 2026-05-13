@@ -22,10 +22,14 @@ rather than from the individual leaf modules.
 The argparse-based command-line entry point. :func:`picmaker.cli.main`
 parses ``sys.argv``, dispatches to :func:`picmaker.pipeline.process_images`,
 and converts ``--versions FILE`` into a list of normalized option
-dicts. The private helpers :func:`!_build_parser`,
-:func:`!_separate_files_and_dirs`, and :func:`!_normalize_and_validate`
-each handle one phase of CLI processing and are unit-tested directly
-in :file:`tests/test_cli_unit.py`.
+dicts. Each CLI phase lives in its own private helper:
+:func:`!_build_parser` (argparse setup),
+:func:`!_separate_files_and_dirs` (positional-arg classification),
+:func:`!_normalize_and_validate` (mutex / value-validity checks),
+:func:`!_collect_option_dicts` (``--versions`` re-parse loop), and
+:func:`!_process_directory` (per-directory walk). They are
+unit-tested directly in :file:`tests/test_cli_unit.py` and
+:file:`tests/test_cli_helpers.py`.
 
 :mod:`picmaker.pipeline` (``src/picmaker/pipeline.py``)
 -------------------------------------------------------
@@ -33,10 +37,17 @@ in :file:`tests/test_cli_unit.py`.
 The orchestration layer. :func:`picmaker.pipeline.process_images`
 walks the input list (with optional ``--movie`` mode that shares a
 stretch across frames) and dispatches each file to
-:func:`picmaker.pipeline.images_to_pics`, which runs the per-image
-pipeline. :func:`picmaker.pipeline.find_common_path` is a small
-directory-walking helper used to derive the output tree's root when
-``--recursive`` is set.
+:func:`picmaker.pipeline.images_to_pics`. The per-image work is split
+across three module-private helpers:
+:func:`!_pds3_resolve_pointer` (PDS3 ``.LBL`` pointer resolution),
+:func:`!_hst_mosaic_rgb` (HST ACS/WFC and WFPC2 mosaic assembly,
+with :func:`!_hst_wfpc2_mosaic` and :func:`!_hst_acs_panel_mosaic` as
+geometry sub-helpers), and :func:`!_process_one_image` (the per-file
+read → slice → colormap → write chain). Each helper has direct
+unit-test coverage in :file:`tests/test_pipeline_helpers.py`.
+:func:`picmaker.pipeline.find_common_path` is a small directory-walking
+helper used to derive the output tree's root when ``--recursive`` is
+set.
 
 :mod:`picmaker.options` (``src/picmaker/options.py``)
 -----------------------------------------------------
