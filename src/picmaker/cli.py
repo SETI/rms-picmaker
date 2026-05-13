@@ -504,6 +504,7 @@ def _normalize_and_validate(
 def _collect_option_dicts(
     parser: argparse.ArgumentParser,
     options: argparse.Namespace,
+    *,
     replace: str,
     proceed: bool,
 ) -> list[dict[str, Any]]:
@@ -514,9 +515,7 @@ def _collect_option_dicts(
     it is a file path, each non-blank line is re-parsed as additional
     CLI args appended to ``sys.argv[1:]``; each merged namespace is
     normalized via :func:`!_normalize_and_validate`. The main CLI's
-    ``--replace`` and ``--proceed`` always win over per-line values
-    (matches the legacy ``picmaker.py:543`` / ``picmaker.py:548``
-    behavior).
+    ``--replace`` and ``--proceed`` always win over per-line values.
 
     Parameters:
         parser: The argparse parser, reused so per-line merges share
@@ -541,11 +540,12 @@ def _collect_option_dicts(
         version_lines = f.readlines()
     for line in version_lines:
         new_args = line.split()
-        if not new_args:
+        if len(new_args) == 0:
             continue
         merged = parser.parse_args(sys.argv[1:] + new_args)
-        # Versions-file lines do not override --replace/--proceed
-        # (matches picmaker.py:543-548).
+        # Versions-file lines do not override the main CLI's --replace
+        # / --proceed values; force the merged namespace back to the
+        # main-CLI values before normalization.
         merged.replace = replace
         merged.proceed = proceed
         namespaces.append(merged)
@@ -591,7 +591,7 @@ def _process_directory(
     if recursive:
         for this_dir, _subdirs, files_in_dir in os.walk(dirpath):
             f_filtered = fnmatch.filter(files_in_dir, pattern)
-            if not f_filtered:
+            if len(f_filtered) == 0:
                 continue
             if verbose:
                 logger.info('%s', this_dir)
@@ -611,7 +611,7 @@ def _process_directory(
         logger.info('%s', dirpath)
     files_in_dir = os.listdir(dirpath)
     f_filtered = fnmatch.filter(files_in_dir, pattern)
-    if not f_filtered:
+    if len(f_filtered) == 0:
         return
     filepaths = [os.path.join(dirpath, f) for f in f_filtered]
     out_dir = (
@@ -657,7 +657,9 @@ def main() -> None:
         recursive = options.recursive
 
         filenames, directories = _separate_files_and_dirs(options.files)
-        option_dicts = _collect_option_dicts(parser, options, replace, proceed)
+        option_dicts = _collect_option_dicts(
+            parser, options, replace=replace, proceed=proceed,
+        )
 
         filtered = fnmatch.filter(filenames, pattern)
         if filtered:

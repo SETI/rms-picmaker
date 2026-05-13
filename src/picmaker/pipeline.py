@@ -372,10 +372,10 @@ def _process_one_image(
         options: Validated and post-normalized
             :class:`~picmaker.options.PicmakerOptions`. The caller is
             responsible for filling in defaults that the legacy
-            ``images_to_pics`` kwarg interface used to set inline
-            (``strip`` defaults to ``[]``, ``pointer`` to ``['IMAGE']``,
-            ``bands`` to ``(0, 1)``, ``extension`` to ``'jpg'`` /
-            ``'tiff'``).
+            :func:`~picmaker.pipeline.images_to_pics` kwarg interface
+            used to set inline (``strip`` defaults to ``[]``,
+            ``pointer`` to ``['IMAGE']``, ``bands`` to ``(0, 1)``,
+            ``extension`` to ``'jpg'`` / ``'tiff'``).
         reuse: A 4-tuple ``(array3d, default_is_up, filter_info,
             infile)`` from a previous call, or ``None`` to read from
             disk.
@@ -747,7 +747,7 @@ def images_to_pics(
             max_limits.append(limits_pair[1])
         last_reuse_tuple = reuse_tuple
 
-    if not min_limits:
+    if len(min_limits) == 0:
         # HST-mosaic mode never appends to min_limits / max_limits (it
         # uses per-detector stretches), so an HST-only batch ends here
         # with no reuse — preserves the legacy return shape that movie

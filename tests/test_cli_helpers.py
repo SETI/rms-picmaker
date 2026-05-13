@@ -88,28 +88,8 @@ def test_collect_option_dicts_versions_blank_file_returns_empty(
 # ---------------------------------------------------------------------------
 
 
-def _basic_option_dict() -> dict[str, Any]:
-    """A complete option_dict shaped like the one ``_normalize_and_validate``
-    produces, with enough fields for ``images_to_pics`` to accept it."""
-    return {
-        'replace': 'all', 'proceed': False, 'extension': 'jpg', 'suffix': '',
-        'strip': [], 'quality': 75, 'twobytes': False, 'bands': (0, 1),
-        'lines': None, 'samples': None, 'obj': None, 'pointer': ['IMAGE'],
-        'size': None, 'scale': (100.0, 100.0), 'crop': None, 'frame': None,
-        'pad': False, 'pad_color': 'black', 'frame_max': None, 'wrap': False,
-        'wrap_ratio': None, 'overlap': (0.0, 0.0), 'gap_size': 1,
-        'gap_color': 'white', 'hst': False, 'valid': None, 'limits': None,
-        'percentiles': (0.0, 100.0), 'trim': 0, 'trim_zeros': False,
-        'footprint': 0, 'histogram': False, 'colormap': None,
-        'below_color': None, 'above_color': None, 'invalid_color': 'black',
-        'gamma': 1.0, 'tint': False, 'display_upward': False,
-        'display_downward': False, 'rotate': 'none', 'filter_name': 'none',
-        'zebra': False,
-    }
-
-
 def test_process_directory_non_recursive_writes_outputs(
-    fixtures_dir: Path, tmp_path: Path,
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
 ) -> None:
     """Non-recursive mode processes the top-level directory only."""
     src = tmp_path / 'src'
@@ -127,7 +107,7 @@ def test_process_directory_non_recursive_writes_outputs(
         directory=str(out_dir),
         lcommon=len(str(src)),
         movie=False,
-        option_dicts=[_basic_option_dict()],
+        option_dicts=[basic_option_dict],
         verbose=0,
     )
     found = list(out_dir.rglob('cassini_iss.jpg'))
@@ -135,7 +115,7 @@ def test_process_directory_non_recursive_writes_outputs(
 
 
 def test_process_directory_recursive_walks_subdirs(
-    fixtures_dir: Path, tmp_path: Path,
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
 ) -> None:
     """Recursive mode walks subdirectories and mirrors the source tree
     under the output directory using ``lcommon``."""
@@ -156,7 +136,7 @@ def test_process_directory_recursive_walks_subdirs(
         # src_root/nested).
         lcommon=len(str(src_root)),
         movie=False,
-        option_dicts=[_basic_option_dict()],
+        option_dicts=[basic_option_dict],
         verbose=0,
     )
     # The mirrored output path keeps the 'nested' subdir under out_dir.
@@ -164,7 +144,7 @@ def test_process_directory_recursive_walks_subdirs(
 
 
 def test_process_directory_pattern_filters(
-    fixtures_dir: Path, tmp_path: Path,
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
 ) -> None:
     """A narrow pattern skips non-matching files."""
     src = tmp_path / 'src'
@@ -180,7 +160,7 @@ def test_process_directory_pattern_filters(
         directory=str(out_dir),
         lcommon=len(str(src)),
         movie=False,
-        option_dicts=[_basic_option_dict()],
+        option_dicts=[basic_option_dict],
         verbose=0,
     )
     # README.txt should not produce any output.
@@ -188,7 +168,9 @@ def test_process_directory_pattern_filters(
     assert list(out_dir.rglob('cassini_iss.jpg'))
 
 
-def test_process_directory_no_match_is_noop(tmp_path: Path) -> None:
+def test_process_directory_no_match_is_noop(
+    tmp_path: Path, basic_option_dict: dict[str, Any],
+) -> None:
     """A directory with no matching files writes nothing (no crash)."""
     src = tmp_path / 'src'
     src.mkdir()
@@ -202,7 +184,7 @@ def test_process_directory_no_match_is_noop(tmp_path: Path) -> None:
         directory=str(out_dir),
         lcommon=len(str(src)),
         movie=False,
-        option_dicts=[_basic_option_dict()],
+        option_dicts=[basic_option_dict],
         verbose=0,
     )
     # No output directory needed; nothing got written.
@@ -210,7 +192,9 @@ def test_process_directory_no_match_is_noop(tmp_path: Path) -> None:
 
 
 def test_process_directory_verbose_logs(
-    fixtures_dir: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture,
+    fixtures_dir: Path, tmp_path: Path,
+    basic_option_dict: dict[str, Any],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """``verbose=1`` logs each visited directory through ``picmaker.cli``."""
     import logging
@@ -228,7 +212,7 @@ def test_process_directory_verbose_logs(
             directory=str(out_dir),
             lcommon=len(str(src)),
             movie=False,
-            option_dicts=[_basic_option_dict()],
+            option_dicts=[basic_option_dict],
             verbose=1,
         )
     assert str(src) in caplog.text
