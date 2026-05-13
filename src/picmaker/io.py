@@ -164,7 +164,7 @@ def read_one_image_array(
     # final OSError("Unrecognized image file format ...") below rather than
     # surfacing as the rms-vicar FileNotFoundError.
     try:
-        vic = VicarImage.from_file(filename_str, extraneous='print')
+        vic = VicarImage.from_file(filename_str, extraneous='print', strict=False)
         array3d = vic.data_3d
         for instrument in instruments.VICAR_INSTRUMENTS:
             filter_info = instrument.detect_vicar(vic)

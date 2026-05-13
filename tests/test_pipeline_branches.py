@@ -217,57 +217,8 @@ def test_hst_mosaic_with_zebra(fixtures_dir: Path, tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _basic_option_dict() -> dict[str, Any]:
-    """Return a minimal ``option_dict`` compatible with ``images_to_pics``."""
-    return {
-        'replace': 'all',
-        'proceed': False,
-        'extension': 'jpg',
-        'suffix': '',
-        'strip': [],
-        'quality': 75,
-        'twobytes': False,
-        'bands': (0, 1),
-        'lines': None,
-        'samples': None,
-        'obj': None,
-        'pointer': ['IMAGE'],
-        'size': None,
-        'scale': (100.0, 100.0),
-        'crop': None,
-        'frame': None,
-        'pad': False,
-        'pad_color': 'black',
-        'frame_max': None,
-        'wrap': False,
-        'wrap_ratio': None,
-        'overlap': (0.0, 0.0),
-        'gap_size': 1,
-        'gap_color': 'white',
-        'hst': False,
-        'valid': None,
-        'limits': None,
-        'percentiles': (0.0, 100.0),
-        'trim': 0,
-        'trim_zeros': False,
-        'footprint': 0,
-        'histogram': False,
-        'colormap': None,
-        'below_color': None,
-        'above_color': None,
-        'invalid_color': 'black',
-        'gamma': 1.0,
-        'tint': False,
-        'display_upward': False,
-        'display_downward': False,
-        'rotate': 'none',
-        'filter_name': 'none',
-        'zebra': False,
-    }
-
-
 def test_process_images_creates_output_directory(
-    fixtures_dir: Path, tmp_path: Path
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
 ) -> None:
     """``process_images`` creates the output directory tree if missing."""
     out_dir = tmp_path / 'fresh' / 'subdir'
@@ -275,14 +226,14 @@ def test_process_images_creates_output_directory(
         [str(fixtures_dir / 'cassini_iss.vic')],
         str(out_dir),
         False,
-        [_basic_option_dict()],
+        [basic_option_dict],
     )
     assert out_dir.is_dir()
     assert (out_dir / 'cassini_iss.jpg').exists()
 
 
 def test_process_images_movie_mode(
-    fixtures_dir: Path, tmp_path: Path
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
 ) -> None:
     """Movie mode runs ``images_to_pics`` twice sharing one stretch."""
     # Use two copies of the same fixture so movie mode has multiple frames
@@ -297,46 +248,50 @@ def test_process_images_movie_mode(
         [str(src1), str(src2)],
         str(out_dir),
         True,
-        [_basic_option_dict()],
+        [basic_option_dict],
     )
     assert (out_dir / 'frame_001.jpg').exists()
     assert (out_dir / 'frame_002.jpg').exists()
 
 
-def test_process_images_movie_failure_with_proceed(tmp_path: Path) -> None:
+def test_process_images_movie_failure_with_proceed(
+    tmp_path: Path, basic_option_dict: dict[str, Any],
+) -> None:
     """Movie mode with ``proceed=True`` returns silently on total failure."""
     bogus = tmp_path / 'b.bin'
     bogus.write_bytes(b'garbage')
-    od = _basic_option_dict()
-    od['proceed'] = True
+    basic_option_dict['proceed'] = True
     # No exception even though no input is readable.
-    process_images([str(bogus)], str(tmp_path / 'out'), True, [od])
+    process_images([str(bogus)], str(tmp_path / 'out'), True, [basic_option_dict])
 
 
-def test_process_images_movie_failure_raises(tmp_path: Path) -> None:
+def test_process_images_movie_failure_raises(
+    tmp_path: Path, basic_option_dict: dict[str, Any],
+) -> None:
     """Movie mode without ``proceed`` raises ``OSError`` when no frame
     can be read.
     """
     bogus = tmp_path / 'b.bin'
     bogus.write_bytes(b'garbage')
-    od = _basic_option_dict()
-    od['proceed'] = False
+    basic_option_dict['proceed'] = False
     # The first read failure propagates out of the inner images_to_pics
     # call rather than hitting the "unable to process movie" guard,
     # because proceed=False re-raises before the movie pass finishes.
     with pytest.raises(OSError, match='Unrecognized image file format'):
-        process_images([str(bogus)], str(tmp_path / 'out'), True, [od])
+        process_images(
+            [str(bogus)], str(tmp_path / 'out'), True, [basic_option_dict],
+        )
 
 
 def test_process_images_reuse_path(
-    fixtures_dir: Path, tmp_path: Path
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
 ) -> None:
     """When two consecutive ``option_dicts`` share ``obj`` and ``pointer``,
     the second pass reuses the read result without rereading the file.
     """
-    od1 = _basic_option_dict()
+    od1 = basic_option_dict.copy()
     od1['suffix'] = '_v1'
-    od2 = _basic_option_dict()
+    od2 = basic_option_dict.copy()
     od2['suffix'] = '_v2'
     od2['gamma'] = 2.0
 

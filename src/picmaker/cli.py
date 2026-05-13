@@ -28,6 +28,7 @@ import argparse
 import fnmatch
 import logging
 import os
+import shlex
 import sys
 from typing import Any
 
@@ -501,6 +502,143 @@ def _normalize_and_validate(
     return option_dict
 
 
+def _collect_option_dicts(
+    parser: argparse.ArgumentParser,
+    options: argparse.Namespace,
+    *,
+    replace: str,
+    proceed: bool,
+) -> list[dict[str, Any]]:
+    """Build the list of normalized ``option_dict`` dicts that drive the pipeline.
+
+    When ``options.versions`` is ``None`` a single-element list is
+    returned containing the normalization of ``options`` itself. When
+    it is a file path, each non-blank line is tokenised with
+    :func:`shlex.split` (so quoted values with embedded whitespace are
+    preserved) and re-parsed as additional CLI args appended to
+    ``sys.argv[1:]``; each merged namespace is normalized via
+    :func:`!_normalize_and_validate`. The main CLI's ``--replace`` and
+    ``--proceed`` always win over per-line values.
+
+    Parameters:
+        parser: The argparse parser, reused so per-line merges share
+            the canonical option defaults.
+        options: Parsed namespace from the main CLI argv.
+        replace: The validated ``--replace`` value, propagated to every
+            versions-line namespace.
+        proceed: The validated ``--proceed`` flag, propagated to every
+            versions-line namespace.
+
+    Returns:
+        One normalized ``option_dict`` per versions-file line (or a
+        single-element list when ``--versions`` was not given). Each
+        dict is the keyword-argument shape consumed by
+        :func:`picmaker.pipeline.images_to_pics`.
+    """
+    if options.versions is None:
+        return [_normalize_and_validate(options, replace, proceed)]
+
+    namespaces: list[argparse.Namespace] = []
+    with open(options.versions, encoding='utf-8') as f:
+        version_lines = f.readlines()
+    for line in version_lines:
+        # ``shlex.split`` (not ``str.split``) so quoted values with
+        # embedded whitespace round-trip through argparse the same way
+        # they would on the shell command line.
+        new_args = shlex.split(line)
+        if len(new_args) == 0:
+            continue
+        merged = parser.parse_args(sys.argv[1:] + new_args)
+        # Versions-file lines do not override the main CLI's --replace
+        # / --proceed values; force the merged namespace back to the
+        # main-CLI values before normalization.
+        merged.replace = replace
+        merged.proceed = proceed
+        namespaces.append(merged)
+
+    return [_normalize_and_validate(ns, replace, proceed) for ns in namespaces]
+
+
+def _process_directory(
+    dirpath: str,
+    *,
+    recursive: bool,
+    pattern: str,
+    directory: str | None,
+    lcommon: int,
+    movie: bool,
+    option_dicts: list[dict[str, Any]],
+    verbose: int,
+) -> None:
+    """Process every file under ``dirpath`` that matches ``pattern``.
+
+    Walks the tree with :func:`os.walk` when ``recursive`` is set,
+    otherwise reads ``dirpath`` non-recursively. When ``directory`` is
+    set, the output tree under it parallels the source tree using the
+    ``lcommon`` prefix length computed by the caller from
+    :func:`picmaker.pipeline.find_common_path`.
+
+    Parameters:
+        dirpath: Source directory.
+        recursive: Recurse into subdirectories.
+        pattern: :mod:`fnmatch`-style filename pattern.
+        directory: Output directory root, or ``None`` to write next to
+            the source files.
+        lcommon: Length of the common source-prefix, or ``-1`` when
+            there is no useful prefix (means: output directly under
+            ``directory``).
+        movie: Run the per-directory dispatch in movie mode.
+        option_dicts: List of normalized option dicts (one per
+            ``--versions`` line).
+        verbose: Per-CLI verbosity level. ``>=1`` logs each visited
+            directory; ``>1`` is propagated as
+            :func:`~picmaker.pipeline.process_images`' ``verbose`` flag.
+    """
+    if recursive:
+        for this_dir, _subdirs, files_in_dir in os.walk(dirpath):
+            f_filtered = fnmatch.filter(files_in_dir, pattern)
+            if len(f_filtered) == 0:
+                continue
+            if verbose:
+                logger.info('%s', this_dir)
+            filepaths = [os.path.join(this_dir, f) for f in f_filtered]
+            out_dir = (
+                None
+                if directory is None
+                else os.path.join(directory, this_dir[lcommon + 1 :])
+            )
+            process_images(
+                filepaths, out_dir, movie, option_dicts,
+                verbose=(verbose > 1),
+            )
+        return
+
+    if verbose:
+        logger.info('%s', dirpath)
+    files_in_dir = os.listdir(dirpath)
+    f_filtered = fnmatch.filter(files_in_dir, pattern)
+    # ``os.listdir`` returns both files and subdirectories; the
+    # recursive branch above relies on ``os.walk`` to separate them, so
+    # this branch must filter out subdirectories whose name happens to
+    # match ``pattern`` (otherwise they'd flow into ``process_images``
+    # as if they were files).
+    filepaths = [
+        os.path.join(dirpath, f)
+        for f in f_filtered
+        if os.path.isfile(os.path.join(dirpath, f))
+    ]
+    if len(filepaths) == 0:
+        return
+    out_dir = (
+        None
+        if directory is None
+        else os.path.join(directory, dirpath[lcommon + 1 :])
+    )
+    process_images(
+        filepaths, out_dir, movie, option_dicts, verbose=(verbose > 1),
+    )
+
+
 def main() -> None:
     """Picmaker CLI entry point.
 
@@ -534,28 +672,9 @@ def main() -> None:
         recursive = options.recursive
 
         filenames, directories = _separate_files_and_dirs(options.files)
-
-        if options.versions is not None:
-            options_list: list[argparse.Namespace] = []
-            with open(options.versions, encoding='utf-8') as f:
-                version_lines = f.readlines()
-            for line in version_lines:
-                new_args = line.split()
-                if not new_args:
-                    continue
-                these_args = sys.argv[1:] + new_args
-                merged = parser.parse_args(these_args)
-                # Versions-file lines do not override --replace/--proceed
-                # (matches picmaker.py:543-548).
-                merged.replace = replace
-                merged.proceed = proceed
-                options_list.append(merged)
-        else:
-            options_list = [options]
-
-        option_dicts = [
-            _normalize_and_validate(o, replace, proceed) for o in options_list
-        ]
+        option_dicts = _collect_option_dicts(
+            parser, options, replace=replace, proceed=proceed,
+        )
 
         filtered = fnmatch.filter(filenames, pattern)
         if filtered:
@@ -569,42 +688,16 @@ def main() -> None:
         lcommon = len(common_prefix) if common_prefix else -1
 
         for dirpath in directories:
-            if recursive:
-                for this_dir, _subdirs, files_in_dir in os.walk(dirpath):
-                    f_filtered = fnmatch.filter(files_in_dir, pattern)
-                    if not f_filtered:
-                        continue
-                    if verbose:
-                        logger.info('%s', this_dir)
-                    filepaths = [os.path.join(this_dir, f) for f in f_filtered]
-                    out_dir = (
-                        None
-                        if directory is None
-                        else os.path.join(directory, this_dir[lcommon + 1 :])
-                    )
-                    process_images(
-                        filepaths,
-                        out_dir,
-                        movie,
-                        option_dicts,
-                        verbose=(verbose > 1),
-                    )
-            else:
-                if verbose:
-                    logger.info('%s', dirpath)
-                files_in_dir = os.listdir(dirpath)
-                f_filtered = fnmatch.filter(files_in_dir, pattern)
-                if not f_filtered:
-                    continue
-                filepaths = [os.path.join(dirpath, f) for f in f_filtered]
-                out_dir = (
-                    None
-                    if directory is None
-                    else os.path.join(directory, dirpath[lcommon + 1 :])
-                )
-                process_images(
-                    filepaths, out_dir, movie, option_dicts, verbose=(verbose > 1)
-                )
+            _process_directory(
+                dirpath,
+                recursive=recursive,
+                pattern=pattern,
+                directory=directory,
+                lcommon=lcommon,
+                movie=movie,
+                option_dicts=option_dicts,
+                verbose=verbose,
+            )
 
     except KeyboardInterrupt:
         print('*** KeyboardInterrupt ***')
