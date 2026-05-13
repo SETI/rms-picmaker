@@ -28,6 +28,7 @@ import argparse
 import fnmatch
 import logging
 import os
+import shlex
 import sys
 from typing import Any
 
@@ -512,10 +513,12 @@ def _collect_option_dicts(
 
     When ``options.versions`` is ``None`` a single-element list is
     returned containing the normalization of ``options`` itself. When
-    it is a file path, each non-blank line is re-parsed as additional
-    CLI args appended to ``sys.argv[1:]``; each merged namespace is
-    normalized via :func:`!_normalize_and_validate`. The main CLI's
-    ``--replace`` and ``--proceed`` always win over per-line values.
+    it is a file path, each non-blank line is tokenised with
+    :func:`shlex.split` (so quoted values with embedded whitespace are
+    preserved) and re-parsed as additional CLI args appended to
+    ``sys.argv[1:]``; each merged namespace is normalized via
+    :func:`!_normalize_and_validate`. The main CLI's ``--replace`` and
+    ``--proceed`` always win over per-line values.
 
     Parameters:
         parser: The argparse parser, reused so per-line merges share
@@ -539,7 +542,10 @@ def _collect_option_dicts(
     with open(options.versions, encoding='utf-8') as f:
         version_lines = f.readlines()
     for line in version_lines:
-        new_args = line.split()
+        # ``shlex.split`` (not ``str.split``) so quoted values with
+        # embedded whitespace round-trip through argparse the same way
+        # they would on the shell command line.
+        new_args = shlex.split(line)
         if len(new_args) == 0:
             continue
         merged = parser.parse_args(sys.argv[1:] + new_args)
@@ -611,9 +617,18 @@ def _process_directory(
         logger.info('%s', dirpath)
     files_in_dir = os.listdir(dirpath)
     f_filtered = fnmatch.filter(files_in_dir, pattern)
-    if len(f_filtered) == 0:
+    # ``os.listdir`` returns both files and subdirectories; the
+    # recursive branch above relies on ``os.walk`` to separate them, so
+    # this branch must filter out subdirectories whose name happens to
+    # match ``pattern`` (otherwise they'd flow into ``process_images``
+    # as if they were files).
+    filepaths = [
+        os.path.join(dirpath, f)
+        for f in f_filtered
+        if os.path.isfile(os.path.join(dirpath, f))
+    ]
+    if len(filepaths) == 0:
         return
-    filepaths = [os.path.join(dirpath, f) for f in f_filtered]
     out_dir = (
         None
         if directory is None

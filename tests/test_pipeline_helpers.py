@@ -196,10 +196,12 @@ def test_pds3_resolve_pointer_missing_raises(tmp_path: Path) -> None:
 def test_pds3_resolve_pointer_obj_out_of_range_raises(
     tmp_path: Path,
 ) -> None:
-    """An integer ``obj`` past the end of the resolved pointer raises."""
+    """An integer ``obj`` past the end of the resolved pointer raises
+    the custom ``IndexError`` that names the pointer (so the bounds
+    check fires before Python's bare ``list index out of range``)."""
     lbl = _write_lbl(tmp_path, 'sample.LBL', _LBL_SINGLE_FILE)
 
-    with pytest.raises(IndexError, match='out of range'):
+    with pytest.raises(IndexError, match=r'index \d+ for PDS pointer IMAGE'):
         _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=5)
 
 
@@ -332,15 +334,30 @@ def _hst_options(**overrides: object) -> PicmakerOptions:
         'below_color': None, 'above_color': None, 'invalid_color': 'black',
     }
     base.update(overrides)
-    return PicmakerOptions(**base)  # type: ignore[arg-type]
+    return PicmakerOptions(**base)  # type: ignore[arg-type]  # kwargs widen to typed fields
 
 
-def test_hst_mosaic_rgb_wfpc2_produces_2x2_mosaic() -> None:
+@pytest.mark.parametrize(
+    ('colormap', 'expected_channels'),
+    [
+        # A real RGB colormap routes apply_colormap into the 3-channel
+        # branch; the mosaic carries (lines, samples, 3).
+        ('red-blue', 3),
+        # colormap=None routes apply_colormap into the grayscale branch,
+        # which produces a single channel.
+        (None, 1),
+    ],
+    ids=['rgb-colormap', 'grayscale'],
+)
+def test_hst_mosaic_rgb_wfpc2_produces_2x2_mosaic(
+    colormap: Any,
+    expected_channels: int,
+) -> None:
     """``WFPC2`` mode assembles four detectors into a 2x2 mosaic of
-    twice the per-detector size. With a colormap-bearing input the
-    channel count is 3; with ``colormap=None`` the apply_colormap path
-    keeps it grayscale (channel count 1) — either way the mosaic
-    spatial shape doubles."""
+    twice the per-detector size. The per-band channel count follows
+    the colormap: 3 for a named RGB colormap, 1 for ``colormap=None``
+    (the grayscale branch of :func:`~picmaker.enhance.apply_colormap`).
+    """
     array3d = np.tile(
         np.linspace(0.0, 3.0, 16, dtype=np.float32).reshape(1, 4, 4),
         (4, 1, 1),
@@ -350,10 +367,10 @@ def test_hst_mosaic_rgb_wfpc2_produces_2x2_mosaic() -> None:
     mosaic, returned = _hst_mosaic_rgb(
         array3d, filter_info, 'single.fits',
         options=_hst_options(),
-        default_is_up=False, is_int=False, colormap='red-blue',
+        default_is_up=False, is_int=False, colormap=colormap,
     )
 
-    assert mosaic.shape == (8, 8, 3)
+    assert mosaic.shape == (8, 8, expected_channels)
     assert returned.shape == array3d.shape  # no flip when default_is_up=False
 
 
@@ -431,7 +448,7 @@ def _basic_options(**overrides: object) -> PicmakerOptions:
         'rotate': 'none', 'filter_name': 'none', 'zebra': False,
     }
     base.update(overrides)
-    return PicmakerOptions(**base)  # type: ignore[arg-type]
+    return PicmakerOptions(**base)  # type: ignore[arg-type]  # kwargs widen to typed fields
 
 
 def test_process_one_image_writes_output(

@@ -157,21 +157,28 @@ def _pds3_resolve_pointer(
     if isinstance(pds_obj, str):
         pds_obj = [pds_obj]
 
-    parent = os.path.split(infile)[0]
+    # Validate the upper bound BEFORE indexing into ``pds_obj`` so the
+    # informative IndexError (which names the pointer) fires instead of
+    # Python's bare ``list index out of range``.
     if obj is None:
         max_obj = len(pds_obj) - 1
-        imagefile: Any = [os.path.join(parent, p) for p in pds_obj]
     elif isinstance(obj, int):
         max_obj = obj
-        imagefile = os.path.join(parent, pds_obj[obj])
     else:
         max_obj = max(obj)
-        imagefile = [os.path.join(parent, pds_obj[o]) for o in obj]
 
     if max_obj >= len(pds_obj):
         raise IndexError(
             f'index {max_obj + 1} for PDS pointer {pname[1:]} out of range'
         )
+
+    parent = os.path.split(infile)[0]
+    if obj is None:
+        imagefile: Any = [os.path.join(parent, p) for p in pds_obj]
+    elif isinstance(obj, int):
+        imagefile = os.path.join(parent, pds_obj[obj])
+    else:
+        imagefile = [os.path.join(parent, pds_obj[o]) for o in obj]
 
     return imagefile, filter_info
 
@@ -264,6 +271,70 @@ def _hst_acs_panel_mosaic(
     return mosaic
 
 
+def _band_to_rgb(
+    array3d: Any,
+    bands: Any,
+    *,
+    options: PicmakerOptions,
+    is_int: bool,
+    colormap: Any,
+) -> tuple[Any, tuple[Any, Any]]:
+    """Slice → optional zebra fill → get_limits → apply_colormap for one
+    band selection.
+
+    Encapsulates the chain that appears once per detector in
+    :func:`!_hst_mosaic_rgb` and once total in :func:`!_process_one_image`'
+    single-detector branch, so the stretch / colormap parameters are
+    threaded through the dataclass from one place.
+
+    Parameters:
+        array3d: ``(bands, lines, samples)`` input stack.
+        bands: ``(b0, b1)`` half-open band range to average, passed
+            through to :func:`~picmaker.geometry.slice_array`.
+        options: Picmaker options dataclass; supplies the slice,
+            stretch, and colormap knobs.
+        is_int: Whether ``array3d.dtype`` is an integer kind (passed
+            to :func:`~picmaker.enhance.get_limits`).
+        colormap: The resolved colormap (post-``tint`` override).
+
+    Returns:
+        ``(array_rgb, these_limits)`` where ``array_rgb`` is the
+        ``(lines, samples, channels)`` colormapped output and
+        ``these_limits`` is the ``(lo, hi)`` pair the caller may want
+        to record for the movie-mode median.
+    """
+    (array2d, invalid_mask) = slice_array(
+        array3d, options.samples, options.lines, bands,
+        options.valid, options.crop,
+    )
+
+    if options.zebra:
+        array2d = fill_zebra_stripes(array2d)
+
+    these_limits = get_limits(
+        array2d,
+        invalid_mask,
+        options.limits,
+        options.percentiles,
+        assume_int=is_int,
+        trim=options.trim,
+        trim_zeros=options.trim_zeros,
+        footprint=options.footprint,
+    )
+
+    array_rgb = apply_colormap(
+        array2d,
+        these_limits,
+        options.histogram,
+        colormap,
+        invalid_mask,
+        options.below_color,
+        options.above_color,
+        options.invalid_color,
+    )
+    return array_rgb, these_limits
+
+
 def _hst_mosaic_rgb(
     array3d: Any,
     filter_info: tuple[Any, Any, Any],
@@ -311,34 +382,9 @@ def _hst_mosaic_rgb(
 
     arrays_rgb: list[Any] = []
     for b in range(array3d.shape[0]):
-        (array2d, invalid_mask) = slice_array(
-            array3d, options.samples, options.lines, (b, b + 1),
-            options.valid, options.crop,
-        )
-
-        if options.zebra:
-            array2d = fill_zebra_stripes(array2d)
-
-        these_limits = get_limits(
-            array2d,
-            invalid_mask,
-            options.limits,
-            options.percentiles,
-            assume_int=is_int,
-            trim=options.trim,
-            trim_zeros=options.trim_zeros,
-            footprint=options.footprint,
-        )
-
-        array_rgb = apply_colormap(
-            array2d,
-            these_limits,
-            options.histogram,
-            colormap,
-            invalid_mask,
-            options.below_color,
-            options.above_color,
-            options.invalid_color,
+        array_rgb, _ = _band_to_rgb(
+            array3d, (b, b + 1),
+            options=options, is_int=is_int, colormap=colormap,
         )
         arrays_rgb.append(array_rgb)
 
@@ -460,36 +506,11 @@ def _process_one_image(
         )
         this_display_upward = False
     else:
-        (array2d, invalid_mask) = slice_array(
-            array3d, options.samples, options.lines, options.bands,
-            options.valid, options.crop,
-        )
-
-        if options.zebra:
-            array2d = fill_zebra_stripes(array2d)
-
-        these_limits = get_limits(
-            array2d,
-            invalid_mask,
-            options.limits,
-            options.percentiles,
-            assume_int=is_int,
-            trim=options.trim,
-            trim_zeros=options.trim_zeros,
-            footprint=options.footprint,
+        array_rgb, these_limits = _band_to_rgb(
+            array3d, options.bands,
+            options=options, is_int=is_int, colormap=colormap,
         )
         limits_pair = (these_limits[0], these_limits[1])
-
-        array_rgb = apply_colormap(
-            array2d,
-            these_limits,
-            options.histogram,
-            colormap,
-            invalid_mask,
-            options.below_color,
-            options.above_color,
-            options.invalid_color,
-        )
 
     array_rgb = rotate_array_rgb(array_rgb, this_display_upward, options.rotate)
     array_rgb = apply_gamma(array_rgb, options.gamma)

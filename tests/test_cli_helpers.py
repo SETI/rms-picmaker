@@ -83,6 +83,24 @@ def test_collect_option_dicts_versions_blank_file_returns_empty(
     assert out == []
 
 
+def test_collect_option_dicts_versions_preserves_quoted_args(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A versions-file line with quoted values keeps the embedded
+    whitespace together (verifies the shlex-based tokenisation)."""
+    vfile = tmp_path / 'versions.txt'
+    vfile.write_text('--suffix "_v 1" --extension=jpg\n')
+    monkeypatch.setattr(sys, 'argv', ['picmaker', '--versions', str(vfile)])
+    parser = _build_parser()
+    ns = parser.parse_args(['--versions', str(vfile)])
+
+    out = _collect_option_dicts(parser, ns, replace='all', proceed=False)
+
+    assert len(out) == 1
+    assert out[0]['suffix'] == '_v 1'
+    assert out[0]['extension'] == 'jpg'
+
+
 # ---------------------------------------------------------------------------
 # _process_directory
 # ---------------------------------------------------------------------------
@@ -110,8 +128,7 @@ def test_process_directory_non_recursive_writes_outputs(
         option_dicts=[basic_option_dict],
         verbose=0,
     )
-    found = list(out_dir.rglob('cassini_iss.jpg'))
-    assert found, f'expected cassini_iss.jpg under {out_dir}'
+    assert sorted(out_dir.rglob('*.jpg')) == [out_dir / 'cassini_iss.jpg']
 
 
 def test_process_directory_recursive_walks_subdirs(
@@ -163,9 +180,8 @@ def test_process_directory_pattern_filters(
         option_dicts=[basic_option_dict],
         verbose=0,
     )
-    # README.txt should not produce any output.
-    assert not list(out_dir.rglob('*.txt'))
-    assert list(out_dir.rglob('cassini_iss.jpg'))
+    # The .vic input produces exactly one JPEG and nothing else.
+    assert sorted(out_dir.rglob('*')) == [out_dir / 'cassini_iss.jpg']
 
 
 def test_process_directory_no_match_is_noop(
@@ -187,8 +203,40 @@ def test_process_directory_no_match_is_noop(
         option_dicts=[basic_option_dict],
         verbose=0,
     )
-    # No output directory needed; nothing got written.
-    assert not out_dir.exists() or not any(out_dir.iterdir())
+    # _process_directory may not create out_dir at all in the no-match
+    # case; if it does, it must stay empty. (process_images is the
+    # caller that mkdirs the output directory, and it is never invoked
+    # here because the pattern filtered everything out.)
+    if out_dir.exists():
+        assert list(out_dir.iterdir()) == []
+
+
+def test_process_directory_excludes_subdirectory_matching_pattern(
+    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
+) -> None:
+    """A subdirectory whose name matches ``pattern`` must NOT be treated
+    as a file. Non-recursive mode previously fell into this trap because
+    ``os.listdir`` doesn't separate files from subdirs."""
+    src = tmp_path / 'src'
+    src.mkdir()
+    shutil.copy(fixtures_dir / 'cassini_iss.vic', src / 'cassini_iss.vic')
+    # A directory whose name also matches '*.vic'.
+    (src / 'distraction.vic').mkdir()
+
+    out_dir = tmp_path / 'out'
+    _process_directory(
+        str(src),
+        recursive=False,
+        pattern='*.vic',
+        directory=str(out_dir),
+        lcommon=len(str(src)),
+        movie=False,
+        option_dicts=[basic_option_dict],
+        verbose=0,
+    )
+    # The real file produced its JPEG; the directory did not.
+    assert (out_dir / 'cassini_iss.jpg').exists()
+    assert not (out_dir / 'distraction.jpg').exists()
 
 
 def test_process_directory_verbose_logs(
