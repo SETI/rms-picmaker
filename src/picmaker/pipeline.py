@@ -82,6 +82,8 @@ def _pds3_resolve_pointer(
     infile: str,
     pointer: Any,
     obj: Any,
+    *,
+    pds3_label_method: str = 'strict',
 ) -> tuple[Any, tuple[Any, Any, Any] | None]:
     """Parse a PDS3 ``.LBL`` and resolve its image-object pointer.
 
@@ -96,6 +98,9 @@ def _pds3_resolve_pointer(
             names to try in order. A leading ``^`` is optional.
         obj: ``None`` (all objects), an ``int`` (one object), or a
             sequence of ``int`` (several objects).
+        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
+            its ``method=`` argument (``'strict'``, ``'loose'``,
+            ``'compound'``, or ``'fast'``).
 
     Returns:
         ``(imagefile, filter_info)`` — ``imagefile`` is either a single
@@ -109,7 +114,7 @@ def _pds3_resolve_pointer(
         IndexError: When ``obj`` selects an index past the end of the
             resolved pointer list.
     """
-    labeldict = pdsparser.PdsLabel(infile).as_dict()
+    labeldict = pdsparser.PdsLabel(infile, method=pds3_label_method).as_dict()
 
     if 'INSTRUMENT_HOST_ID' in labeldict:
         inst_host = labeldict['INSTRUMENT_HOST_ID']
@@ -459,6 +464,7 @@ def _process_one_image(
             labelfile = infile
             imagefile, filter_info = _pds3_resolve_pointer(
                 infile, options.pointer, options.obj,
+                pds3_label_method=options.pds3_label_method,
             )
         else:
             labelfile = ''
@@ -467,6 +473,7 @@ def _process_one_image(
 
         (array3d, default_is_up, filter_info2) = read_image_array(
             imagefile, labelfile, options.obj, options.hst,
+            pds3_label_method=options.pds3_label_method,
         )
         filter_info = filter_info or filter_info2
 
@@ -642,6 +649,7 @@ def images_to_pics(
     samples: Any = None,
     obj: Any = None,
     pointer: Any = None,
+    pds3_label_method: str = 'strict',
     size: Any = None,
     scale: Any = (100.0, 100.0),
     crop: Any = None,
@@ -700,6 +708,7 @@ def images_to_pics(
         replace=replace, proceed=proceed, extension=extension,
         suffix=suffix, strip=strip, quality=quality, twobytes=twobytes,
         bands=bands, lines=lines, samples=samples, obj=obj, pointer=pointer,
+        pds3_label_method=pds3_label_method,
         size=size, scale=scale, crop=crop, frame=frame, pad=pad,
         pad_color=pad_color, frame_max=frame_max, wrap=wrap,
         wrap_ratio=wrap_ratio, overlap=overlap, gap_size=gap_size,

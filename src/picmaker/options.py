@@ -17,6 +17,8 @@ live in exactly one place.
 from dataclasses import asdict, dataclass
 from typing import Any
 
+PDS3_LABEL_METHODS: tuple[str, ...] = ('strict', 'loose', 'compound', 'fast')
+
 
 @dataclass
 class PicmakerOptions:
@@ -46,6 +48,7 @@ class PicmakerOptions:
     samples: Any = None
     obj: Any = None
     pointer: Any = None
+    pds3_label_method: str = 'strict'
     # sizing
     size: Any = None
     scale: Any = (100.0, 100.0)
@@ -110,6 +113,11 @@ class PicmakerOptions:
             # so we only need to compare the value directly.
             if self.filter_name.lower() != 'none':
                 raise ValueError('16-bit filter options are not supported')
+        if self.pds3_label_method not in PDS3_LABEL_METHODS:
+            raise ValueError(
+                f'invalid pds3_label_method {self.pds3_label_method!r}; '
+                f'must be one of {PDS3_LABEL_METHODS}'
+            )
 
     def to_kwargs(self) -> dict[str, Any]:
         """Return a kwargs dict that unpacks into the pipeline entry point.
@@ -125,4 +133,4 @@ class PicmakerOptions:
         return cls(**kwargs)
 
 
-__all__ = ['PicmakerOptions']
+__all__ = ['PDS3_LABEL_METHODS', 'PicmakerOptions']

@@ -110,14 +110,14 @@ Step-by-step
       three places.
 
 3. **Add a fixture recipe.** Create
-   :file:`tests/fixture_recipes/mymission_myinst.recipe.py` that
+   :file:`tests/fixture_recipes/mymission_myinst_recipe.py` that
    builds a tiny synthetic VICAR or FITS file with the metadata
    keys your ``detect_*`` reads. Run it once from the venv to
    create the fixture binary:
 
    .. code-block:: bash
 
-      python tests/fixture_recipes/mymission_myinst.recipe.py
+      python tests/fixture_recipes/mymission_myinst_recipe.py
 
    Then add :file:`tests/fixtures/mymission_myinst.vic` (or ``.fits``)
    to git.

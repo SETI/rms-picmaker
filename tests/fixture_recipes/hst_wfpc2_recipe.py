@@ -4,7 +4,7 @@ Exercises the WFPC2 stacking branch.
 Detection: ('HST', 'WFPC2', ('F555W', 'CLEAR2')).
 
 Run from this directory:
-    python hst_wfpc2.recipe.py
+    python hst_wfpc2_recipe.py
 """
 from pathlib import Path
 

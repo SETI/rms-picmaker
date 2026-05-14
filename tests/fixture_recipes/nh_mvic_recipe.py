@@ -4,7 +4,7 @@ Detection: inst_host=HOSTNAME='NEW HORIZONS', inst_id=INSTRU='MVIC', filter='BLU
 :func:`read_one_image_array` → ('NEW HORIZONS', 'MVIC', 'BLUE').
 
 Run from this directory:
-    python nh_mvic.recipe.py
+    python nh_mvic_recipe.py
 """
 from pathlib import Path
 

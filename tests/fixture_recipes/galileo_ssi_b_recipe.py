@@ -7,7 +7,7 @@ Detection path (picmaker.py:1581-1584):
         return (array3d, False, ('GALILEO', 'SSI', filter_name))
 
 Run from this directory:
-    python galileo_ssi_b.recipe.py
+    python galileo_ssi_b_recipe.py
 """
 from pathlib import Path
 

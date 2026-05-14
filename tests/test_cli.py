@@ -36,13 +36,15 @@ def test_help_exits_zero_and_lists_flags() -> None:
 
 
 def test_help_flag_set_matches_baseline() -> None:
-    """The set of flags surfaced in ``--help`` matches the PR 1 baseline
-    in ``tests/fixtures/.baseline-flags.txt`` exactly.
+    """The set of flags surfaced in ``--help`` matches the baseline in
+    ``tests/fixtures/.baseline-flags.txt`` exactly.
     """
     proc = _run('--help')
     assert proc.returncode == 0
     import re
-    flags = sorted(set(re.findall(r'--[a-z_-]+', proc.stdout + proc.stderr)))
+    # Include digits in the character class so flags like ``--16`` and
+    # ``--pds3-label-method`` are captured whole, not truncated.
+    flags = sorted(set(re.findall(r'--[a-z0-9_-]+', proc.stdout + proc.stderr)))
     baseline_path = Path(__file__).parent / 'fixtures' / '.baseline-flags.txt'
     baseline = sorted(baseline_path.read_text().splitlines())
     assert flags == baseline

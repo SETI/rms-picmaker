@@ -118,6 +118,11 @@ on raw argparse fields:
 * ``display_upward`` + ``display_downward`` is rejected.
 * ``twobytes`` requires a TIFF extension and rejects any
   ``filter_name`` other than ``'NONE'``.
+* ``pds3_label_method`` must be one of the values in
+  :data:`~picmaker.options.PDS3_LABEL_METHODS`
+  (``'strict'``, ``'loose'``, ``'compound'``, ``'fast'``); the value is
+  forwarded as :class:`pdsparser.PdsLabel`'s ``method=`` argument when
+  a PDS3 ``.LBL`` is parsed.
 
 The CLI's :func:`!picmaker.cli._normalize_and_validate` does a few
 more checks that are CLI-specific (band/bands mismatch,

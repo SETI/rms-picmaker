@@ -8,7 +8,7 @@ Detection path (read_one_image_array, current picmaker.py:1564-1567):
 Result: detected as ('CASSINI', 'ISS', 'CL1+GRN').
 
 Run from this directory:
-    python cassini_iss.recipe.py
+    python cassini_iss_recipe.py
 """
 from pathlib import Path
 

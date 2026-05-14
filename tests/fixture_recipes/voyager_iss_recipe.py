@@ -6,7 +6,7 @@ LAB03[37:43] and returns ('VOYAGER', 'ISS', filter_name).
 Result: ('VOYAGER', 'ISS', 'GREEN').
 
 Run from this directory:
-    python voyager_iss.recipe.py
+    python voyager_iss_recipe.py
 """
 from pathlib import Path
 

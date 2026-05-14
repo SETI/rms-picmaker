@@ -4,7 +4,7 @@ Detection: inst_host=TELESCOP='HST', inst_id='WFC3/UVIS' (INSTRUME+'/'+DETECTOR)
 filter_name='F606W'. read_one_image_array → ('HST', 'WFC3/UVIS', 'F606W').
 
 Run from this directory:
-    python hst_wfc3.recipe.py
+    python hst_wfc3_recipe.py
 """
 from pathlib import Path
 

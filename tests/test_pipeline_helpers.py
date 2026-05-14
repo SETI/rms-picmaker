@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 import pytest
 
-from picmaker.options import PicmakerOptions
+from picmaker.options import PDS3_LABEL_METHODS, PicmakerOptions
 from picmaker.pipeline import (
     _hst_acs_panel_mosaic,
     _hst_mosaic_rgb,
@@ -24,6 +24,29 @@ from picmaker.pipeline import (
     _pds3_resolve_pointer,
     _process_one_image,
 )
+
+# ---------------------------------------------------------------------------
+# PicmakerOptions.validate — pds3_label_method
+# ---------------------------------------------------------------------------
+
+
+def test_pds3_label_methods_constant_is_canonical_set() -> None:
+    """The exported tuple lists every supported value once, in CLI order."""
+    assert PDS3_LABEL_METHODS == ('strict', 'loose', 'compound', 'fast')
+
+
+@pytest.mark.parametrize('method', list(PDS3_LABEL_METHODS))
+def test_picmaker_options_accepts_each_pds3_label_method(method: str) -> None:
+    """Every documented value is accepted by ``PicmakerOptions.validate``."""
+    PicmakerOptions(pds3_label_method=method).validate()
+
+
+def test_picmaker_options_rejects_unknown_pds3_label_method() -> None:
+    """An unknown ``pds3_label_method`` value raises with a message that
+    names the offending value and the accepted set."""
+    with pytest.raises(ValueError, match=r"invalid pds3_label_method 'turbo'"):
+        PicmakerOptions(pds3_label_method='turbo').validate()
+
 
 # ---------------------------------------------------------------------------
 # _pds3_resolve_pointer
