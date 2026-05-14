@@ -1,5 +1,5 @@
 """Regenerate every binary test fixture by importing and running each
-sibling `<name>.recipe.py` module.
+sibling `<name>_recipe.py` module.
 
 Each recipe writes its output into the sibling `tests/fixtures/` directory
 (via `Path(__file__).parent.parent / 'fixtures' / '<name>.<ext>'`); this
@@ -27,7 +27,7 @@ def run(recipe_path: Path) -> None:
 
 
 def main() -> int:
-    recipes = sorted(HERE.glob('*.recipe.py'))
+    recipes = sorted(HERE.glob('*_recipe.py'))
     if not recipes:
         print('no recipes found', file=sys.stderr)
         return 1

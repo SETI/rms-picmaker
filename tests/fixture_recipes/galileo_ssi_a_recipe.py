@@ -9,7 +9,7 @@ Detection path (picmaker.py:1572-1576):
 FILTER=1 maps to 'GREEN' in GALILEO_SSI_NAMES.
 
 Run from this directory:
-    python galileo_ssi_a.recipe.py
+    python galileo_ssi_a_recipe.py
 """
 from pathlib import Path
 

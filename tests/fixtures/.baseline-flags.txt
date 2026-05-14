@@ -1,3 +1,4 @@
+--16
 --above
 --alt-pointer
 --alt_pointer
@@ -33,6 +34,8 @@
 --pad
 --pad-color
 --pattern
+--pds3-label-method
+--pds3_label_method
 --percentiles
 --pointer
 --proceed

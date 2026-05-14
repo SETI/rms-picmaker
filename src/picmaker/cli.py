@@ -32,7 +32,7 @@ import shlex
 import sys
 from typing import Any
 
-from picmaker.options import PicmakerOptions
+from picmaker.options import PDS3_LABEL_METHODS, PicmakerOptions
 from picmaker.pipeline import find_common_path, process_images
 
 logger = logging.getLogger(__name__)
@@ -180,6 +180,14 @@ def _build_parser() -> argparse.ArgumentParser:
         '--alt-pointer', '--alt_pointer', dest='alt_pointer',
         type=str, default=None,
         help='alternative PDS pointer used when the first pointer is not found.',
+    )
+    selection.add_argument(
+        '--pds3-label-method', '--pds3_label_method',
+        dest='pds3_label_method',
+        type=str, default='strict',
+        choices=list(PDS3_LABEL_METHODS),
+        help='pdsparser.PdsLabel parsing strictness for PDS3 .LBL inputs: '
+             '"strict" (default), "loose", "compound", or "fast".',
     )
 
     sizing = parser.add_argument_group('sizing options')
@@ -456,6 +464,7 @@ def _normalize_and_validate(
         'samples': samples,
         'obj': options.obj,
         'pointer': options.pointer,
+        'pds3_label_method': options.pds3_label_method,
         # sizing options
         'size': options.size,
         'scale': options.scale,

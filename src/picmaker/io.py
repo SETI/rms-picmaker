@@ -64,6 +64,8 @@ def read_image_array(
     labelfile: str | os.PathLike[str] | None,
     obj: ObjectSelector = None,
     hst: bool = False,
+    *,
+    pds3_label_method: str = 'strict',
 ) -> ReadResult:
     """Read one or more image files and return a stacked 3-D array.
 
@@ -76,6 +78,9 @@ def read_image_array(
             multiple image objects. If a list/tuple, multiple objects
             are stacked.
         hst: True to mosaic an HST image involving multiple CCDs.
+        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
+            its ``method=`` argument when a PDS3 ``.LBL`` is parsed
+            (``'strict'``, ``'loose'``, ``'compound'``, or ``'fast'``).
 
     Returns:
         ``(array3d, display_upward, filter_info)``:
@@ -87,11 +92,17 @@ def read_image_array(
           tuple.
     """
     if isinstance(filename, str):
-        return read_one_image_array(filename, labelfile, obj, hst)
+        return read_one_image_array(
+            filename, labelfile, obj, hst,
+            pds3_label_method=pds3_label_method,
+        )
 
     results = []
     for k in range(len(filename)):
-        results.append(read_one_image_array(filename[k], labelfile, None, hst))
+        results.append(read_one_image_array(
+            filename[k], labelfile, None, hst,
+            pds3_label_method=pds3_label_method,
+        ))
 
     arrays = [r[0] for r in results]
     for k in range(len(arrays)):
@@ -108,6 +119,8 @@ def read_one_image_array(
     labelfile: str | os.PathLike[str] | None,
     obj: ObjectSelector = None,
     hst: bool = False,
+    *,
+    pds3_label_method: str = 'strict',
 ) -> ReadResult:
     """Read a single image array, trying each known format in turn.
 
@@ -120,6 +133,9 @@ def read_one_image_array(
         labelfile: Optional path to a sibling PDS3 label file.
         obj: Object index/name for multi-image files.
         hst: True to mosaic an HST image involving multiple CCDs.
+        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
+            its ``method=`` argument when the PDS3-label branch fires
+            (``'strict'``, ``'loose'``, ``'compound'``, or ``'fast'``).
 
     Returns:
         ``(array3d, display_upward, filter_info)``. ``filter_info`` is
@@ -262,7 +278,9 @@ def read_one_image_array(
 
     # ---- PDS3 label attempt ----
     if labelfile:
-        result = read_pds_labeled_image_array(labelfile, obj)
+        result = read_pds_labeled_image_array(
+            labelfile, obj, pds3_label_method=pds3_label_method,
+        )
         if result is not None:
             return result
 
@@ -277,13 +295,19 @@ def read_one_image_array(
 
 
 def read_pds_labeled_image_array(
-    filename: str | os.PathLike[str], obj: ObjectSelector = None
+    filename: str | os.PathLike[str],
+    obj: ObjectSelector = None,
+    *,
+    pds3_label_method: str = 'strict',
 ) -> ReadResult | None:
     """Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.
 
     Parameters:
         filename: Path to a ``.LBL`` (or matching) PDS3 label file.
         obj: Optional pointer name or index.
+        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
+            its ``method=`` argument (``'strict'``, ``'loose'``,
+            ``'compound'``, or ``'fast'``).
 
     Returns:
         ``(array3d, False, (inst_host, inst_name, filter_name))`` or
@@ -292,18 +316,22 @@ def read_pds_labeled_image_array(
     filename_str = str(filename)
     label = None
     try:
-        label = pdsparser.PdsLabel(filename_str)
+        label = pdsparser.PdsLabel(filename_str, method=pds3_label_method)
     except (pdsparser.ParseException, SyntaxError):
         (head, ext) = os.path.splitext(filename_str)
         if ext.lower() != '.lbl':
             if os.path.exists(head + '.lbl'):
                 try:
-                    label = pdsparser.PdsLabel(head + '.lbl')
+                    label = pdsparser.PdsLabel(
+                        head + '.lbl', method=pds3_label_method,
+                    )
                 except (pdsparser.ParseException, SyntaxError):
                     pass
             elif os.path.exists(head + '.LBL'):
                 try:
-                    label = pdsparser.PdsLabel(head + '.LBL')
+                    label = pdsparser.PdsLabel(
+                        head + '.LBL', method=pds3_label_method,
+                    )
                 except (pdsparser.ParseException, SyntaxError):
                     pass
 

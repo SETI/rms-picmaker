@@ -324,6 +324,29 @@ def test_normalize_filter_and_rotate_lowercased() -> None:
     assert out['rotate'] == 'rot90'
 
 
+def test_normalize_pds3_label_method_default_is_strict() -> None:
+    """``--pds3-label-method`` defaults to ``'strict'``."""
+    ns = _parse()
+    out = _normalize_and_validate(ns, 'all', False)
+    assert out['pds3_label_method'] == 'strict'
+
+
+@pytest.mark.parametrize('method', ['strict', 'loose', 'compound', 'fast'])
+def test_normalize_pds3_label_method_accepts_each_choice(method: str) -> None:
+    """Each documented ``--pds3-label-method`` value passes through to
+    the option dict."""
+    ns = _parse('--pds3-label-method', method)
+    out = _normalize_and_validate(ns, 'all', False)
+    assert out['pds3_label_method'] == method
+
+
+def test_normalize_pds3_label_method_rejects_unknown() -> None:
+    """An unknown ``--pds3-label-method`` value is rejected by argparse
+    before normalization runs."""
+    with pytest.raises(SystemExit):
+        _parse('--pds3-label-method', 'turbo')
+
+
 # ---------------------------------------------------------------------------
 # main() — orchestration paths
 # ---------------------------------------------------------------------------

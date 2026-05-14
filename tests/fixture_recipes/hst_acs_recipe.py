@@ -4,7 +4,7 @@ Exercises the ACS/WFC stacking branch (hdulist[4] access).
 Detection: ('HST', 'ACS/WFC', ('CL1', 'F606W')).
 
 Run from this directory:
-    python hst_acs.recipe.py
+    python hst_acs_recipe.py
 """
 from pathlib import Path
 

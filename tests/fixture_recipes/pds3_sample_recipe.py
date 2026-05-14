@@ -14,7 +14,7 @@ longer exists in the package. The fixture is kept for use by the test cascade
 ready-made regression fixture once PR 3 modernizes the reader.
 
 Run from this directory:
-    python pds3_sample.recipe.py
+    python pds3_sample_recipe.py
 """
 from pathlib import Path
 
