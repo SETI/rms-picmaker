@@ -61,14 +61,32 @@ their kwargs and call
 :meth:`~picmaker.options.PicmakerOptions.validate` so the invariants
 live in exactly one place.
 
+:mod:`picmaker._types` (``src/picmaker/_types.py``)
+---------------------------------------------------
+
+Shared type definitions imported by both :mod:`picmaker.io` and the
+instrument sub-modules. Lives here (rather than in :mod:`picmaker.io`)
+to break the import cycle that would arise if instrument modules
+imported from :mod:`picmaker.io` while :mod:`picmaker.io` imports from
+:mod:`picmaker.instruments`. Defines :class:`~picmaker._types.ReadResult`
+(a :class:`typing.NamedTuple` of ``(array3d, default_is_up,
+filter_info)``), :data:`~picmaker._types.FilterInfo` (the
+``(inst_host, inst_id, filter_name)`` triple or ``None``), and
+:data:`~picmaker._types.ObjectSelector` (the ``obj=`` parameter type
+accepted by file readers).
+
 :mod:`picmaker.io` (``src/picmaker/io.py``)
 -------------------------------------------
 
 The file-reader cascade and output-path helpers. The cascade lives in
-:func:`picmaker.io.read_one_image_array` and tries each known format
-in turn (pickle → numpy ``.npy`` → VICAR → FITS → PIL → PDS3-label);
-the first match returns a :class:`~picmaker.io.ReadResult`
-:class:`typing.NamedTuple` of ``(array3d, default_is_up, filter_info)``.
+:func:`picmaker.io.read_one_image_array` and tries each known format in
+turn: pickle → numpy ``.npy`` → per-instrument readers →
+generic VICAR fallback → generic FITS fallback → PIL → PDS3-label.
+The per-instrument step iterates :data:`picmaker.instruments.ALL_INSTRUMENTS`
+and calls each instrument's :func:`!read_file`; the first non-``None``
+result wins.  The generic VICAR and FITS fallbacks handle files from
+unrecognized instruments.  The first match returns a
+:class:`~picmaker._types.ReadResult`.
 :func:`~picmaker.io.read_image_array` is the multi-file variant that
 stacks the per-file results along the band axis.
 :func:`~picmaker.io.read_pds_labeled_image_array` is the PDS3 label
@@ -169,11 +187,24 @@ options.
 :mod:`picmaker.instruments` (``src/picmaker/instruments/``)
 -----------------------------------------------------------
 
-Per-mission detectors and tint chains. Each module under this
-subpackage exposes the same four-function protocol described in
-:doc:`adding_an_instrument`.
+Per-mission file readers and tint chains. Each module under this
+subpackage exposes the three-function protocol (``read_file``,
+``matches``, ``tint_for``) plus an optional ``apply_tint`` described in
+:doc:`adding_an_instrument`.  Each instrument owns its own format
+detection and array extraction inside :func:`!read_file`.
 :func:`picmaker.instruments.lookup` picks the right instrument module
-given a host string;
-:data:`~picmaker.instruments.VICAR_INSTRUMENTS` and
-:data:`~picmaker.instruments.FITS_INSTRUMENTS` are the per-format
-dispatch lists that :func:`picmaker.io.read_one_image_array` iterates.
+given a host string; :data:`~picmaker.instruments.ALL_INSTRUMENTS` is
+the ordered dispatch list that :func:`picmaker.io.read_one_image_array`
+iterates.
+
+:mod:`picmaker.instruments._shared` (``src/picmaker/instruments/_shared.py``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Shared format-level utilities for use by instrument modules.
+:func:`~picmaker.instruments._shared.try_open_vicar` wraps
+:meth:`vicar.VicarImage.from_file` and returns ``None`` on failure.
+:func:`~picmaker.instruments._shared.is_fits_file` sniffs the FITS
+magic bytes.
+:func:`~picmaker.instruments._shared.extract_fits_array` extracts a 3-D
+array from an open FITS HDU list.  These helpers live here rather than
+in :mod:`picmaker.io` to avoid circular imports.

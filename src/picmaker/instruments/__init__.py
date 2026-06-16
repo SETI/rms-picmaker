@@ -1,16 +1,25 @@
-"""Instrument-specific detection and tint logic.
+"""Instrument-specific detection, file reading, and tint logic.
 
-Each instrument module exposes a uniform 4-method protocol:
+Each instrument module exposes a uniform protocol:
 
-* ``detect_vicar(vic) -> tuple[str, str, str] | None`` — returns
-  ``(inst_host, inst_id, filter_name)`` for a VICAR file or ``None`` if
-  the instrument does not own this label.
-* ``detect_fits(hdulist) -> tuple[str, str, str] | None`` — same for
-  FITS.
-* ``matches(inst_host, inst_id) -> bool`` — host-level predicate.
+**Required methods:**
+
+* ``read_file(filename, obj, hst, *, pds3_label_method) -> ReadResult | None``
+  — tries to detect and read *filename*; returns a
+  :class:`~picmaker._types.ReadResult` on success or ``None`` if the
+  file is not owned by this instrument.
+* ``matches(inst_host, inst_id) -> bool`` — host-level predicate used
+  by :func:`lookup` to find the instrument for tinting.
 * ``tint_for(inst_id, filter_name) -> list[tuple[int, int, int]] | None``
   — returns the full colormap (NOT just the tint), or ``None`` for the
   HST unknown-wavelength case.
+
+**Optional methods (checked via** ``hasattr`` **):**
+
+* ``apply_tint(array3d, filter_info, options) -> NDArray | None`` —
+  custom colorization algorithm; return a ``(H, W, 3)`` uint8 RGB array
+  to replace the standard colormap pipeline, or ``None`` to fall
+  through to :func:`~picmaker.color.tinted_colormap` / ``_band_to_rgb``.
 """
 
 from types import ModuleType
@@ -18,11 +27,10 @@ from typing import Any
 
 from picmaker.instruments import cassini, galileo, hst, nh, voyager
 
-#: Instrument modules whose ``detect_vicar`` may match a VICAR input.
-VICAR_INSTRUMENTS: list[ModuleType] = [cassini, galileo, voyager]
-#: Instrument modules whose ``detect_fits`` may match a FITS input.
-FITS_INSTRUMENTS: list[ModuleType] = [hst, nh]
-#: Every registered instrument module.
+#: Every registered instrument module, in cascade priority order.
+#: :func:`read_one_image_array <picmaker.io.read_one_image_array>` tries
+#: each instrument's ``read_file()`` in this order; the first to return
+#: a non-``None`` result wins.
 ALL_INSTRUMENTS: list[ModuleType] = [cassini, voyager, galileo, hst, nh]
 
 
@@ -46,4 +54,4 @@ def lookup(inst_host: str | None, inst_id: str | None) -> Any | None:
     return None
 
 
-__all__ = ['ALL_INSTRUMENTS', 'FITS_INSTRUMENTS', 'VICAR_INSTRUMENTS', 'lookup']
+__all__ = ['ALL_INSTRUMENTS', 'lookup']

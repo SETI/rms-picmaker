@@ -1,27 +1,23 @@
 """HST detection and wavelength-based tint."""
 
 import logging
+import os
+import warnings
 from typing import Any
 
+import astropy.io.fits as pyfits
+import numpy as np
+from numpy.typing import NDArray
+
 from picmaker._rgb import BFUNC, GFUNC, RFUNC, RGB_BY_NM
+from picmaker._types import ObjectSelector, ReadResult
+from picmaker.instruments import _shared
 
 logger = logging.getLogger(__name__)
 
 
-def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
-    """HST is not delivered as VICAR — always returns ``None``.
-
-    Parameters:
-        vic: A :class:`vicar.VicarImage` instance (unused).
-
-    Returns:
-        Always ``None``.
-    """
-    return None
-
-
-def detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
-    """Detect an HST FITS image.
+def _detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
+    """Extract HST metadata from an open ``astropy.io.fits`` HDU list.
 
     The ``TELESCOP`` keyword identifies the host, ``INSTRUME`` (with an
     optional ``DETECTOR`` suffix) identifies the instrument, and the
@@ -64,6 +60,98 @@ def detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
     return (inst_host, inst_id, filter_name)
 
 
+def _extract_hst_array(
+    hdulist: Any,
+    inst_id: str,
+    obj: ObjectSelector,
+    use_mosaic: bool,
+) -> NDArray[Any]:
+    """Extract the image array from an HST FITS hdulist.
+
+    Handles the ACS/WFC and WFPC2 mosaic cases when ``use_mosaic`` is
+    true and ``obj`` is ``None``; all other cases delegate to
+    :func:`~picmaker.instruments._shared.extract_fits_array`.
+
+    Parameters:
+        hdulist: An open ``astropy.io.fits`` HDU list.
+        inst_id: Instrument id string (e.g. ``'ACS/WFC'``, ``'WFPC2'``).
+        obj: Object selector; mosaic logic only applies when ``None``.
+        use_mosaic: True to stitch multi-CCD mosaics.
+
+    Returns:
+        3-D numpy array ``(bands, lines, samples)``.
+    """
+    array3d: NDArray[Any]
+
+    if use_mosaic and obj is None:
+        if inst_id == 'ACS/WFC':
+            array = hdulist[1].data
+            try:
+                array2 = hdulist[4].data
+                shape = (2, *array.shape)
+                array3d = np.empty(shape)
+                array3d[0] = array
+                array3d[1] = array2
+            except IndexError:
+                array3d = array
+            if array3d.ndim == 2:
+                array3d = array3d.reshape((1, *array3d.shape))
+            return array3d
+
+        if inst_id == 'WFPC2':
+            array3d_list: list[Any] = []
+            for hdu in hdulist:
+                candidate = hdu.data
+                if not isinstance(candidate, np.ndarray):
+                    continue
+                if candidate.ndim not in (2, 3):
+                    continue
+                array3d_list.append(candidate)
+            return np.array(array3d_list)
+
+    return _shared.extract_fits_array(hdulist, obj)
+
+
+def read_file(
+    filename: str | os.PathLike[str],
+    obj: ObjectSelector = None,
+    hst: bool = False,
+    *,
+    pds3_label_method: str = 'strict',
+) -> ReadResult | None:
+    """Try to detect and read an HST FITS image.
+
+    Checks the FITS magic bytes, opens the file, identifies it as HST
+    via the ``TELESCOP`` header keyword, and extracts the data array.
+    When ``hst=True`` and the instrument is ``ACS/WFC`` or ``WFPC2``,
+    the multi-CCD mosaic is assembled from multiple HDUs.
+
+    Parameters:
+        filename: Path to the candidate file.
+        obj: HDU index, name, or list/tuple of indices to stack.
+        hst: When ``True``, assemble the ACS/WFC or WFPC2 mosaic.
+        pds3_label_method: Ignored (HST files are FITS, not PDS3).
+
+    Returns:
+        :class:`~picmaker._types.ReadResult` on success, ``None`` if
+        the file is not recognized as an HST FITS image.
+    """
+    if not _shared.is_fits_file(filename):
+        return None
+    try:
+        with warnings.catch_warnings(), pyfits.open(str(filename)) as hdulist:
+            warnings.filterwarnings('error')
+            _fitsobj = hdulist[0]  # IndexError / KeyError if not valid FITS
+            filter_info = _detect_fits(hdulist)
+            if filter_info is None:
+                return None
+            inst_id = filter_info[1]
+            array3d = _extract_hst_array(hdulist, inst_id, obj, hst)
+            return ReadResult(array3d, True, filter_info)
+    except (UserWarning, OSError):
+        return None
+
+
 def matches(inst_host: str, inst_id: str) -> bool:
     """Host-level predicate: accept any host that mentions HUBBLE or HST.
 
@@ -104,7 +192,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
         inst_id: Instrument id, possibly with detector suffix (e.g.
             ``'WFC3/IR'``).
         filter_name: HST filter name; passed through as-is from
-            :func:`detect_fits`.
+            :func:`_detect_fits`.
 
     Returns:
         ``[(0, 0, 0), (r, g, b), (255, 255, 255)]`` for a successfully
@@ -151,4 +239,4 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     return [(0, 0, 0), (r, g, b), (255, 255, 255)]
 
 
-__all__ = ['detect_fits', 'detect_vicar', 'matches', 'tint_for']
+__all__ = ['matches', 'read_file', 'tint_for']

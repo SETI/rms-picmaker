@@ -1,6 +1,13 @@
 """New Horizons MVIC detection and tint."""
 
+import os
+import warnings
 from typing import Any
+
+import astropy.io.fits as pyfits
+
+from picmaker._types import ObjectSelector, ReadResult
+from picmaker.instruments import _shared
 
 FILTER_DICT: dict[str, tuple[int, int, int]] = {
     'BLUE': (110, 110, 210),
@@ -10,20 +17,8 @@ FILTER_DICT: dict[str, tuple[int, int, int]] = {
 }
 
 
-def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
-    """NH is not delivered as VICAR — always returns ``None``.
-
-    Parameters:
-        vic: A :class:`vicar.VicarImage` instance (unused).
-
-    Returns:
-        Always ``None``.
-    """
-    return None
-
-
-def detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
-    """Detect a New Horizons FITS image.
+def _detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
+    """Extract New Horizons metadata from an open ``astropy.io.fits`` HDU list.
 
     The ``HOSTNAME`` keyword identifies the host and ``INSTRU``
     identifies the instrument; the filter name comes from ``FILTER``
@@ -52,6 +47,43 @@ def detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
     except KeyError:
         filter_name = None
     return (inst_host, inst_id, filter_name)
+
+
+def read_file(
+    filename: str | os.PathLike[str],
+    obj: ObjectSelector = None,
+    hst: bool = False,
+    *,
+    pds3_label_method: str = 'strict',
+) -> ReadResult | None:
+    """Try to detect and read a New Horizons FITS image.
+
+    Checks the FITS magic bytes, opens the file, identifies it as NH
+    via the ``HOSTNAME`` header keyword, and extracts the data array.
+
+    Parameters:
+        filename: Path to the candidate file.
+        obj: HDU index, name, or list/tuple of indices to stack.
+        hst: Ignored (New Horizons is not HST).
+        pds3_label_method: Ignored (NH files are FITS, not PDS3).
+
+    Returns:
+        :class:`~picmaker._types.ReadResult` on success, ``None`` if
+        the file is not recognized as a New Horizons FITS image.
+    """
+    if not _shared.is_fits_file(filename):
+        return None
+    try:
+        with warnings.catch_warnings(), pyfits.open(str(filename)) as hdulist:
+            warnings.filterwarnings('error')
+            _fitsobj = hdulist[0]  # IndexError / KeyError if not valid FITS
+            filter_info = _detect_fits(hdulist)
+            if filter_info is None:
+                return None
+            array3d = _shared.extract_fits_array(hdulist, obj)
+            return ReadResult(array3d, True, filter_info)
+    except (UserWarning, OSError):
+        return None
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
@@ -93,4 +125,4 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     return [(0, 0, 0), FILTER_DICT[filter_name], (255, 255, 255)]
 
 
-__all__ = ['FILTER_DICT', 'detect_fits', 'detect_vicar', 'matches', 'tint_for']
+__all__ = ['FILTER_DICT', 'matches', 'read_file', 'tint_for']

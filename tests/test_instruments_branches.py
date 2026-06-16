@@ -1,5 +1,5 @@
 """Cover the per-instrument fall-through paths: Cassini ISS tint chain
-branches, Voyager/Galileo/NH/HST detect_*/matches/tint_for edge cases,
+branches, Voyager/Galileo/NH/HST detection and tint_for edge cases,
 and the cross-cutting ``instruments.lookup`` predicate.
 """
 
@@ -43,11 +43,6 @@ def test_cassini_tint_chain_each_branch(
     assert cmap == [(0, 0, 0), expected_tint, (255, 255, 255)]
 
 
-def test_cassini_detect_fits_always_none() -> None:
-    """Cassini's FITS detector unconditionally returns ``None``."""
-    assert cassini.detect_fits(None) is None
-
-
 def test_cassini_matches_predicate() -> None:
     """``matches`` accepts any CASSINI-prefixed host."""
     assert cassini.matches('CASSINI ORBITER', 'ISS') is True
@@ -59,14 +54,19 @@ def test_cassini_non_iss_returns_plain_bw() -> None:
     assert cassini.tint_for('CIRS', 'anything') == [(0, 0, 0), (255, 255, 255)]
 
 
+def test_cassini_detect_vicar_swallows_keyerror() -> None:
+    """A VICAR label without expected keys returns ``None``."""
+
+    class FakeVic:
+        def __getitem__(self, key: str) -> Any:
+            raise KeyError(key)
+
+    assert cassini._detect_vicar(FakeVic()) is None
+
+
 def test_voyager_non_iss_returns_plain_bw() -> None:
     """Non-ISS Voyager instruments get the plain ``[black, white]`` map."""
     assert voyager.tint_for('PPS', 'anything') == [(0, 0, 0), (255, 255, 255)]
-
-
-def test_voyager_detect_fits_always_none() -> None:
-    """Voyager's FITS detector unconditionally returns ``None``."""
-    assert voyager.detect_fits(None) is None
 
 
 def test_voyager_matches_predicate() -> None:
@@ -82,17 +82,12 @@ def test_voyager_detect_vicar_swallows_keyerror() -> None:
         def __getitem__(self, key: str) -> Any:
             raise KeyError(key)
 
-    assert voyager.detect_vicar(FakeVic()) is None
+    assert voyager._detect_vicar(FakeVic()) is None
 
 
 def test_galileo_non_ssi_returns_plain_bw() -> None:
     """Non-SSI Galileo instruments get the plain ``[black, white]`` map."""
     assert galileo.tint_for('PPR', 'GREEN') == [(0, 0, 0), (255, 255, 255)]
-
-
-def test_galileo_detect_fits_always_none() -> None:
-    """Galileo's FITS detector unconditionally returns ``None``."""
-    assert galileo.detect_fits(None) is None
 
 
 def test_galileo_detect_vicar_swallows_keyerror() -> None:
@@ -102,17 +97,12 @@ def test_galileo_detect_vicar_swallows_keyerror() -> None:
         def __getitem__(self, key: str) -> Any:
             raise KeyError(key)
 
-    assert galileo.detect_vicar(FakeVic()) is None
+    assert galileo._detect_vicar(FakeVic()) is None
 
 
 def test_nh_non_mvic_returns_plain_bw() -> None:
     """Non-MVIC NH instruments get the plain ``[black, white]`` map."""
     assert nh.tint_for('LORRI', 'anything') == [(0, 0, 0), (255, 255, 255)]
-
-
-def test_nh_detect_vicar_always_none() -> None:
-    """NH's VICAR detector always returns ``None``."""
-    assert nh.detect_vicar(None) is None
 
 
 def _make_fake_hdulist(header: dict[str, Any]) -> Any:
@@ -134,30 +124,25 @@ def _make_fake_hdulist(header: dict[str, Any]) -> Any:
 
 def test_nh_detect_fits_missing_hostname() -> None:
     """A FITS file with no ``HOSTNAME`` keyword returns ``None``."""
-    assert nh.detect_fits(_make_fake_hdulist({})) is None
+    assert nh._detect_fits(_make_fake_hdulist({})) is None
 
 
 def test_nh_detect_fits_missing_instru() -> None:
     """A FITS file with ``HOSTNAME`` but no ``INSTRU`` returns ``None``."""
-    assert nh.detect_fits(_make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS'})) is None
+    assert nh._detect_fits(_make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS'})) is None
 
 
 def test_nh_detect_fits_no_filter_returns_none_filter() -> None:
     """``FILTER`` missing means the third tuple element is ``None``."""
-    result = nh.detect_fits(
+    result = nh._detect_fits(
         _make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS', 'INSTRU': 'MVIC'})
     )
     assert result == ('NEW HORIZONS', 'MVIC', None)
 
 
-def test_hst_detect_vicar_always_none() -> None:
-    """HST's VICAR detector always returns ``None``."""
-    assert hst.detect_vicar(None) is None
-
-
 def test_hst_detect_fits_missing_instrume() -> None:
     """A FITS file with TELESCOP but no INSTRUME returns ``None``."""
-    assert hst.detect_fits(_make_fake_hdulist({'TELESCOP': 'HST'})) is None
+    assert hst._detect_fits(_make_fake_hdulist({'TELESCOP': 'HST'})) is None
 
 
 def test_hst_long_pass_short_circuit() -> None:

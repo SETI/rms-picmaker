@@ -1,8 +1,12 @@
 """Voyager ISS detection and tint."""
 
+import os
 from typing import Any
 
 from vicar import VicarError
+
+from picmaker._types import ObjectSelector, ReadResult
+from picmaker.instruments import _shared
 
 FILTER_DICT: dict[str, tuple[int, int, int]] = {
     'UV': (200, 60, 255),
@@ -19,8 +23,8 @@ FILTER_DICT: dict[str, tuple[int, int, int]] = {
 }
 
 
-def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
-    """Detect a Voyager ISS VICAR image.
+def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
+    """Extract Voyager ISS metadata from an open :class:`vicar.VicarImage`.
 
     Voyager VICAR labels carry their identifying string in ``LAB02`` (a
     ``VGR`` prefix) and the filter name in characters 37..43 of
@@ -41,16 +45,39 @@ def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     return None
 
 
-def detect_fits(hdulist: Any) -> tuple[str, str, str] | None:
-    """Voyager ISS is not delivered as FITS — always returns ``None``.
+def read_file(
+    filename: str | os.PathLike[str],
+    obj: ObjectSelector = None,
+    hst: bool = False,
+    *,
+    pds3_label_method: str = 'strict',
+) -> ReadResult | None:
+    """Try to detect and read a Voyager ISS VICAR image.
+
+    Opens *filename* as VICAR, checks the instrument label, and returns
+    the data array with filter metadata.  Returns ``None`` if the file
+    is not a Voyager ISS VICAR image.
 
     Parameters:
-        hdulist: An ``astropy.io.fits`` HDU list (unused).
+        filename: Path to the candidate file.
+        obj: Ignored (VICAR files contain a single array).
+        hst: Ignored (Voyager is not HST).
+        pds3_label_method: Ignored (Voyager files are not PDS3-labeled).
 
     Returns:
-        Always ``None``.
+        :class:`~picmaker._types.ReadResult` on success, ``None`` if
+        the file is not recognized as a Voyager ISS image.
     """
-    return None
+    vic = _shared.try_open_vicar(filename)
+    if vic is None:
+        return None
+    filter_info = _detect_vicar(vic)
+    if filter_info is None:
+        return None
+    array3d = vic.data_3d
+    if array3d.ndim == 2:
+        array3d = array3d.reshape((1, *array3d.shape))
+    return ReadResult(array3d, False, filter_info)
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
@@ -92,4 +119,4 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     return [(0, 0, 0), FILTER_DICT[filter_name], (255, 255, 255)]
 
 
-__all__ = ['FILTER_DICT', 'detect_fits', 'detect_vicar', 'matches', 'tint_for']
+__all__ = ['FILTER_DICT', 'matches', 'read_file', 'tint_for']

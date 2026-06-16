@@ -80,6 +80,11 @@ filterwarnings = [
   # tests collected per worker and aborts. Ignoring it is safe — the
   # warning is purely informational about astropy's own config path.
   "ignore:XDG_CONFIG_HOME is set:UserWarning",
+  # python-dateutil 2.x uses datetime.utcfromtimestamp() which was
+  # deprecated in Python 3.12.  This fires during boto3 import (pulled
+  # in by the pdsparser → filecache → boto3 dependency chain) and is
+  # not actionable from this codebase.
+  "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning",
 ]
 
 [tool.setuptools]

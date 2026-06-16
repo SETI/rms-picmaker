@@ -2,53 +2,105 @@ Adding a new instrument
 =======================
 
 Every supported mission lives in its own module under
-:mod:`picmaker.instruments`. The four functions every instrument
-module exposes form a small structural protocol — there is no formal
-:class:`typing.Protocol` declaration but each module is structurally
-identical and the tests pin the contract.
+:mod:`picmaker.instruments`. Each module exposes a small structural
+protocol — there is no formal :class:`typing.Protocol` declaration but
+every module is structurally identical and the tests pin the contract.
 
-The four-function protocol
---------------------------
+The instrument protocol
+-----------------------
+
+**Required** — every instrument module must implement these three
+functions:
 
 .. code-block:: python
 
-   def detect_vicar(vic) -> tuple[str, str, str] | None: ...
-   def detect_fits(hdulist) -> tuple[str, str, str] | None: ...
+   def read_file(
+       filename: str | os.PathLike[str],
+       obj: ObjectSelector = None,
+       hst: bool = False,
+       *,
+       pds3_label_method: str = 'strict',
+   ) -> ReadResult | None: ...
+
    def matches(inst_host: str, inst_id: str) -> bool: ...
+
    def tint_for(inst_id: str, filter_name) -> list[tuple[int, int, int]] | None: ...
 
-* ``detect_vicar(vic)`` — given a :class:`vicar.VicarImage`, return a
-  ``(host, id, filter_name)`` triple if this module owns the label,
-  else ``None``. Missions that are not delivered as VICAR return
-  ``None`` unconditionally.
-* ``detect_fits(hdulist)`` — same shape but for
-  :class:`astropy.io.fits.HDUList`. Missions that are not delivered
-  as FITS return ``None`` unconditionally.
+**Optional** — define this only when the instrument needs a custom
+colorization algorithm that cannot be expressed as a fixed colormap:
+
+.. code-block:: python
+
+   def apply_tint(
+       array3d: NDArray[Any],
+       filter_info: FilterInfo,
+       options: PicmakerOptions,
+   ) -> NDArray[Any] | None: ...
+
+Function descriptions
+~~~~~~~~~~~~~~~~~~~~~
+
+* ``read_file(filename, obj, hst, *, pds3_label_method)`` — the
+  instrument's complete file reader.  It must detect whether *filename*
+  belongs to this instrument (via magic bytes, header keywords, file
+  extension, or any other heuristic), extract the image array, and
+  return a :class:`~picmaker._types.ReadResult` on success, or ``None``
+  if the file is not owned by this instrument.  Each instrument owns its
+  own format detection; the caller never pre-opens the file.  Shared
+  format utilities (VICAR parser, FITS magic-byte sniff, FITS array
+  extractor) are available in :mod:`picmaker.instruments._shared`.
+
 * ``matches(inst_host, inst_id)`` — quick host-level predicate used
-  by :func:`picmaker.instruments.lookup` once the cascade already
-  has a ``filter_info`` triple in hand (e.g. when ``--tint`` is set
-  on a non-detected file).
+  by :func:`picmaker.instruments.lookup` once the cascade already has a
+  ``filter_info`` triple (e.g. when ``--tint`` is applied to a file
+  whose metadata was read without going through ``read_file``).
+
 * ``tint_for(inst_id, filter_name)`` — given the filter, return the
   three-stop colormap ``[black, tint, white]``, the two-stop fallback
   ``[black, white]``, or ``None`` if the filter is genuinely unknown
-  (the HST wavelength-inference path uses ``None`` to signal "unable
-  to infer; keep the user's colormap").
+  (the HST wavelength-inference path uses ``None`` to mean "unable to
+  infer; keep the user's colormap").
+
+* ``apply_tint(array3d, filter_info, options)`` — checked via
+  :func:`hasattr` in :func:`picmaker.pipeline.images_to_pics`; only
+  define it when the tinting algorithm cannot be expressed as a fixed
+  colormap list.  Return a ``(lines, samples, 3)`` uint8 RGB array to
+  bypass the standard colormap pipeline, or ``None`` to fall through to
+  :func:`picmaker.color.tinted_colormap` / ``_band_to_rgb``.
+
+Shared format utilities
+-----------------------
+
+:mod:`picmaker.instruments._shared` provides helpers that multiple
+instrument modules can import without circular-import issues:
+
+* :func:`~picmaker.instruments._shared.try_open_vicar` — parse
+  *filename* as a VICAR file and return a :class:`vicar.VicarImage`, or
+  ``None`` on any error (including non-VICAR files).
+* :func:`~picmaker.instruments._shared.is_fits_file` — return ``True``
+  iff the file begins with the FITS magic bytes ``b'SIMPLE  ='``.
+* :func:`~picmaker.instruments._shared.extract_fits_array` — extract a
+  3-D ``(bands, lines, samples)`` array from an open FITS HDU list,
+  handling ``obj=None`` (auto-detect), list/tuple (stack), and scalar
+  (direct index) selectors.
 
 Step-by-step
 ------------
 
-1. **Create the module.** Copy
-   :file:`src/picmaker/instruments/voyager.py` as a template — it
-   uses the simplest of the four detection patterns (a constant
-   ``FILTER_DICT`` plus a ``LAB02[:3] == 'VGR'`` predicate).
+1. **Create the module.** The template below covers the VICAR case —
+   the most common pattern.
 
    .. code-block:: python
 
       """My-Mission MyInstrument detection and tint."""
 
+      import os
       from typing import Any
 
       from vicar import VicarError
+
+      from picmaker._types import ObjectSelector, ReadResult
+      from picmaker.instruments import _shared
 
       _FILTER_DICT: dict[str, tuple[int, int, int]] = {
           'BLUE': (110, 110, 210),
@@ -57,7 +109,7 @@ Step-by-step
       }
 
 
-      def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
+      def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
           """Return ('MYMISSION', 'MYINST', filter) or None."""
           try:
               if vic['INSTRUMENT_HOST_NAME'] == 'MY MISSION':
@@ -67,9 +119,24 @@ Step-by-step
           return None
 
 
-      def detect_fits(hdulist: Any) -> tuple[str, str, str] | None:
-          """Not delivered as FITS — always None."""
-          return None
+      def read_file(
+          filename: str | os.PathLike[str],
+          obj: ObjectSelector = None,
+          hst: bool = False,
+          *,
+          pds3_label_method: str = 'strict',
+      ) -> ReadResult | None:
+          """Try to detect and read a My-Mission VICAR image."""
+          vic = _shared.try_open_vicar(filename)
+          if vic is None:
+              return None
+          filter_info = _detect_vicar(vic)
+          if filter_info is None:
+              return None
+          array3d = vic.data_3d
+          if array3d.ndim == 2:
+              array3d = array3d.reshape((1, *array3d.shape))
+          return ReadResult(array3d, False, filter_info)
 
 
       def matches(inst_host: str, inst_id: str) -> bool:
@@ -86,34 +153,67 @@ Step-by-step
           return [(0, 0, 0), _FILTER_DICT[filter_name], (255, 255, 255)]
 
 
-      __all__ = ['detect_fits', 'detect_vicar', 'matches', 'tint_for']
+      __all__ = ['matches', 'read_file', 'tint_for']
+
+   For a **FITS-based instrument**, replace ``_detect_vicar`` +
+   ``try_open_vicar`` with ``_detect_fits`` + ``is_fits_file``:
+
+   .. code-block:: python
+
+      import warnings
+
+      import astropy.io.fits as pyfits
+
+      def _detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
+          """Return ('MYMISSION', 'MYINST', filter) or None."""
+          try:
+              if hdulist[0].header['TELESCOP'] == 'MY MISSION':
+                  return ('MYMISSION', 'MYINST',
+                          hdulist[0].header.get('FILTER'))
+          except KeyError:
+              pass
+          return None
+
+      def read_file(
+          filename: str | os.PathLike[str],
+          obj: ObjectSelector = None,
+          hst: bool = False,
+          *,
+          pds3_label_method: str = 'strict',
+      ) -> ReadResult | None:
+          """Try to detect and read a My-Mission FITS image."""
+          if not _shared.is_fits_file(filename):
+              return None
+          try:
+              with warnings.catch_warnings(), pyfits.open(str(filename)) as hdulist:
+                  warnings.filterwarnings('error')
+                  filter_info = _detect_fits(hdulist)
+                  if filter_info is None:
+                      return None
+                  array3d = _shared.extract_fits_array(hdulist, obj)
+                  return ReadResult(array3d, True, filter_info)
+          except (UserWarning, OSError):
+              return None
 
 2. **Register the module.** Open
-   :file:`src/picmaker/instruments/__init__.py` and add the new
-   module to the three dispatch lists. If the new instrument only
-   handles VICAR or only FITS, add it to that list plus
-   :data:`~picmaker.instruments.ALL_INSTRUMENTS`:
+   :file:`src/picmaker/instruments/__init__.py` and add the new module
+   to the import line and to :data:`~picmaker.instruments.ALL_INSTRUMENTS`:
 
    .. code-block:: python
 
       from picmaker.instruments import cassini, galileo, hst, mymission, nh, voyager
 
-      VICAR_INSTRUMENTS = [cassini, galileo, voyager, mymission]
-      FITS_INSTRUMENTS = [hst, nh]
-      ALL_INSTRUMENTS = [cassini, voyager, galileo, hst, nh, mymission]
+      ALL_INSTRUMENTS: list[ModuleType] = [cassini, voyager, galileo, hst, nh, mymission]
 
-   .. note::
-
-      Consolidating these three lists into one is tracked in
-      `issue #13 <https://github.com/SETI/rms-picmaker/issues/13>`__.
-      Until that lands, every new module needs entries in two or
-      three places.
+   Order matters: the cascade tries each instrument in list order and
+   returns on the first match, so put more-specific instruments before
+   more-general ones.
 
 3. **Add a fixture recipe.** Create
    :file:`tests/fixture_recipes/mymission_myinst_recipe.py` that
-   builds a tiny synthetic VICAR or FITS file with the metadata
-   keys your ``detect_*`` reads. Run it once from the venv to
-   create the fixture binary:
+   builds a tiny synthetic VICAR or FITS file containing the metadata
+   keys your :func:`!_detect_vicar` / :func:`!_detect_fits` reads.  Run
+   it once from the venv to create the fixture binary:
 
    .. code-block:: bash
 
@@ -133,15 +233,14 @@ Step-by-step
           ('mymission_myinst.vic', ('MYMISSION', 'MYINST', 'BLUE'), False),
       ]
 
-   :file:`tests/test_io.py::test_instrument_detection` parametrizes
-   over this list, so the new entry exercises both
-   :func:`picmaker.io.read_one_image_array` (via the parametrize)
-   and :func:`picmaker.instruments.lookup` (via the new fixture's
-   ``filter_info`` triple).
+   :func:`!tests.test_io.test_instrument_detection` parametrizes over
+   this list, so the new entry exercises both
+   :func:`picmaker.io.read_one_image_array` (the full cascade) and
+   :func:`picmaker.instruments.lookup` (the ``filter_info`` triple).
 
 5. **Add direct unit tests for the per-instrument helpers.** Open
    :file:`tests/test_instruments_branches.py` and add a parametrize
-   case for every ``tint_for`` branch you want pinned, mirroring
+   case for every :func:`!tint_for` branch you want pinned, mirroring
    the existing Cassini and Voyager parametrize blocks.
 
 6. **Add a snapshot.** If the new fixture supports the ``--tint``,
@@ -157,13 +256,9 @@ Step-by-step
    and rewrites :file:`tests/snapshots_index.py`. Both should be
    committed.
 
-7. **Document it.** Open :file:`docs/user_guide.rst` and add a
-   section under "Supported instruments and filters" describing the
-   new instrument's detection labels, filter set, and tint table.
-
-   :file:`tests/test_cli.py::test_user_guide_documents_every_cli_flag`
-   does not catch undocumented instruments today; this is
-   author-discipline rather than CI-enforced.
+7. **Document it.** Open :file:`docs/user_guide.rst` and add a section
+   under "Supported instruments and filters" describing the new
+   instrument's detection labels, filter set, and tint table.
 
 8. **Run the full check suite.**
 
@@ -176,18 +271,21 @@ Step-by-step
 When to break the protocol
 --------------------------
 
-Two existing modules already deviate slightly from the four-function
-template:
+Three existing modules deviate slightly from the minimal template:
 
-* :mod:`picmaker.instruments.cassini` keeps the tint chain in a
-  private helper :func:`!picmaker.instruments.cassini._iss_tint`
-  rather than a public dict, because the chain is substring-based
-  (``IR``, ``UV``, ``BL``, …) rather than a fixed mapping.
-* :mod:`picmaker.instruments.hst` derives the tint from
-  wavelength-inferred-from-digits rather than a fixed mapping, and
-  has special cases for NICMOS scaling, WFPC2 quad filters
-  (``FQUV*`` / ``FQCH4*``), polarizers (``POL0S`` / ``POL0L``), and
-  long-pass broadband filters (``F350LP``, ``F606W``, ``LONG_PASS``).
+* :mod:`picmaker.instruments.cassini` keeps the tint chain in a private
+  helper :func:`!picmaker.instruments.cassini._iss_tint` rather than a
+  fixed dict, because the chain is substring-based (``IR``, ``UV``,
+  ``BL``, …) rather than an exact-key mapping.
+* :mod:`picmaker.instruments.hst` derives the tint from wavelength
+  inferred from filter-name digits rather than a fixed mapping, and has
+  special cases for NICMOS scaling, WFPC2 quad filters (``FQUV*`` /
+  ``FQCH4*``), polarizers (``POL0S`` / ``POL0L``), and long-pass
+  broadband filters (``F350LP``, ``F606W``, ``LONG_PASS``).
+* :mod:`picmaker.instruments.hst` also contains a private
+  :func:`!_extract_hst_array` helper that handles ACS/WFC two-detector
+  and WFPC2 four-detector mosaic extraction in :func:`!read_file`,
+  because the array layout depends on the instrument sub-type.
 
-Both still expose the four-function protocol; the internal
+All three still expose the full required protocol; the internal
 implementation just differs.

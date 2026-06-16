@@ -37,14 +37,24 @@ zoom controls to read the labels at any size.
        PR --> N[read_image_array]
        L --> N
        N --> O[read_one_image_array<br/>format cascade]
-       O --> P[pickle / numpy / VICAR / FITS / PIL / PDS3]
-       P --> Q[ReadResult<br/>array3d, default_is_up, filter_info]
+       O --> P[pickle / numpy]
+       P --> PI[instrument cascade<br/>read_file per ALL_INSTRUMENTS]
+       PI --> PF[generic VICAR fallback]
+       PF --> PG[generic FITS fallback]
+       PG --> PH[PIL / PDS3]
+       PH --> Q[ReadResult<br/>array3d, default_is_up, filter_info]
+       PI --> Q
+       PF --> Q
+       PG --> Q
        Q --> R{hst=True?}
        R -->|yes| S[_hst_mosaic_rgb<br/>WFPC2 quad or ACS panel mosaic]
        R -->|no| T[slice_array]
        T --> U[fill_zebra_stripes<br/>optional]
        U --> V[get_limits]
-       V --> W[apply_colormap]
+       V --> AT{apply_tint?}
+       AT -->|instrument has apply_tint| ATC[apply_tint<br/>custom RGB]
+       AT -->|no| W[apply_colormap]
+       ATC --> X[rotate_array_rgb]
        W --> X[rotate_array_rgb]
        X --> Y[apply_gamma]
        Y --> Z[get_size + array_to_pil]
@@ -62,16 +72,19 @@ zoom controls to read the labels at any size.
        HH --> II
        II --> M
 
-Two short observations on the diagram:
+Three short observations on the diagram:
 
 * The ``movie=True`` branch runs :func:`~picmaker.pipeline.images_to_pics`
   twice. The first pass computes the per-frame limits, the second
   pass uses the median of those limits so every frame shares one
   stretch.
 * The HST mosaic branch (``hst=True``) handles WFPC2 quad-panel and
-  ACS/WFC two-panel composites; it is the only branch that bypasses
-  the single-band :func:`~picmaker.geometry.slice_array` →
-  :func:`~picmaker.enhance.apply_colormap` flow.
+  ACS/WFC two-panel composites; array extraction happens in
+  :func:`picmaker.instruments.hst.read_file`, and ``_hst_mosaic_rgb``
+  handles panel layout and colormap application.
+* The ``apply_tint`` branch fires when ``--tint`` is set and the
+  instrument module defines :func:`!apply_tint`; it produces the final
+  RGB array directly, bypassing :func:`~picmaker.enhance.apply_colormap`.
 
 
 Major functions
@@ -136,19 +149,38 @@ The reader cascade
 ~~~~~~~~~~~~~~~~~~
 
 :func:`picmaker.io.read_one_image_array` is the single-file reader.
-It tries every supported format in turn (pickle → numpy → VICAR →
-FITS → PIL → PDS3) and returns a :class:`~picmaker.io.ReadResult`
-triple. Each branch catches its specific exception types so an
-unrecognized file falls through to the next; the cascade-end
-:class:`OSError` is chained from a :class:`ExceptionGroup` that
-carries every per-reader failure for diagnostic purposes.
+It tries every supported format in turn and returns a
+:class:`~picmaker._types.ReadResult` triple on the first match.  The
+cascade order is:
 
-The FITS branch sniffs the first 9 bytes for ``b'SIMPLE  ='`` before
-calling :func:`astropy.io.fits.open` so that wrong-extension files do
-not trigger astropy's expensive parser, and so that warnings raised
-from inside :func:`astropy.io.fits.open` are converted to exceptions
-by :class:`warnings.catch_warnings` + ``filterwarnings('error')`` and
-swallowed at the branch boundary.
+1. **pickle** — :func:`pickle.load`, catches any exception.
+2. **numpy** — :func:`numpy.load`, catches :class:`OSError` /
+   :class:`ValueError`.
+3. **per-instrument readers** — iterates
+   :data:`picmaker.instruments.ALL_INSTRUMENTS` and calls each
+   instrument's :func:`!read_file`.  Each instrument handles its own
+   format detection (VICAR magic, FITS magic, file-extension heuristic,
+   etc.) and returns :class:`~picmaker._types.ReadResult` on success or
+   ``None`` to pass to the next instrument.  Shared format utilities
+   live in :mod:`picmaker.instruments._shared`.
+4. **generic VICAR fallback** — :meth:`vicar.VicarImage.from_file` with
+   ``strict=False``, for VICAR files from instruments not yet in
+   :data:`~picmaker.instruments.ALL_INSTRUMENTS`.  Returns
+   ``filter_info=None``.
+5. **generic FITS fallback** — sniffs the first 9 bytes for
+   ``b'SIMPLE  ='`` before calling :func:`astropy.io.fits.open`, for
+   FITS files from unrecognized instruments.  Warnings from astropy are
+   promoted to exceptions by :class:`warnings.catch_warnings` +
+   ``filterwarnings('error')`` and swallowed at the branch boundary.
+   Returns ``filter_info=None``.
+6. **PIL / 16-bit TIFF** — :func:`~picmaker.io.read_array`.
+7. **PDS3 label** — :func:`~picmaker.io.read_pds_labeled_image_array`,
+   only attempted when a ``labelfile`` path is provided.
+
+Each branch catches its specific exception types so an unrecognized file
+falls through to the next; the cascade-end :class:`OSError` is chained
+from an :class:`ExceptionGroup` that carries every per-reader failure
+for diagnostic purposes.
 
 :func:`picmaker.io.read_image_array` is the multi-file wrapper: it
 delegates to :func:`~picmaker.io.read_one_image_array` per file and
@@ -202,7 +234,10 @@ following phases for one input file:
    that :func:`process_images` builds per ``option_dict``.
 3. If ``hst=True`` and the instrument is ACS/WFC or WFPC2, dispatch to
    :func:`!picmaker.pipeline._hst_mosaic_rgb` for the per-detector
-   stack-and-mosaic flow.
+   mosaic RGB assembly.  The multi-detector array data is already
+   extracted by :func:`picmaker.instruments.hst.read_file` via its
+   private :func:`!_extract_hst_array` helper; ``_hst_mosaic_rgb``
+   only handles the panel-layout and colormap application.
 4. Otherwise: slice (:func:`~picmaker.geometry.slice_array`),
    optionally fill zebra stripes
    (:func:`~picmaker.enhance.fill_zebra_stripes`), compute limits

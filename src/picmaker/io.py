@@ -12,7 +12,7 @@ import pickle
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, NamedTuple, cast
+from typing import Any, cast
 
 import astropy.io.fits as pyfits
 import numpy as np
@@ -22,41 +22,10 @@ from PIL import Image
 from vicar import VicarError, VicarImage
 
 from picmaker import instruments
+from picmaker._types import FilterInfo, ObjectSelector, ReadResult
+from picmaker.instruments._shared import extract_fits_array, is_fits_file
 from picmaker.pil_utils import array_to_pil, pil_to_array
 from picmaker.tiff16 import read_tiff16
-
-# Reader-cascade ``filter_info`` element: ``(inst_host, inst_id, filter_name)``
-# or ``None``. The inner ``filter_name`` may be a 2-tuple for HST (see
-# :func:`picmaker.instruments.hst.detect_fits`), which keeps the static type as
-# ``tuple[str, str, Any] | None`` rather than ``tuple[str, str, str] | None``.
-FilterInfo = tuple[str, str, Any] | None
-
-# Selector for multi-image files. FITS and PDS3 both accept an integer index
-# or a pointer/HDU name; FITS additionally accepts a list/tuple of such
-# selectors when stacking multiple HDUs into one 3-D array. Sequence is
-# spelled out as list/tuple (not Sequence[...]) because ``str`` is itself
-# a Sequence[str] and the runtime branches use ``isinstance(obj, (list,
-# tuple))`` to discriminate.
-ObjectSelector = int | str | list[int | str] | tuple[int | str, ...] | None
-
-
-class ReadResult(NamedTuple):
-    """Triple returned by the reader cascade.
-
-    A :class:`typing.NamedTuple` so callers can use either positional
-    unpacking (``array, up, info = read_one_image_array(...)``) or
-    attribute access (``result.array3d``) interchangeably.
-    """
-
-    #: 3-D numpy array indexed ``(bands, lines, samples)``.
-    array3d: NDArray[Any]
-    #: True if the per-instrument default display orientation is upward
-    #: (line numbers increase upward).
-    default_is_up: bool
-    #: ``(inst_host, inst_id, filter_name)`` or ``None`` if no registered
-    #: instrument matched. ``filter_name`` is usually a string but is a
-    #: 2-tuple for some HST conventions.
-    filter_info: FilterInfo
 
 
 def read_image_array(
@@ -124,9 +93,10 @@ def read_one_image_array(
 ) -> ReadResult:
     """Read a single image array, trying each known format in turn.
 
-    The try-cascade is: pickle → numpy ``.npy`` → VICAR → FITS → PIL
-    (or 16-bit TIFF) → PDS3 label. Each format is attempted in order
-    and the first one that succeeds wins.
+    The try-cascade is: pickle → numpy ``.npy`` → instrument readers →
+    VICAR fallback → FITS fallback → PIL (or 16-bit TIFF) → PDS3 label.
+    Each format is attempted in order and the first one that succeeds
+    wins.
 
     Parameters:
         filename: Path to the input file.
@@ -175,95 +145,37 @@ def read_one_image_array(
     except (OSError, ValueError) as exc:
         cascade_errors.append(exc)
 
-    # ---- VICAR attempt ----
-    # Also catch OSError so a missing-file error propagates through to the
+    # ---- Per-instrument readers ----
+    # Each instrument's read_file() handles its own format detection and
+    # array extraction.  Instruments that share a format (VICAR, FITS)
+    # call shared utilities from picmaker.instruments._shared internally.
+    for instrument in instruments.ALL_INSTRUMENTS:
+        result = instrument.read_file(filename, obj, hst, pds3_label_method=pds3_label_method)
+        if result is not None:
+            return cast('ReadResult', result)
+
+    # ---- Generic VICAR fallback (unrecognized or un-labelled VICAR file) ----
+    # Also catches OSError so a missing-file error propagates through to the
     # final OSError("Unrecognized image file format ...") below rather than
     # surfacing as the rms-vicar FileNotFoundError.
     try:
         vic = VicarImage.from_file(filename_str, extraneous='print', strict=False)
         array3d = vic.data_3d
-        for instrument in instruments.VICAR_INSTRUMENTS:
-            filter_info = instrument.detect_vicar(vic)
-            if filter_info is not None:
-                return ReadResult(array3d, False, filter_info)
+        if len(array3d.shape) == 2:
+            array3d = array3d.reshape((1, *array3d.shape))
         return ReadResult(array3d, False, None)
     except (VicarError, OSError) as exc:
         cascade_errors.append(exc)
 
-    # ---- FITS attempt (preserves the magic-byte sniff at picmaker.py:1602-1605) ----
-    try:
-        with open(filename_str, 'rb') as f:
-            test = f.read(9)
-    except OSError as exc:
-        cascade_errors.append(exc)
-        test = b''
-
-    if test == b'SIMPLE  =':
+    # ---- Generic FITS fallback (unrecognized FITS file) ----
+    if is_fits_file(filename_str):
         try:
             with warnings.catch_warnings(), pyfits.open(filename_str) as hdulist:
                 warnings.filterwarnings('error')
                 _fitsobj = hdulist[0]  # IndexError if not FITS
 
-                filter_info = None
-                for instrument in instruments.FITS_INSTRUMENTS:
-                    filter_info = instrument.detect_fits(hdulist)
-                    if filter_info is not None:
-                        break
-                if filter_info is None:
-                    inst_id: Any = None
-                else:
-                    _inst_host, inst_id, _filter_name = filter_info
-
-                array3d = None
-                if obj is None:
-                    if hst and inst_id == 'ACS/WFC':
-                        array = hdulist[1].data
-                        try:
-                            array2 = hdulist[4].data
-                            shape = (2, *array.shape)
-                            array3d = np.empty(shape)
-                            array3d[0] = array
-                            array3d[1] = array2
-                        except IndexError:
-                            array3d = array
-
-                    elif hst and inst_id == 'WFPC2':
-                        array3d_list: list[Any] = []
-                        for hdu in hdulist:
-                            array = hdu.data
-                            if not isinstance(array, np.ndarray):
-                                continue
-                            if len(array.shape) not in (2, 3):
-                                continue
-                            array3d_list.append(array)
-                        array3d = np.array(array3d_list)
-
-                    else:
-                        for hdu in hdulist:
-                            array3d = hdu.data
-                            if not isinstance(array3d, np.ndarray):
-                                continue
-                            if len(array3d.shape) in (2, 3):
-                                break
-
-                elif isinstance(obj, (list, tuple)):
-                    layers = [hdulist[o].data for o in obj]
-                    array3d = np.stack(layers)
-
-                else:
-                    try:
-                        obj = int(obj)
-                    except ValueError:
-                        pass
-                    array3d = hdulist[obj].data.copy()
-
-                if array3d is None:
-                    raise OSError('Image array not found in FITS file')
-
-                if len(array3d.shape) == 2:
-                    array3d = array3d.reshape((1, *array3d.shape))
-
-                return ReadResult(array3d, True, filter_info)
+                array3d = extract_fits_array(hdulist, obj)
+                return ReadResult(array3d, True, None)
 
         except (UserWarning, OSError) as exc:
             cascade_errors.append(exc)
@@ -278,11 +190,11 @@ def read_one_image_array(
 
     # ---- PDS3 label attempt ----
     if labelfile:
-        result = read_pds_labeled_image_array(
+        pds3_result = read_pds_labeled_image_array(
             labelfile, obj, pds3_label_method=pds3_label_method,
         )
-        if result is not None:
-            return result
+        if pds3_result is not None:
+            return pds3_result
 
     cause: BaseException | None = (
         ExceptionGroup('No reader matched', cascade_errors)

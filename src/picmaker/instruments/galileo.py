@@ -1,8 +1,12 @@
 """Galileo SSI detection and tint."""
 
+import os
 from typing import Any
 
 from vicar import VicarError
+
+from picmaker._types import ObjectSelector, ReadResult
+from picmaker.instruments import _shared
 
 FILTER_NAMES: list[str] = [
     'CLEAR',
@@ -27,8 +31,8 @@ FILTER_DICT: dict[str, tuple[int, int, int]] = {
 }
 
 
-def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
-    """Detect a Galileo SSI VICAR image.
+def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
+    """Extract Galileo SSI metadata from an open :class:`vicar.VicarImage`.
 
     Two label conventions are tried in order: the ``MISSION`` keyword
     with a numeric ``FILTER`` index into
@@ -58,16 +62,39 @@ def detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     return None
 
 
-def detect_fits(hdulist: Any) -> tuple[str, str, str] | None:
-    """Galileo SSI is not delivered as FITS — always returns ``None``.
+def read_file(
+    filename: str | os.PathLike[str],
+    obj: ObjectSelector = None,
+    hst: bool = False,
+    *,
+    pds3_label_method: str = 'strict',
+) -> ReadResult | None:
+    """Try to detect and read a Galileo SSI VICAR image.
+
+    Opens *filename* as VICAR, checks the instrument label, and returns
+    the data array with filter metadata.  Returns ``None`` if the file
+    is not a Galileo SSI VICAR image.
 
     Parameters:
-        hdulist: An ``astropy.io.fits`` HDU list (unused).
+        filename: Path to the candidate file.
+        obj: Ignored (VICAR files contain a single array).
+        hst: Ignored (Galileo is not HST).
+        pds3_label_method: Ignored (Galileo files are not PDS3-labeled).
 
     Returns:
-        Always ``None``.
+        :class:`~picmaker._types.ReadResult` on success, ``None`` if
+        the file is not recognized as a Galileo SSI image.
     """
-    return None
+    vic = _shared.try_open_vicar(filename)
+    if vic is None:
+        return None
+    filter_info = _detect_vicar(vic)
+    if filter_info is None:
+        return None
+    array3d = vic.data_3d
+    if array3d.ndim == 2:
+        array3d = array3d.reshape((1, *array3d.shape))
+    return ReadResult(array3d, False, filter_info)
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
@@ -111,8 +138,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
 __all__ = [
     'FILTER_DICT',
     'FILTER_NAMES',
-    'detect_fits',
-    'detect_vicar',
     'matches',
+    'read_file',
     'tint_for',
 ]

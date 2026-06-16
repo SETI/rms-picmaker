@@ -15,6 +15,7 @@ from typing import Any, cast
 import numpy as np
 import pdsparser
 
+from picmaker import instruments
 from picmaker._filters import filter_image
 from picmaker.color import tinted_colormap
 from picmaker.enhance import (
@@ -485,39 +486,50 @@ def _process_one_image(
         this_display_upward = default_is_up
 
     is_int = array3d.dtype.kind in ('i', 'u')
-
-    # Resolve the effective colormap: tint mode overrides the user's
-    # colormap when the instrument has a known per-filter tint.
-    colormap = options.colormap
-    if options.tint:
-        tint_override = tinted_colormap(filter_info)
-        if tint_override is not None:
-            colormap = tint_override
-
-    use_hst_mosaic = (
-        options.hst
-        and filter_info is not None
-        and filter_info[0] == 'HST'
-        and filter_info[1] in ('ACS/WFC', 'WFPC2')
-    )
-
     limits_pair: tuple[Any, Any] = (None, None)
 
-    if use_hst_mosaic:
-        array_rgb, array3d = _hst_mosaic_rgb(
-            array3d, filter_info, imagefile,
-            options=options,
-            default_is_up=default_is_up,
-            is_int=is_int,
-            colormap=colormap,
-        )
-        this_display_upward = False
+    # --- Per-instrument custom colorization (optional apply_tint method) ---
+    # When an instrument defines apply_tint(), it owns the full (H, W, 3)
+    # RGB output; limits_pair stays (None, None) as in the HST mosaic branch.
+    _custom_rgb = None
+    if options.tint and filter_info is not None:
+        _inst = instruments.lookup(filter_info[0], filter_info[1])
+        if _inst is not None and hasattr(_inst, 'apply_tint'):
+            _custom_rgb = _inst.apply_tint(array3d, filter_info, options)
+
+    if _custom_rgb is not None:
+        array_rgb = _custom_rgb
     else:
-        array_rgb, these_limits = _band_to_rgb(
-            array3d, options.bands,
-            options=options, is_int=is_int, colormap=colormap,
+        # Resolve the effective colormap: tint mode overrides the user's
+        # colormap when the instrument has a known per-filter tint.
+        colormap = options.colormap
+        if options.tint:
+            tint_override = tinted_colormap(filter_info)
+            if tint_override is not None:
+                colormap = tint_override
+
+        use_hst_mosaic = (
+            options.hst
+            and filter_info is not None
+            and filter_info[0] == 'HST'
+            and filter_info[1] in ('ACS/WFC', 'WFPC2')
         )
-        limits_pair = (these_limits[0], these_limits[1])
+
+        if use_hst_mosaic:
+            array_rgb, array3d = _hst_mosaic_rgb(
+                array3d, filter_info, imagefile,
+                options=options,
+                default_is_up=default_is_up,
+                is_int=is_int,
+                colormap=colormap,
+            )
+            this_display_upward = False
+        else:
+            array_rgb, these_limits = _band_to_rgb(
+                array3d, options.bands,
+                options=options, is_int=is_int, colormap=colormap,
+            )
+            limits_pair = (these_limits[0], these_limits[1])
 
     array_rgb = rotate_array_rgb(array_rgb, this_display_upward, options.rotate)
     array_rgb = apply_gamma(array_rgb, options.gamma)
