@@ -176,11 +176,6 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "A", "N", "PT", "RUF"]
 # SIM108 - Use ternary operator for simple if/else.
 extend-ignore = ["PT011", "SIM105", "SIM108"]
 
-[tool.ruff.lint.per-file-ignores]
-# N802 = function names should be lowercase. `WriteTiff16` and `ReadTiff16`
-# are public-API entry points pinned by `tests/test_api_compat.py`; the
-# PascalCase spelling is the documented call signature.
-"src/picmaker/tiff16.py" = ["N802"]
 
 [tool.pymarkdown.plugins.md013]
 # Line length (disable so README/CONTRIBUTING can use longer lines).

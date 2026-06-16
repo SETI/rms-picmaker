@@ -25,10 +25,10 @@ class TestReadArray:
         assert arr.shape == (8, 8, 3)
 
     def test_sixteen_bit_tiff(self, fixtures_dir: Path) -> None:
-        # ReadTiff16 branch: rescale=False returns the raw uint16 array.
+        # read_tiff16 branch: rescale=False returns the raw uint16 array.
         arr = read_array(str(fixtures_dir / 'small_tiff16.tiff'), rescale=False)
-        # small_tiff16.tiff is a grayscale 8x8 written by WriteTiff16, so
-        # ReadTiff16 returns the 2-D shape directly.
+        # small_tiff16.tiff is a grayscale 8x8 written by write_tiff16, so
+        # read_tiff16 returns the 2-D shape directly.
         assert arr.shape == (8, 8)
 
     def test_sixteen_bit_tiff_rescale(self, fixtures_dir: Path) -> None:

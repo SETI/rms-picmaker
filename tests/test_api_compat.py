@@ -112,7 +112,7 @@ def test_filter_symbols_are_canonical() -> None:
 
 def test_sibling_reexports_are_canonical() -> None:
     """The sibling-package re-exports the pre-PR-3 ``picmaker.picmaker``
-    surfaced (``ColorNames``, ``WriteTiff16``, ``ReadTiff16``,
+    surfaced (``ColorNames``, ``write_tiff16``, ``read_tiff16``,
     ``VicarImage``, ``VicarError``) are identity-equal to their
     canonical objects in :mod:`picmaker.colornames`,
     :mod:`picmaker.tiff16`, and the ``vicar`` sibling package.
@@ -120,11 +120,11 @@ def test_sibling_reexports_are_canonical() -> None:
     from vicar import VicarError, VicarImage
 
     from picmaker.colornames import ColorNames
-    from picmaker.tiff16 import ReadTiff16, WriteTiff16
+    from picmaker.tiff16 import read_tiff16, write_tiff16
 
     assert legacy.ColorNames is ColorNames
-    assert legacy.WriteTiff16 is WriteTiff16
-    assert legacy.ReadTiff16 is ReadTiff16
+    assert legacy.write_tiff16 is write_tiff16
+    assert legacy.read_tiff16 is read_tiff16
     assert legacy.VicarImage is VicarImage
     assert legacy.VicarError is VicarError
 

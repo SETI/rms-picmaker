@@ -47,7 +47,7 @@ from picmaker.io import (
 from picmaker.options import PicmakerOptions
 from picmaker.pil_utils import _one_pil_to_array, array_to_pil, pil_to_array, write_pil
 from picmaker.pipeline import find_common_path, images_to_pics, process_images
-from picmaker.tiff16 import ReadTiff16, WriteTiff16
+from picmaker.tiff16 import read_tiff16, write_tiff16
 
 __all__ = [
     'BFUNC',
@@ -61,10 +61,8 @@ __all__ = [
     'VOYAGER_ISS_DICT',
     'ColorNames',
     'PicmakerOptions',
-    'ReadTiff16',
     'VicarError',
     'VicarImage',
-    'WriteTiff16',
     '_get_size_for_frame',
     '_get_size_for_size',
     '_one_pil_to_array',
@@ -91,12 +89,14 @@ __all__ = [
     'read_one_image_array',
     'read_pds_labeled_image_array',
     'read_pil',
+    'read_tiff16',
     'resize_image',
     'rotate_array_rgb',
     'slice_array',
     'tinted_colormap',
     'wrap_image',
     'write_pil',
+    'write_tiff16',
 ]
 
 if __name__ == '__main__':

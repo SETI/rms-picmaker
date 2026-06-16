@@ -23,7 +23,7 @@ from vicar import VicarError, VicarImage
 
 from picmaker import instruments
 from picmaker.pil_utils import array_to_pil, pil_to_array
-from picmaker.tiff16 import ReadTiff16
+from picmaker.tiff16 import read_tiff16
 
 # Reader-cascade ``filter_info`` element: ``(inst_host, inst_id, filter_name)``
 # or ``None``. The inner ``filter_name`` may be a 2-tuple for HST (see
@@ -469,7 +469,7 @@ def read_pil(infile: str | os.PathLike[str]) -> Image.Image | list[Image.Image]:
     testfile = infile_str.upper()
     if testfile.endswith('.TIFF') or testfile.endswith('.TIF'):
         try:
-            (array, palette) = ReadTiff16(infile_str)
+            (array, palette) = read_tiff16(infile_str)
         except OSError:
             array = None
             palette = None
@@ -507,7 +507,7 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> NDArray[Any]:
     testfile = infile_str.upper()
     if testfile.endswith('.TIFF') or testfile.endswith('.TIF'):
         try:
-            (array, palette) = ReadTiff16(infile_str)
+            (array, palette) = read_tiff16(infile_str)
         except OSError:
             array = None
             palette = None

@@ -46,7 +46,6 @@ After regenerating, verify no unexpected diff: `git diff --exit-code tests/fixtu
 - Quotes: **single**
 - **Do not run `ruff format`** — it is intentionally not enforced; existing style inconsistencies are left as-is
 - mypy runs in strict mode; `MYPYPATH=src` is required
-- `src/picmaker/tiff16.py` uses PascalCase names (`WriteTiff16`, `ReadTiff16`) — this is intentional public API; N802 is suppressed there
 - Bandit B301/B403 (pickle) are intentionally skipped — pickle usage is documented and by design
 
 ## Testing Quirks
