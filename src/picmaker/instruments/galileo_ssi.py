@@ -3,6 +3,7 @@
 import os
 from typing import Any
 
+import pdsparser
 from vicar import VicarError
 
 from picmaker._types import ObjectSelector, ReadResult
@@ -62,19 +63,44 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     return None
 
 
+def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
+    """Extract Galileo SSI metadata from a PDS3 label.
+
+    Parameters:
+        label: A parsed :class:`pdsparser.PdsLabel`.
+
+    Returns:
+        ``('GALILEO', 'SSI', filter_name)`` if the label identifies a
+        Galileo SSI image, ``None`` otherwise.
+    """
+    try:
+        d = label.as_dict()
+        if d.get('SPACECRAFT_NAME') != 'GALILEO ORBITER':
+            return None
+        if 'FILTER_NAME' in d:
+            filter_name = str(d['FILTER_NAME'])
+        elif 'FILTER_NUMBER' in d:
+            filter_name = FILTER_NAMES[int(d['FILTER_NUMBER'])]
+        else:
+            return None
+        return ('GALILEO', 'SSI', filter_name)
+    except (KeyError, TypeError, IndexError):
+        return None
+
+
 def read_file(
-    filename: str | os.PathLike[str],
+    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
-    """Try to detect and read a Galileo SSI VICAR image.
+    """Try to detect and read a Galileo SSI image.
 
-    Opens *filename* as VICAR, checks the instrument label, and returns
-    the data array with filter metadata.  Returns ``None`` if the file
-    is not a Galileo SSI VICAR image.
+    Accepts either a file path (VICAR format) or a pre-parsed
+    :class:`pdsparser.PdsLabel`.  Returns ``None`` if the file is not
+    recognized as a Galileo SSI image.
 
     Parameters:
-        filename: Path to the candidate file.
+        filename: Path to the candidate file, or a parsed PDS3 label.
         obj: Ignored (VICAR files contain a single array).
         **kwargs: Accepted but ignored; Galileo files need no
             instrument-specific options.
@@ -83,6 +109,13 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as a Galileo SSI image.
     """
+    if isinstance(filename, pdsparser.PdsLabel):
+        filter_info = _detect_pds3(filename)
+        if filter_info is None:
+            return None
+        array3d = _shared.read_pds3_image_array(filename, obj)
+        return ReadResult(array3d, False, filter_info)
+
     vic = _shared.try_open_vicar(filename)
     if vic is None:
         return None
@@ -111,8 +144,8 @@ def matches(inst_host: str, inst_id: str) -> bool:
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
     """Return the full ``[black, tint, white]`` colormap for a Galileo filter.
 
-    Only the SSI camera and the ``SOLID``-prefixed variants get a colored tint; every other Galileo
-    instrument falls through to the 2-element ``[black, white]`` colormap.
+    Only the SSI camera and the ``SOLID``-prefixed variants get a colored tint; every
+    other Galileo instrument falls through to the 2-element ``[black, white]`` colormap.
 
     Parameters:
         inst_id: Instrument id.

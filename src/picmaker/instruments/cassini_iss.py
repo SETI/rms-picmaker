@@ -3,6 +3,7 @@
 import os
 from typing import Any
 
+import pdsparser
 from vicar import VicarError
 
 from picmaker._types import ObjectSelector, ReadResult
@@ -71,19 +72,43 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     return None
 
 
+def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
+    """Extract Cassini ISS metadata from a PDS3 label.
+
+    Parameters:
+        label: A parsed :class:`pdsparser.PdsLabel`.
+
+    Returns:
+        ``('CASSINI', 'ISS', '<filter1>+<filter2>')`` if the label
+        identifies a Cassini ISS image, ``None`` otherwise.
+    """
+    try:
+        d = label.as_dict()
+        if d.get('INSTRUMENT_HOST_NAME') != 'CASSINI ORBITER':
+            return None
+        filter_name = d['FILTER_NAME']
+        if isinstance(filter_name, (list, tuple)):
+            filter_str = '+'.join(str(f) for f in filter_name)
+        else:
+            filter_str = str(filter_name)
+        return ('CASSINI', 'ISS', filter_str)
+    except (KeyError, TypeError):
+        return None
+
+
 def read_file(
-    filename: str | os.PathLike[str],
+    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
-    """Try to detect and read a Cassini ISS VICAR image.
+    """Try to detect and read a Cassini ISS image.
 
-    Opens *filename* as VICAR, checks the instrument label, and returns
-    the data array with filter metadata.  Returns ``None`` if the file
-    is not a Cassini ISS VICAR image.
+    Accepts either a file path (VICAR format) or a pre-parsed
+    :class:`pdsparser.PdsLabel`.  Returns ``None`` if the file is not
+    recognized as a Cassini ISS image.
 
     Parameters:
-        filename: Path to the candidate file.
+        filename: Path to the candidate file, or a parsed PDS3 label.
         obj: Ignored (VICAR files contain a single array).
         **kwargs: Accepted but ignored; Cassini files need no
             instrument-specific options.
@@ -92,6 +117,13 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as a Cassini ISS image.
     """
+    if isinstance(filename, pdsparser.PdsLabel):
+        filter_info = _detect_pds3(filename)
+        if filter_info is None:
+            return None
+        array3d = _shared.read_pds3_image_array(filename, obj)
+        return ReadResult(array3d, False, filter_info)
+
     vic = _shared.try_open_vicar(filename)
     if vic is None:
         return None

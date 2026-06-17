@@ -85,7 +85,7 @@ def _pds3_resolve_pointer(
     obj: Any,
     *,
     pds3_label_method: str = 'strict',
-) -> tuple[Any, tuple[Any, Any, Any] | None]:
+) -> tuple[Any, tuple[Any, Any, Any] | None, pdsparser.PdsLabel]:
     """Parse a PDS3 ``.LBL`` and resolve its image-object pointer.
 
     The pointer name list is tried in order; the first one present in
@@ -104,10 +104,13 @@ def _pds3_resolve_pointer(
             ``'compound'``, or ``'fast'``).
 
     Returns:
-        ``(imagefile, filter_info)`` — ``imagefile`` is either a single
-        path (``obj`` was an int) or a list of paths; ``filter_info`` is
-        the ``(host, instrument, filter)`` triple extracted from the
-        label, or ``None`` when no instrument metadata is present.
+        ``(imagefile, filter_info, label)`` — ``imagefile`` is either a
+        single path (``obj`` was an int) or a list of paths;
+        ``filter_info`` is the ``(host, instrument, filter)`` triple
+        extracted from the label, or ``None`` when no instrument
+        metadata is present; ``label`` is the parsed
+        :class:`pdsparser.PdsLabel` object (to avoid re-parsing in the
+        caller).
 
     Raises:
         KeyError: When none of the pointer names is present in the
@@ -115,7 +118,8 @@ def _pds3_resolve_pointer(
         IndexError: When ``obj`` selects an index past the end of the
             resolved pointer list.
     """
-    labeldict = pdsparser.PdsLabel(infile, method=pds3_label_method).as_dict()
+    label = pdsparser.PdsLabel(infile, method=pds3_label_method)
+    labeldict = label.as_dict()
 
     if 'INSTRUMENT_HOST_ID' in labeldict:
         inst_host = labeldict['INSTRUMENT_HOST_ID']
@@ -186,7 +190,7 @@ def _pds3_resolve_pointer(
     else:
         imagefile = [os.path.join(parent, pds_obj[o]) for o in obj]
 
-    return imagefile, filter_info
+    return imagefile, filter_info, label
 
 
 def _hst_wfpc2_mosaic(
@@ -435,26 +439,27 @@ def _process_one_image(
 
     if reuse is not None:
         (array3d, default_is_up, filter_info, infile) = reuse
-        labelfile: Any = ''
         imagefile: Any = infile
     else:
         upperfile = infile.upper()
         if upperfile.endswith('.LBL'):
-            labelfile = infile
-            imagefile, filter_info = _pds3_resolve_pointer(
+            imagefile, filter_info_from_label, _ = _pds3_resolve_pointer(
                 infile, options.pointer, options.obj,
                 pds3_label_method=options.pds3_label_method,
             )
+            (array3d, default_is_up, filter_info) = read_image_array(
+                imagefile, options.obj,
+                **{k: getattr(options, k) for k in READ_FILE_KWARGS},
+            )
+            filter_info = filter_info or filter_info_from_label
         else:
-            labelfile = ''
             imagefile = infile
             filter_info = None
-
-        (array3d, default_is_up, filter_info2) = read_image_array(
-            imagefile, labelfile, options.obj,
-            **{k: getattr(options, k) for k in READ_FILE_KWARGS},
-        )
-        filter_info = filter_info or filter_info2
+            (array3d, default_is_up, filter_info2) = read_image_array(
+                infile, options.obj,
+                **{k: getattr(options, k) for k in READ_FILE_KWARGS},
+            )
+            filter_info = filter_info or filter_info2
 
     if options.display_upward:
         this_display_upward = True

@@ -5,6 +5,7 @@ import warnings
 from typing import Any
 
 import astropy.io.fits as pyfits
+import pdsparser
 
 from picmaker._types import ObjectSelector, ReadResult
 from picmaker.instruments import _shared
@@ -49,18 +50,40 @@ def _detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
     return (inst_host, inst_id, filter_name)
 
 
+def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, None] | None:
+    """Extract New Horizons LORRI metadata from a PDS3 label.
+
+    Parameters:
+        label: A parsed :class:`pdsparser.PdsLabel`.
+
+    Returns:
+        ``('NEW HORIZONS', 'LORRI', None)`` if the label identifies a
+        New Horizons LORRI image, ``None`` otherwise.
+    """
+    try:
+        d = label.as_dict()
+        if d.get('INSTRUMENT_HOST_NAME') != 'NEW HORIZONS':
+            return None
+        if d.get('INSTRUMENT_ID') != 'LORRI':
+            return None
+        return ('NEW HORIZONS', 'LORRI', None)
+    except (KeyError, TypeError):
+        return None
+
+
 def read_file(
-    filename: str | os.PathLike[str],
+    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
     """Try to detect and read a New Horizons FITS image.
 
-    Checks the FITS magic bytes, opens the file, identifies it as NH
-    via the ``HOSTNAME`` header keyword, and extracts the data array.
+    Accepts either a file path (FITS format) or a pre-parsed
+    :class:`pdsparser.PdsLabel` (for LORRI).  Returns ``None`` if the
+    file is not recognized as a New Horizons image.
 
     Parameters:
-        filename: Path to the candidate file.
+        filename: Path to the candidate file, or a parsed PDS3 label.
         obj: HDU index, name, or list/tuple of indices to stack.
         **kwargs: Accepted but ignored; NH files need no
             instrument-specific options.
@@ -69,6 +92,13 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as a New Horizons FITS image.
     """
+    if isinstance(filename, pdsparser.PdsLabel):
+        filter_info = _detect_pds3(filename)
+        if filter_info is None:
+            return None
+        array3d = _shared.read_pds3_image_array(filename, obj)
+        return ReadResult(array3d, True, filter_info)
+
     if not _shared.is_fits_file(filename):
         return None
     try:

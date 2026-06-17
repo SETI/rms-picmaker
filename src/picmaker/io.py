@@ -23,24 +23,28 @@ from vicar import VicarError, VicarImage
 
 from picmaker import instruments
 from picmaker._types import FilterInfo, ObjectSelector, ReadResult
-from picmaker.instruments._shared import extract_fits_array, is_fits_file
+from picmaker.instruments._shared import extract_fits_array, is_fits_file, read_pds3_image_array
 from picmaker.pil_utils import array_to_pil, pil_to_array
 from picmaker.tiff16 import read_tiff16
 
 
 def read_image_array(
-    filename: str | Sequence[str | os.PathLike[str]],
-    labelfile: str | os.PathLike[str] | None,
+    filename: (
+        str | os.PathLike[str] | pdsparser.PdsLabel
+        | Sequence[str | os.PathLike[str]]
+    ),
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult:
     """Read one or more image files and return a stacked 3-D array.
 
     Parameters:
-        filename: An input file name, or a list of file names whose
-            arrays should be stacked together. Files can be in VICAR,
-            FITS, TIFF, ``.npy``, or pickle format.
-        labelfile: Optional path to a PDS3 label file.
+        filename: An input file path, a :class:`pdsparser.PdsLabel`
+            object (pre-parsed PDS3 label), or a list of file paths
+            whose arrays should be stacked together. Files can be in
+            VICAR, FITS, TIFF, ``.npy``, or pickle format. Paths
+            ending in ``.LBL`` or ``.lbl`` are parsed and dispatched
+            as PDS3 labels.
         obj: Index or name of the object to load when the file contains
             multiple image objects. If a list/tuple, multiple objects
             are stacked.
@@ -58,12 +62,12 @@ def read_image_array(
         * ``filter_info`` — Optional ``(inst_host, inst_id, filter)``
           tuple.
     """
-    if isinstance(filename, str):
-        return read_one_image_array(filename, labelfile, obj, **kwargs)
+    if isinstance(filename, (str, os.PathLike, pdsparser.PdsLabel)):
+        return read_one_image_array(filename, obj, **kwargs)
 
     results = []
     for k in range(len(filename)):
-        results.append(read_one_image_array(filename[k], labelfile, None, **kwargs))
+        results.append(read_one_image_array(filename[k], None, **kwargs))
 
     arrays = [r[0] for r in results]
     for k in range(len(arrays)):
@@ -76,21 +80,27 @@ def read_image_array(
 
 
 def read_one_image_array(
-    filename: str | os.PathLike[str],
-    labelfile: str | os.PathLike[str] | None,
+    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult:
     """Read a single image array, trying each known format in turn.
 
-    The try-cascade is: pickle → numpy ``.npy`` → instrument readers →
-    VICAR fallback → FITS fallback → PIL (or 16-bit TIFF) → PDS3 label.
-    Each format is attempted in order and the first one that succeeds
-    wins.
+    When *filename* is a :class:`pdsparser.PdsLabel` (or a path ending
+    in ``.LBL`` / ``.lbl``), the PDS3 label branch runs first: each
+    instrument's :func:`read_file` is tried in order, and an unrecognized
+    label falls through to :func:`read_pds_labeled_image_array`.
+
+    For all other paths the cascade is: pickle → numpy ``.npy`` →
+    per-instrument readers → generic VICAR fallback → generic FITS
+    fallback → PIL (or 16-bit TIFF) → PDS3 auto-detection (the file
+    itself is tried as a PDS3 label, which also detects sibling ``.LBL``
+    files via :func:`read_pds_labeled_image_array`).
 
     Parameters:
-        filename: Path to the input file.
-        labelfile: Optional path to a sibling PDS3 label file.
+        filename: Path to the input file, or a pre-parsed
+            :class:`pdsparser.PdsLabel`. Paths ending in ``.LBL`` or
+            ``.lbl`` are parsed automatically.
         obj: Object index/name for multi-image files.
         **kwargs: Instrument-specific options forwarded verbatim to each
             instrument's :func:`read_file`. See
@@ -107,6 +117,30 @@ def read_one_image_array(
             :class:`ExceptionGroup` so callers can inspect what each
             reader rejected.
     """
+    # ---- Auto-parse .LBL paths ----
+    if isinstance(filename, (str, os.PathLike)):
+        path_str = str(filename)
+        if path_str.upper().endswith('.LBL'):
+            filename = pdsparser.PdsLabel(
+                path_str, method=kwargs.get('pds3_label_method', 'strict')
+            )
+
+    # ---- PDS3 label branch ----
+    # Instrument readers are tried first; an unrecognized label falls back
+    # to the generic reader which also handles embedded labels and detects
+    # sibling .LBL files when given a data-file path.
+    if isinstance(filename, pdsparser.PdsLabel):
+        for instrument in instruments.ALL_INSTRUMENTS:
+            result = instrument.read_file(filename, obj, **kwargs)
+            if result is not None:
+                return cast('ReadResult', result)
+        # Generic fallback: resolve ^IMAGE and read via VICAR/FITS.
+        # This handles labels that don't match any known instrument but
+        # point to a VICAR or FITS data file.
+        array3d = read_pds3_image_array(filename, obj)
+        return ReadResult(array3d, False, None)
+
+    # ---- Non-label cascade ----
     filename_str = str(filename)
     cascade_errors: list[Exception] = []
 
@@ -178,14 +212,16 @@ def read_one_image_array(
     except OSError as exc:
         cascade_errors.append(exc)
 
-    # ---- PDS3 label attempt ----
-    if labelfile:
-        pds3_result = read_pds_labeled_image_array(
-            labelfile, obj,
-            pds3_label_method=kwargs.get('pds3_label_method', 'strict'),
-        )
-        if pds3_result is not None:
-            return pds3_result
+    # ---- PDS3 auto-detection (embedded label or sibling .LBL) ----
+    # read_pds_labeled_image_array first tries to parse filename_str itself
+    # as a PDS3 label; if that fails and the extension is not .lbl, it also
+    # checks for a sibling .lbl / .LBL file next to the data file.
+    pds3_result = read_pds_labeled_image_array(
+        filename_str, obj,
+        pds3_label_method=kwargs.get('pds3_label_method', 'strict'),
+    )
+    if pds3_result is not None:
+        return pds3_result
 
     cause: BaseException | None = (
         ExceptionGroup('No reader matched', cascade_errors)
@@ -220,7 +256,7 @@ def read_pds_labeled_image_array(
     label = None
     try:
         label = pdsparser.PdsLabel(filename_str, method=pds3_label_method)
-    except (pdsparser.ParseException, SyntaxError):
+    except (pdsparser.ParseException, SyntaxError, OSError):
         (head, ext) = os.path.splitext(filename_str)
         if ext.lower() != '.lbl':
             if os.path.exists(head + '.lbl'):

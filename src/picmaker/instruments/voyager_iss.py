@@ -3,6 +3,7 @@
 import os
 from typing import Any
 
+import pdsparser
 from vicar import VicarError
 
 from picmaker._types import ObjectSelector, ReadResult
@@ -45,19 +46,40 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     return None
 
 
+def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
+    """Extract Voyager ISS metadata from a PDS3 label.
+
+    Parameters:
+        label: A parsed :class:`pdsparser.PdsLabel`.
+
+    Returns:
+        ``('VOYAGER', 'ISS', filter_name)`` if the label identifies a
+        Voyager ISS image, ``None`` otherwise.
+    """
+    try:
+        d = label.as_dict()
+        host = d.get('INSTRUMENT_HOST_NAME', '') or d.get('INSTRUMENT_HOST_ID', '')
+        if not (str(host).startswith('VOYAGER') or str(host).startswith('VG')):
+            return None
+        filter_name = str(d['FILTER_NAME']).upper().strip()
+        return ('VOYAGER', 'ISS', filter_name)
+    except (KeyError, TypeError):
+        return None
+
+
 def read_file(
-    filename: str | os.PathLike[str],
+    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
-    """Try to detect and read a Voyager ISS VICAR image.
+    """Try to detect and read a Voyager ISS image.
 
-    Opens *filename* as VICAR, checks the instrument label, and returns
-    the data array with filter metadata.  Returns ``None`` if the file
-    is not a Voyager ISS VICAR image.
+    Accepts either a file path (VICAR format) or a pre-parsed
+    :class:`pdsparser.PdsLabel`.  Returns ``None`` if the file is not
+    recognized as a Voyager ISS image.
 
     Parameters:
-        filename: Path to the candidate file.
+        filename: Path to the candidate file, or a parsed PDS3 label.
         obj: Ignored (VICAR files contain a single array).
         **kwargs: Accepted but ignored; Voyager files need no
             instrument-specific options.
@@ -66,6 +88,13 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as a Voyager ISS image.
     """
+    if isinstance(filename, pdsparser.PdsLabel):
+        filter_info = _detect_pds3(filename)
+        if filter_info is None:
+            return None
+        array3d = _shared.read_pds3_image_array(filename, obj)
+        return ReadResult(array3d, False, filter_info)
+
     vic = _shared.try_open_vicar(filename)
     if vic is None:
         return None

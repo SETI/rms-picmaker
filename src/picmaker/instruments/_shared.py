@@ -8,9 +8,12 @@ the instrument sub-modules.
 """
 
 import os
+import warnings
 from typing import Any
 
+import astropy.io.fits as pyfits
 import numpy as np
+import pdsparser
 from numpy.typing import NDArray
 from vicar import VicarError, VicarImage
 
@@ -38,7 +41,8 @@ def is_fits_file(filename: str | os.PathLike[str]) -> bool:
     """Return ``True`` iff *filename* starts with the FITS magic bytes.
 
     The FITS standard requires the first 9 bytes of a valid FITS file to
-    be ``b'SIMPLE  ='``. Returns ``False`` on any :exc:`OSError`.
+    be ``b'SIMPLE  ='``. Returns ``False`` on any :exc:`OSError` or
+    :exc:`TypeError` (e.g. when *filename* is not a path-like object).
 
     Parameters:
         filename: Path to the candidate file.
@@ -46,8 +50,71 @@ def is_fits_file(filename: str | os.PathLike[str]) -> bool:
     try:
         with open(filename, 'rb') as f:
             return f.read(9) == b'SIMPLE  ='
-    except OSError:
+    except (OSError, TypeError):
         return False
+
+
+def read_pds3_image_array(
+    label: pdsparser.PdsLabel,
+    obj: ObjectSelector,
+) -> NDArray[Any]:
+    """Read the image array pointed to by a PDS3 label's ``^IMAGE`` pointer.
+
+    Resolves the first ``^*IMAGE`` pointer in the label to a data file
+    (relative to the label's own directory), then reads the data via the
+    VICAR parser if the file is a VICAR image, or via the FITS reader if
+    the file starts with the FITS magic bytes.
+
+    Parameters:
+        label: A parsed :class:`pdsparser.PdsLabel` with at least one
+            ``^IMAGE`` (or ``^*IMAGE``) pointer.
+        obj: Forwarded to :func:`extract_fits_array` when the data file
+            is a FITS image; ignored for VICAR images.
+
+    Returns:
+        3-D ``(bands, lines, samples)`` numpy array.
+
+    Raises:
+        OSError: If no ``^*IMAGE`` pointer is found, or if the data file
+            cannot be read as VICAR or FITS.
+    """
+    label_dict = label.as_dict()
+    label_filepath: str = str(label._filepath)
+    label_dir = os.path.dirname(label_filepath)
+
+    pnames = [k for k in label_dict if k.startswith('^') and k.endswith('IMAGE')]
+    if not pnames:
+        raise OSError('No ^*IMAGE pointer found in PDS3 label')
+    pname = pnames[0]
+    node = label_dict[pname]
+
+    if isinstance(node, (list, tuple)):
+        data_filename = str(node[0])
+    elif isinstance(node, str):
+        data_filename = node
+    elif isinstance(node, int):
+        data_filename = os.path.basename(label_filepath)
+    else:
+        raise OSError(f'Unexpected ^IMAGE pointer value: {node!r}')
+
+    data_file = os.path.join(label_dir, data_filename)
+
+    vic = try_open_vicar(data_file)
+    if vic is not None:
+        array3d: NDArray[Any] = vic.data_3d
+        if array3d.ndim == 2:
+            array3d = array3d.reshape((1, *array3d.shape))
+        return array3d
+
+    if is_fits_file(data_file):
+        try:
+            with warnings.catch_warnings(), pyfits.open(data_file) as hdulist:
+                warnings.filterwarnings('error')
+                return extract_fits_array(hdulist, obj)
+        except (UserWarning, OSError):
+            pass
+
+    raise OSError(f'Cannot read PDS3 data file: {data_file}')
 
 
 def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
@@ -95,4 +162,4 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
     return array3d
 
 
-__all__ = ['extract_fits_array', 'is_fits_file', 'try_open_vicar']
+__all__ = ['extract_fits_array', 'is_fits_file', 'read_pds3_image_array', 'try_open_vicar']

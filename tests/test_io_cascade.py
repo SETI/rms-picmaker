@@ -63,7 +63,7 @@ def test_numpy_npy_three_dim_passes_through(tmp_path: Path) -> None:
 def test_fits_obj_int(fixtures_dir: Path) -> None:
     """``obj=0`` selects HDU index 0 of a FITS file."""
     arr, default_is_up, filter_info = read_one_image_array(
-        str(fixtures_dir / 'nh_mvic.fits'), None, obj=0
+        str(fixtures_dir / 'nh_mvic.fits'), obj=0
     )
     assert arr.shape == (1, 16, 16)
     assert default_is_up is True
@@ -73,7 +73,7 @@ def test_fits_obj_int(fixtures_dir: Path) -> None:
 def test_fits_obj_tuple_stacks(fixtures_dir: Path) -> None:
     """``obj=(0,)`` stacks the listed HDUs."""
     arr, default_is_up, _ = read_one_image_array(
-        str(fixtures_dir / 'nh_mvic.fits'), None, obj=(0,)
+        str(fixtures_dir / 'nh_mvic.fits'), obj=(0,)
     )
     assert arr.shape == (1, 16, 16)
     assert default_is_up is True
@@ -82,7 +82,7 @@ def test_fits_obj_tuple_stacks(fixtures_dir: Path) -> None:
 def test_fits_obj_string_int(fixtures_dir: Path) -> None:
     """A numeric ``obj`` passed as a string is converted via ``int()``."""
     arr, _, _ = read_one_image_array(
-        str(fixtures_dir / 'nh_mvic.fits'), None, obj='0'
+        str(fixtures_dir / 'nh_mvic.fits'), obj='0'
     )
     assert arr.shape == (1, 16, 16)
 
@@ -175,9 +175,8 @@ def test_cascade_falls_through_to_pil(fixtures_dir: Path) -> None:
 
 
 def test_cascade_falls_through_to_pds3(fixtures_dir: Path) -> None:
-    """An unparseable image with a sibling ``.LBL`` reaches the PDS3 branch."""
+    """A self-labeled ``.IMG`` file falls through to the PDS3 auto-detection branch."""
     arr, _, _ = read_one_image_array(
-        str(fixtures_dir / 'pds3_sample.IMG'),
         str(fixtures_dir / 'pds3_sample.IMG'),
     )
     assert arr.shape == (1, 8, 8)

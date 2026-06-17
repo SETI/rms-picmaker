@@ -111,7 +111,7 @@ def test_pds3_resolve_pointer_single_file(tmp_path: Path) -> None:
     and a populated ``filter_info``."""
     lbl = _write_lbl(tmp_path, 'sample.LBL', _LBL_SINGLE_FILE)
 
-    imagefile, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
+    imagefile, filter_info, _ = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
 
     assert imagefile == str(tmp_path / 'frame.dat')
     assert filter_info is not None
@@ -142,7 +142,7 @@ def test_pds3_resolve_pointer_obj_selection(
     of the entries from a list-shaped ``^IMAGE`` pointer."""
     lbl = _write_lbl(tmp_path, 'list.LBL', _LBL_LIST)
 
-    imagefile, _ = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=obj)
+    imagefile, _, _label = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=obj)
 
     if isinstance(expected_tails, str):
         assert imagefile == str(tmp_path / expected_tails)
@@ -157,7 +157,7 @@ def test_pds3_resolve_pointer_no_detector_id_keeps_bare_inst_id(
     value (no ``/<detector>`` suffix)."""
     lbl = _write_lbl(tmp_path, 'list.LBL', _LBL_LIST)
 
-    _, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=None)
+    _, filter_info, _label = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=None)
 
     assert filter_info is not None
     assert filter_info[1] == 'ISS'
@@ -167,7 +167,7 @@ def test_pds3_resolve_pointer_tuple_pointer(tmp_path: Path) -> None:
     """A ``(filename, record)`` tuple pointer keeps the filename half."""
     lbl = _write_lbl(tmp_path, 'tuple.LBL', _LBL_TUPLE)
 
-    imagefile, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
+    imagefile, filter_info, _ = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
 
     assert imagefile == str(tmp_path / 'frame.dat')
     # SPACECRAFT_ID is the host fallback when INSTRUMENT_HOST_ID is absent;
@@ -181,7 +181,7 @@ def test_pds3_resolve_pointer_no_instrument_returns_none_filter(
     """Without any host key, ``filter_info`` is ``None``."""
     lbl = _write_lbl(tmp_path, 'bare.LBL', _LBL_NO_INSTRUMENT)
 
-    _, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
+    _, filter_info, _label = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
 
     assert filter_info is None
 
@@ -192,7 +192,7 @@ def test_pds3_resolve_pointer_spacecraft_name_fallback(
     """``SPACECRAFT_NAME`` is the last host fallback."""
     lbl = _write_lbl(tmp_path, 'scn.LBL', _LBL_SPACECRAFT_NAME)
 
-    _, filter_info = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
+    _, filter_info, _label = _pds3_resolve_pointer(str(lbl), ['IMAGE'], obj=0)
 
     assert filter_info == ('VOYAGER 1', None, None)
 
@@ -201,7 +201,7 @@ def test_pds3_resolve_pointer_alt_pointer(tmp_path: Path) -> None:
     """When the first pointer is missing, the alternates are tried."""
     lbl = _write_lbl(tmp_path, 'alt.LBL', _LBL_ALT_POINTER)
 
-    imagefile, _ = _pds3_resolve_pointer(
+    imagefile, _, _label = _pds3_resolve_pointer(
         str(lbl), ['IMAGE', 'IMAGE_2'], obj=0,
     )
 
@@ -234,7 +234,7 @@ def test_pds3_resolve_pointer_string_pointer_normalized(
     """A scalar pointer name is wrapped to a one-element list internally."""
     lbl = _write_lbl(tmp_path, 'sample.LBL', _LBL_SINGLE_FILE)
 
-    imagefile, _ = _pds3_resolve_pointer(str(lbl), 'IMAGE', obj=0)
+    imagefile, _, _label = _pds3_resolve_pointer(str(lbl), 'IMAGE', obj=0)
 
     assert imagefile == str(tmp_path / 'frame.dat')
 
