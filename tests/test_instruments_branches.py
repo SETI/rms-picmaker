@@ -3,6 +3,7 @@ branches, Voyager/Galileo/NH/HST detection and tint_for edge cases,
 and the cross-cutting ``instruments.lookup`` predicate.
 """
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -198,3 +199,64 @@ def test_hst_nicmos_scales_by_3p5() -> None:
 def test_instruments_lookup_returns_none_for_unknown() -> None:
     """``instruments.lookup`` returns ``None`` for a host with no match."""
     assert instruments.lookup('UNKNOWN', '') is None
+
+
+def test_instruments_lookup_returns_none_for_none_host() -> None:
+    """``instruments.lookup(None, ...)`` short-circuits to ``None``."""
+    assert instruments.lookup(None, 'ISS') is None
+
+
+class TestGalileoDetectVicarBranches:
+    def test_mission_not_galileo_falls_through_to_lab01(self) -> None:
+        """MISSION present but != GALILEO falls through without raising."""
+        class FakeVic:
+            def __getitem__(self, key: str) -> Any:
+                if key == 'MISSION':
+                    return 'VOYAGER'
+                raise KeyError(key)
+        assert galileo._detect_vicar(FakeVic()) is None
+
+    def test_lab01_not_gll_ssi_returns_none(self) -> None:
+        """LAB01 present but not 'GLL/SSI' prefix returns None."""
+        class FakeVic:
+            def __getitem__(self, key: str) -> Any:
+                if key == 'MISSION':
+                    return 'VOYAGER'
+                if key == 'LAB01':
+                    return 'OTHERDATA'
+                raise KeyError(key)
+        assert galileo._detect_vicar(FakeVic()) is None
+
+
+class TestGalileoDetectPds3Branches:
+    def _fake(self, d: dict[str, Any]) -> Any:
+        class FakeLabel:
+            def as_dict(self) -> dict[str, Any]:
+                return d
+        return FakeLabel()
+
+    def test_filter_number_used_when_filter_name_absent(self) -> None:
+        """FILTER_NUMBER is read when FILTER_NAME is missing."""
+        result = galileo._detect_pds3(  # type: ignore[arg-type]
+            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER', 'FILTER_NUMBER': '1'})
+        )
+        assert result == ('GALILEO', 'SSI', 'GREEN')
+
+    def test_no_filter_keys_yields_empty_string(self) -> None:
+        """Neither FILTER_NAME nor FILTER_NUMBER produces an empty filter string."""
+        result = galileo._detect_pds3(  # type: ignore[arg-type]
+            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER'})
+        )
+        assert result == ('GALILEO', 'SSI', '')
+
+    def test_out_of_range_filter_number_returns_none(self) -> None:
+        """An out-of-range FILTER_NUMBER index is caught and returns None."""
+        assert galileo._detect_pds3(  # type: ignore[arg-type]
+            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER', 'FILTER_NUMBER': '99'})
+        ) is None
+
+
+def test_galileo_read_file_non_galileo_vicar_returns_none(fixtures_dir: Path) -> None:
+    """A VICAR file not owned by Galileo SSI causes read_file to return None."""
+    result = galileo.read_file(str(fixtures_dir / 'cassini_iss.vic'))
+    assert result is None

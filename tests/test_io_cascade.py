@@ -8,11 +8,21 @@ error.
 import pickle
 from pathlib import Path
 
+import astropy.io.fits as pyfits
 import numpy as np
+import pdsparser
 import pytest
 from PIL import Image
+from vicar import VicarImage
 
-from picmaker.io import get_outfile, read_array, read_image_array, read_one_image_array, read_pil
+from picmaker.io import (
+    get_outfile,
+    read_array,
+    read_image_array,
+    read_one_image_array,
+    read_pds_labeled_image_array,
+    read_pil,
+)
 
 # ---------------------------------------------------------------------------
 # 2-D reshape paths (pickle + numpy)
@@ -225,3 +235,135 @@ def test_read_pil_tiff_with_bogus_content_falls_through_to_pil(
     img = read_pil(str(fake))
     assert isinstance(img, Image.Image)
     assert img.size == (4, 4)
+
+
+# ---------------------------------------------------------------------------
+# PdsLabel passed directly (bypasses the str/PathLike branch)
+# ---------------------------------------------------------------------------
+
+
+def test_pds_label_passed_directly_to_read_one_image_array(
+    fixtures_dir: Path, tmp_path: Path
+) -> None:
+    """Passing a PdsLabel object directly skips the path-string branch in
+    read_one_image_array and dispatches straight to the PDS3 label cascade."""
+    import shutil
+    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'cassini_iss.vic')
+    lbl_path = tmp_path / 'cassini.LBL'
+    lbl_path.write_text(
+        'PDS_VERSION_ID = PDS3\n'
+        'INSTRUMENT_HOST_NAME = "CASSINI ORBITER"\n'
+        'FILTER_NAME = ("CL1", "GRN")\n'
+        '^IMAGE = "cassini_iss.vic"\n'
+        'END\n'
+    )
+    label = pdsparser.PdsLabel(str(lbl_path))
+    arr, default_is_up, filter_info = read_one_image_array(label)
+    assert arr.ndim == 3
+    assert filter_info == ('CASSINI', 'ISS', 'CL1+GRN')
+
+
+# ---------------------------------------------------------------------------
+# Generic VICAR / FITS fallbacks for unrecognized instruments
+# ---------------------------------------------------------------------------
+
+
+def test_generic_vicar_fallback_for_unrecognized_instrument(tmp_path: Path) -> None:
+    """A VICAR file not claimed by any instrument is read by the generic
+    VICAR fallback in read_one_image_array."""
+    vic = VicarImage.from_array(np.zeros((8, 8), dtype=np.int16))
+    vicpath = str(tmp_path / 'unknown.vic')
+    vic.write_file(vicpath)
+    arr, default_is_up, filter_info = read_one_image_array(vicpath)
+    assert arr.ndim == 3
+    assert default_is_up is False
+    assert filter_info is None
+
+
+def test_generic_fits_fallback_for_unrecognized_instrument(tmp_path: Path) -> None:
+    """A FITS file with no instrument-specific headers is read by the
+    generic FITS fallback in read_one_image_array."""
+    fits_path = str(tmp_path / 'unknown.fits')
+    hdu = pyfits.PrimaryHDU(data=np.zeros((8, 8), dtype=np.float32))
+    pyfits.HDUList([hdu]).writeto(fits_path, overwrite=True)
+    arr, default_is_up, filter_info = read_one_image_array(fits_path)
+    assert arr.ndim == 3
+    assert default_is_up is True
+    assert filter_info is None
+
+
+# ---------------------------------------------------------------------------
+# Sibling .lbl / .LBL detection in read_pds_labeled_image_array
+# ---------------------------------------------------------------------------
+
+_MINIMAL_LABEL = (
+    'PDS_VERSION_ID = PDS3\r\n'
+    '^IMAGE = "{name}"\r\n'
+    'OBJECT = IMAGE\r\n'
+    '  LINES = 8\r\n'
+    '  LINE_SAMPLES = 8\r\n'
+    '  SAMPLE_BITS = 8\r\n'
+    '  SAMPLE_TYPE = UNSIGNED_INTEGER\r\n'
+    'END_OBJECT = IMAGE\r\n'
+    'END\r\n'
+)
+
+
+def test_sibling_lbl_lowercase_detected(tmp_path: Path) -> None:
+    """When the primary data file is missing, io.py finds a lowercase .lbl sibling.
+
+    pdsparser raises FileNotFoundError (an OSError) for missing files without
+    looking for siblings; io.py's except block then searches for the sibling.
+    """
+    data = tmp_path / 'image.dat'
+    # Write the actual image bytes under a separate name referenced by ^IMAGE
+    raw = tmp_path / 'image_raw.dat'
+    raw.write_bytes(np.zeros(64, dtype='uint8').tobytes())
+    (tmp_path / 'image.lbl').write_text(_MINIMAL_LABEL.format(name='image_raw.dat'))
+    # 'image.dat' itself does not exist — pdsparser raises OSError, io.py
+    # then finds and parses the sibling 'image.lbl'.
+    result = read_pds_labeled_image_array(str(data))
+    assert result is not None
+    assert result[0].shape == (1, 8, 8)
+
+
+def test_sibling_LBL_uppercase_detected(tmp_path: Path) -> None:
+    """When the primary data file is missing, io.py finds an uppercase .LBL sibling.
+
+    No lowercase .lbl exists, so the elif branch for .LBL is taken.
+    """
+    data = tmp_path / 'image2.dat'
+    raw = tmp_path / 'image2_raw.dat'
+    raw.write_bytes(np.zeros(64, dtype='uint8').tobytes())
+    (tmp_path / 'image2.LBL').write_text(_MINIMAL_LABEL.format(name='image2_raw.dat'))
+    result = read_pds_labeled_image_array(str(data))
+    assert result is not None
+    assert result[0].shape == (1, 8, 8)
+
+
+def test_sibling_search_skipped_for_lbl_extension(tmp_path: Path) -> None:
+    """A .lbl file that fails to parse returns None without checking siblings."""
+    bad = tmp_path / 'bad.lbl'
+    bad.write_bytes(b'not a pds3 label')
+    assert read_pds_labeled_image_array(str(bad)) is None
+
+
+# ---------------------------------------------------------------------------
+# get_outfile: missing branches
+# ---------------------------------------------------------------------------
+
+
+def test_get_outfile_no_outdir_writes_next_to_input(tmp_path: Path) -> None:
+    """outdir=None places the output file beside the input file."""
+    src = tmp_path / 'image.IMG'
+    src.write_bytes(b'')
+    result = get_outfile(str(src), outdir=None)
+    assert result == str(tmp_path / 'image.jpg')
+
+
+def test_get_outfile_strip_not_found_leaves_name_unchanged(tmp_path: Path) -> None:
+    """A strip substring absent from the filename is silently ignored."""
+    src = tmp_path / 'image.IMG'
+    src.write_bytes(b'')
+    result = get_outfile(str(src), strip='NOTPRESENT')
+    assert result.endswith('image.jpg')

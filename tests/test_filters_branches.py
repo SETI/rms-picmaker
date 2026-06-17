@@ -1,6 +1,7 @@
 """Cover the ``_filters.filter_image`` branches."""
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from picmaker._filters import filter_image
@@ -11,6 +12,12 @@ def test_filter_image_none_is_identity() -> None:
     im = Image.new('L', (8, 8))
     out = filter_image(im, 'none')
     assert out is im
+
+
+def test_filter_image_raises_for_twobyte_image() -> None:
+    """Passing a list (16-bit two-byte image) raises ValueError."""
+    with pytest.raises(ValueError, match='2-byte'):
+        filter_image([], 'none')
 
 
 def test_filter_image_blur() -> None:
