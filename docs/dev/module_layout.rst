@@ -149,7 +149,7 @@ The bridge between numpy arrays and PIL images.
 PIL images for 16-bit RGB). :func:`~picmaker.pil_utils.pil_to_array`
 is the inverse. :func:`~picmaker.pil_utils.write_pil` writes a PIL
 image to disk and routes 16-bit output through
-:func:`picmaker.tiff16.WriteTiff16`.
+:func:`picmaker.tiff16.write_tiff16`.
 
 :mod:`picmaker._filters` (``src/picmaker/_filters.py``)
 -------------------------------------------------------
@@ -172,10 +172,8 @@ the package; re-exported via :mod:`picmaker.color`.
 
 Hand-rolled 16-bit TIFF reader and writer. Used because Pillow's
 16-bit support is uneven across grayscale / RGB / palette modes.
-:func:`~picmaker.tiff16.WriteTiff16` and
-:func:`~picmaker.tiff16.ReadTiff16` keep their PascalCase names for
-backward compatibility (the one remaining per-file ruff ignore for
-this module is the ``N802`` allow).
+:func:`~picmaker.tiff16.write_tiff16` and
+:func:`~picmaker.tiff16.read_tiff16`.
 
 :mod:`picmaker.colornames` (``src/picmaker/colornames.py``)
 -----------------------------------------------------------

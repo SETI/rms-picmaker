@@ -201,9 +201,9 @@ Step-by-step
 
    .. code-block:: python
 
-      from picmaker.instruments import cassini, galileo, hst, mymission, nh, voyager
+      from picmaker.instruments import cassini_iss, galileo_ssi, hst, mymission, nh_lorri, voyager_iss
 
-      ALL_INSTRUMENTS: list[ModuleType] = [cassini, voyager, galileo, hst, nh, mymission]
+      ALL_INSTRUMENTS: list[ModuleType] = [cassini_iss, voyager_iss, galileo_ssi, hst, nh_lorri, mymission]
 
    Order matters: the cascade tries each instrument in list order and
    returns on the first match, so put more-specific instruments before
@@ -273,8 +273,8 @@ When to break the protocol
 
 Three existing modules deviate slightly from the minimal template:
 
-* :mod:`picmaker.instruments.cassini` keeps the tint chain in a private
-  helper :func:`!picmaker.instruments.cassini._iss_tint` rather than a
+* :mod:`picmaker.instruments.cassini_iss` keeps the tint chain in a private
+  helper :func:`!picmaker.instruments.cassini_iss._iss_tint` rather than a
   fixed dict, because the chain is substring-based (``IR``, ``UV``,
   ``BL``, …) rather than an exact-key mapping.
 * :mod:`picmaker.instruments.hst` derives the tint from wavelength
