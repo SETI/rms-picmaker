@@ -377,9 +377,10 @@ Adding an instrument-specific option
 
 Sometimes a new feature only makes sense for one instrument — for example
 a Cassini-specific decompression mode or an HST-specific scaling flag.
-The pipeline is designed so that adding such an option touches exactly
-three files; no other instrument files and neither :mod:`picmaker.io` nor
-:mod:`picmaker.pipeline` need to change.
+Adding such an option touches four files: :file:`src/picmaker/cli.py`
+(in two functions), :file:`src/picmaker/options.py`,
+:file:`src/picmaker/pipeline.py`, and the instrument module itself.
+:mod:`picmaker.io` needs no changes.
 
 How the forwarding works
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -410,12 +411,34 @@ Step-by-step for a new instrument-specific option
 
 Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
 
-1. **Add the CLI argument.** In :file:`src/picmaker/cli.py`, add the
-   ``--cassini-encoding`` argument to the argparse parser in
-   :func:`!_build_parser`.
+1. **Add and wire the CLI argument.** In :file:`src/picmaker/cli.py`,
+   make two edits:
 
-2. **Register the option.** In :file:`src/picmaker/options.py`, do two
-   things in the same edit:
+   a. In :func:`!_build_parser`, add the ``--cassini-encoding`` argument
+      to the argparse parser under the appropriate argument group:
+
+      .. code-block:: python
+
+         instrument = parser.add_argument_group('instrument options')
+         instrument.add_argument(
+             '--cassini-encoding', dest='cassini_encoding',
+             type=str, default='standard',
+             help='Cassini ISS decompression mode.',
+         )
+
+   b. In :func:`!_normalize_and_validate`, add the key to the
+      ``option_dict`` that the function returns.  The dict is built
+      explicitly by name so every key must be listed:
+
+      .. code-block:: python
+
+         option_dict: dict[str, Any] = {
+             # ... existing keys ...
+             'cassini_encoding': options.cassini_encoding,
+         }
+
+2. **Register the option.** In :file:`src/picmaker/options.py`, make
+   two additions in the same edit:
 
    a. Add the field to :class:`~picmaker.options.PicmakerOptions`:
 
@@ -423,7 +446,9 @@ Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
 
          cassini_encoding: str = 'standard'
 
-   b. Add its name to :data:`~picmaker.options.READ_FILE_KWARGS`:
+   b. Add its name to :data:`~picmaker.options.READ_FILE_KWARGS`.  The
+      comment above that constant reminds you to do this whenever you add
+      a new field:
 
       .. code-block:: python
 
@@ -431,11 +456,41 @@ Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
              'cassini_encoding', 'mosaic', 'pds3_label_method'
          )
 
-   That is the only change required to make the value flow from the CLI
-   all the way to the instrument reader — no edits to
-   :mod:`picmaker.pipeline` or :mod:`picmaker.io` are needed.
+3. **Expose the option through the pipeline entry point.** In
+   :file:`src/picmaker/pipeline.py`, make two additions to
+   :func:`~picmaker.pipeline.images_to_pics`:
 
-3. **Consume the option in the instrument.** In
+   a. Add the kwarg to the function signature (keep alphabetical or
+      thematic order consistent with the existing list):
+
+      .. code-block:: python
+
+         def images_to_pics(
+             filenames: list[str],
+             directory: str | None = None,
+             verbose: bool = False,
+             *,
+             # ... existing kwargs ...
+             cassini_encoding: str = 'standard',
+             # ...
+         ) -> tuple[Any, Any, Any]:
+
+   b. Pass it to the :class:`~picmaker.options.PicmakerOptions`
+      constructor call inside the same function:
+
+      .. code-block:: python
+
+         options = PicmakerOptions(
+             # ... existing fields ...
+             cassini_encoding=cassini_encoding,
+         )
+
+   Library callers that bypass the CLI — passing kwargs directly to
+   :func:`~picmaker.pipeline.images_to_pics` — receive the option through
+   this signature.  The CLI path reaches it via ``**option_dict``
+   (assembled in step 1b).
+
+4. **Consume the option in the instrument.** In
    :file:`src/picmaker/instruments/cassini_iss.py`, extract the value at
    the top of ``read_file``:
 
@@ -450,7 +505,7 @@ Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
           ...
 
    All other instrument ``read_file`` functions already accept
-   ``**kwargs`` and ignore it, so they need no changes.
+   ``**kwargs`` and ignore unknown keys, so they need no changes.
 
 When to break the protocol
 --------------------------
