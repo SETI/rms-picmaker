@@ -122,7 +122,7 @@ def read_one_image_array(
         path_str = str(filename)
         if path_str.upper().endswith('.LBL'):
             filename = pdsparser.PdsLabel(
-                path_str, method=kwargs.get('pds3_label_method', 'strict')
+                path_str, method=kwargs.get('pds3_label_method', 'fast')
             )
 
     # ---- PDS3 label branch ----
@@ -218,7 +218,7 @@ def read_one_image_array(
     # checks for a sibling .lbl / .LBL file next to the data file.
     pds3_result = read_pds_labeled_image_array(
         filename_str, obj,
-        pds3_label_method=kwargs.get('pds3_label_method', 'strict'),
+        pds3_label_method=kwargs.get('pds3_label_method', 'fast'),
     )
     if pds3_result is not None:
         return pds3_result
@@ -237,7 +237,7 @@ def read_pds_labeled_image_array(
     filename: str | os.PathLike[str],
     obj: ObjectSelector = None,
     *,
-    pds3_label_method: str = 'strict',
+    pds3_label_method: str = 'fast',
 ) -> ReadResult | None:
     """Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.
 

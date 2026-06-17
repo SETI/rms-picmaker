@@ -80,7 +80,7 @@ def _pds3_resolve_pointer(
     pointer: Any,
     obj: Any,
     *,
-    pds3_label_method: str = 'strict',
+    pds3_label_method: str = 'fast',
 ) -> tuple[Any, tuple[Any, Any, Any] | None, pdsparser.PdsLabel]:
     """Parse a PDS3 ``.LBL`` and resolve its image-object pointer.
 
@@ -422,7 +422,7 @@ def images_to_pics(
     samples: Any = None,
     obj: Any = None,
     pointer: Any = None,
-    pds3_label_method: str = 'strict',
+    pds3_label_method: str = 'fast',
     size: Any = None,
     scale: Any = (100.0, 100.0),
     crop: Any = None,

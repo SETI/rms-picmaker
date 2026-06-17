@@ -52,7 +52,7 @@ class PicmakerOptions:
     samples: Any = None
     obj: Any = None
     pointer: Any = None
-    pds3_label_method: str = 'strict'
+    pds3_label_method: str = 'fast'
     # sizing
     size: Any = None
     scale: Any = (100.0, 100.0)
