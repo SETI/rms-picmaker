@@ -86,13 +86,13 @@ def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
         d = label.as_dict()
         if d.get('INSTRUMENT_HOST_NAME') != 'CASSINI ORBITER':
             return None
-        filter_name = d['FILTER_NAME']
+        filter_name = d.get('FILTER_NAME', '')
         if isinstance(filter_name, (list, tuple)):
             filter_str = '+'.join(str(f) for f in filter_name)
         else:
             filter_str = str(filter_name)
         return ('CASSINI', 'ISS', filter_str)
-    except (KeyError, TypeError):
+    except TypeError:
         return None
 
 

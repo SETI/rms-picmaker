@@ -82,7 +82,7 @@ def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
         elif 'FILTER_NUMBER' in d:
             filter_name = FILTER_NAMES[int(d['FILTER_NUMBER'])]
         else:
-            return None
+            filter_name = ''
         return ('GALILEO', 'SSI', filter_name)
     except (KeyError, TypeError, IndexError):
         return None
