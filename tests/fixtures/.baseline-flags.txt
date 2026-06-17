@@ -24,8 +24,8 @@
 --help
 --histogram
 --hscale
---hst
 --invalid
+--mosaic
 --limits
 --movie
 --object

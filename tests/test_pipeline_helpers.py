@@ -1,13 +1,10 @@
-"""Direct unit tests for the module-private pipeline helpers.
+"""Direct unit tests for module-private pipeline and instrument helpers.
 
-The issue-#12 refactor split :func:`picmaker.pipeline.images_to_pics`
-into three private helpers (:func:`!_pds3_resolve_pointer`,
-:func:`!_hst_mosaic_rgb`, :func:`!_process_one_image`) and two HST
-mosaic-assembly helpers (:func:`!_hst_wfpc2_mosaic`,
-:func:`!_hst_acs_panel_mosaic`). These tests exercise each helper in
-isolation so the existing end-to-end coverage in
-:file:`test_pipeline.py` / :file:`test_pipeline_branches.py` is not
-the only safety net for the refactored code.
+The pipeline's private helper :func:`!_process_one_image` and the HST
+mosaic-assembly helpers (:func:`!_wfpc2_mosaic`, :func:`!_acs_panel_mosaic`,
+:func:`picmaker.instruments.hst.apply_mosaic`) are exercised in isolation so the
+existing end-to-end coverage in :file:`test_pipeline.py` /
+:file:`test_pipeline_branches.py` is not the only safety net.
 """
 
 from pathlib import Path
@@ -16,11 +13,13 @@ from typing import Any
 import numpy as np
 import pytest
 
+from picmaker.instruments.hst import (
+    _acs_panel_mosaic,
+    _wfpc2_mosaic,
+    apply_mosaic,
+)
 from picmaker.options import PDS3_LABEL_METHODS, PicmakerOptions
 from picmaker.pipeline import (
-    _hst_acs_panel_mosaic,
-    _hst_mosaic_rgb,
-    _hst_wfpc2_mosaic,
     _pds3_resolve_pointer,
     _process_one_image,
 )
@@ -240,7 +239,7 @@ def test_pds3_resolve_pointer_string_pointer_normalized(
 
 
 # ---------------------------------------------------------------------------
-# _hst_wfpc2_mosaic
+# _wfpc2_mosaic
 # ---------------------------------------------------------------------------
 
 
@@ -290,14 +289,14 @@ _WFPC2_QUADRANTS = {
     ],
     ids=['string-imagefile', 'per-detector-filenames', 'unknown-filenames'],
 )
-def test_hst_wfpc2_mosaic_quadrant_placement(
+def test_wfpc2_mosaic_quadrant_placement(
     imagefile: Any,
     expected_fills: dict[str, float],
 ) -> None:
     """The WFPC2 mosaic is 8x8 with each quadrant filled per
     ``imagefile``'s dispatch rule."""
     bands = _make_quad_bands()
-    out = _hst_wfpc2_mosaic(bands, imagefile=imagefile)
+    out = _wfpc2_mosaic(bands, imagefile=imagefile)
 
     assert out.shape == (8, 8, 3)
     for detector, expected_fill in expected_fills.items():
@@ -306,7 +305,7 @@ def test_hst_wfpc2_mosaic_quadrant_placement(
 
 
 # ---------------------------------------------------------------------------
-# _hst_acs_panel_mosaic
+# _acs_panel_mosaic
 # ---------------------------------------------------------------------------
 
 
@@ -323,7 +322,7 @@ def test_hst_wfpc2_mosaic_quadrant_placement(
     ],
     ids=['string-imagefile', 'per-detector-filenames'],
 )
-def test_hst_acs_panel_mosaic_panel_placement(
+def test_acs_panel_mosaic_panel_placement(
     imagefile: Any,
     top_fill: float,
     bottom_fill: float,
@@ -334,7 +333,7 @@ def test_hst_acs_panel_mosaic_panel_placement(
         np.full((4, 4, 3), 1.0),  # band 0
         np.full((4, 4, 3), 2.0),  # band 1
     ]
-    out = _hst_acs_panel_mosaic(bands, imagefile=imagefile)
+    out = _acs_panel_mosaic(bands, imagefile=imagefile)
 
     assert out.shape == (8, 4, 3)
     assert np.allclose(out[:4], top_fill)
@@ -342,14 +341,14 @@ def test_hst_acs_panel_mosaic_panel_placement(
 
 
 # ---------------------------------------------------------------------------
-# _hst_mosaic_rgb
+# apply_mosaic (HST mosaic hook)
 # ---------------------------------------------------------------------------
 
 
 def _hst_options(**overrides: object) -> PicmakerOptions:
     """Build a minimal PicmakerOptions suitable for HST mosaic tests."""
     base: dict[str, object] = {
-        'replace': 'all', 'hst': True, 'bands': None,
+        'replace': 'all', 'mosaic': True, 'bands': None,
         'samples': None, 'lines': None, 'valid': None, 'crop': None,
         'zebra': False, 'limits': (0.0, 3.0),
         'percentiles': None, 'trim': 0, 'trim_zeros': False, 'footprint': 0,
@@ -372,7 +371,7 @@ def _hst_options(**overrides: object) -> PicmakerOptions:
     ],
     ids=['rgb-colormap', 'grayscale'],
 )
-def test_hst_mosaic_rgb_wfpc2_produces_2x2_mosaic(
+def test_apply_mosaic_wfpc2_produces_2x2_mosaic(
     colormap: Any,
     expected_channels: int,
 ) -> None:
@@ -387,17 +386,16 @@ def test_hst_mosaic_rgb_wfpc2_produces_2x2_mosaic(
     )
     filter_info = ('HST', 'WFPC2', 'F555W')
 
-    mosaic, returned = _hst_mosaic_rgb(
-        array3d, filter_info, 'single.fits',
-        options=_hst_options(),
-        default_is_up=False, is_int=False, colormap=colormap,
+    mosaic = apply_mosaic(
+        array3d, filter_info, _hst_options(),
+        default_is_up=False, colormap=colormap, imagefile='single.fits',
     )
 
+    assert mosaic is not None
     assert mosaic.shape == (8, 8, expected_channels)
-    assert returned.shape == array3d.shape  # no flip when default_is_up=False
 
 
-def test_hst_mosaic_rgb_acs_two_panel() -> None:
+def test_apply_mosaic_acs_two_panel() -> None:
     """``ACS/WFC`` mode with two bands produces a stacked panel mosaic
     (height doubles, width unchanged)."""
     array3d = np.tile(
@@ -406,47 +404,59 @@ def test_hst_mosaic_rgb_acs_two_panel() -> None:
     )
     filter_info = ('HST', 'ACS/WFC', 'F606W')
 
-    mosaic, _ = _hst_mosaic_rgb(
-        array3d, filter_info, imagefile='single.fits',
-        options=_hst_options(),
-        default_is_up=False, is_int=False, colormap='red-blue',
+    mosaic = apply_mosaic(
+        array3d, filter_info, _hst_options(),
+        default_is_up=False, colormap='red-blue', imagefile='single.fits',
     )
 
+    assert mosaic is not None
     assert mosaic.shape == (8, 4, 3)
 
 
-def test_hst_mosaic_rgb_acs_single_band_no_mosaic() -> None:
+def test_apply_mosaic_acs_single_band_no_mosaic() -> None:
     """A single-band ACS/WFC input returns the per-band RGB unchanged
     (no stacking, original per-band spatial shape preserved)."""
     array3d = np.linspace(0.0, 3.0, 16, dtype=np.float32).reshape(1, 4, 4)
     filter_info = ('HST', 'ACS/WFC', 'F606W')
 
-    mosaic, _ = _hst_mosaic_rgb(
-        array3d, filter_info, imagefile='single.fits',
-        options=_hst_options(),
-        default_is_up=False, is_int=False, colormap='red-blue',
+    mosaic = apply_mosaic(
+        array3d, filter_info, _hst_options(),
+        default_is_up=False, colormap='red-blue', imagefile='single.fits',
     )
 
-    # No stacking: original (lines, samples, 3) shape.
+    assert mosaic is not None
     assert mosaic.shape == (4, 4, 3)
 
 
-def test_hst_mosaic_rgb_flips_when_default_is_up() -> None:
-    """``default_is_up=True`` reverses the ``axis=1`` (lines) before
-    per-detector processing; the returned array3d reflects the flip."""
-    # Use a deterministic gradient so the flip is visible.
+def test_apply_mosaic_flips_when_default_is_up() -> None:
+    """``default_is_up=True`` reverses lines before mosaicking; the
+    assembled mosaic differs from the ``default_is_up=False`` result."""
     array3d = np.arange(16, dtype=np.float32).reshape(1, 4, 4)
     array3d = np.tile(array3d, (4, 1, 1))
     filter_info = ('HST', 'WFPC2', 'F555W')
 
-    _, returned = _hst_mosaic_rgb(
-        array3d, filter_info, imagefile='single.fits',
-        options=_hst_options(),
-        default_is_up=True, is_int=False, colormap=None,
+    mosaic_no_flip = apply_mosaic(
+        array3d, filter_info, _hst_options(),
+        default_is_up=False, colormap=None, imagefile='single.fits',
+    )
+    mosaic_flipped = apply_mosaic(
+        array3d, filter_info, _hst_options(),
+        default_is_up=True, colormap=None, imagefile='single.fits',
     )
 
-    # Returned array3d should be the lines-reversed input.
-    np.testing.assert_array_equal(returned, array3d[:, ::-1, :])
+    assert mosaic_no_flip is not None
+    assert mosaic_flipped is not None
+    assert not np.array_equal(mosaic_no_flip, mosaic_flipped)
+
+
+def test_apply_mosaic_returns_none_for_non_mosaic_instrument() -> None:
+    """``apply_mosaic`` returns ``None`` for HST instruments other than
+    ACS/WFC and WFPC2 (e.g. NICMOS), falling through to the standard
+    single-band pipeline."""
+    array3d = np.zeros((1, 4, 4), dtype=np.float32)
+    filter_info = ('HST', 'NICMOS/NIC1', 'F110W')
+    result = apply_mosaic(array3d, filter_info, _hst_options())
+    assert result is None
 
 
 # ---------------------------------------------------------------------------
@@ -463,7 +473,7 @@ def _basic_options(**overrides: object) -> PicmakerOptions:
         'size': None, 'scale': (100.0, 100.0), 'crop': None, 'frame': None,
         'pad': False, 'pad_color': 'black', 'frame_max': None, 'wrap': False,
         'wrap_ratio': None, 'overlap': (0.0, 0.0), 'gap_size': 1,
-        'gap_color': 'white', 'hst': False, 'valid': None, 'limits': None,
+        'gap_color': 'white', 'mosaic': False, 'valid': None, 'limits': None,
         'percentiles': None, 'trim': 0, 'trim_zeros': False, 'footprint': 0,
         'histogram': False, 'colormap': None, 'below_color': None,
         'above_color': None, 'invalid_color': 'black', 'gamma': 1.0,

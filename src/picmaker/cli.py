@@ -255,8 +255,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help='color of the gap between sections of a wrapped image.',
     )
     layout.add_argument(
-        '--hst', dest='hst', action='store_true', default=False,
-        help='construct a mosaic using all the detectors of an HST image.',
+        '--mosaic', dest='mosaic', action='store_true', default=False,
+        help='construct a mosaic from all detectors (currently HST ACS/WFC and WFPC2).',
     )
 
     scaling = parser.add_argument_group('scaling options')
@@ -379,8 +379,8 @@ def _normalize_and_validate(
         The ``option_dict`` consumed by ``images_to_pics``. Validation
         failures raise :class:`ValueError`.
     """
-    if options.hst and (options.band is not None or options.bands is not None):
-        raise ValueError('hst and band options are incompatible')
+    if options.mosaic and (options.band is not None or options.bands is not None):
+        raise ValueError('mosaic and band options are incompatible')
     if (
         options.band is not None
         and options.bands is not None
@@ -391,8 +391,8 @@ def _normalize_and_validate(
     ):
         raise ValueError('band and bands options are incompatible')
 
-    if options.hst and options.movie:
-        raise ValueError('hst and movie options are incompatible')
+    if options.mosaic and options.movie:
+        raise ValueError('mosaic and movie options are incompatible')
 
     if options.scale is not None and options.wscale is not None:
         raise ValueError('scale and wscale options are incompatible')
@@ -408,7 +408,7 @@ def _normalize_and_validate(
     # keeping them inline here would duplicate the post-normalization
     # invariants the dataclass owns.
 
-    if not options.hst:
+    if not options.mosaic:
         if options.band is None:
             options.band = 0
         if options.bands is None:
@@ -479,7 +479,7 @@ def _normalize_and_validate(
         'overlap': options.overlaps,
         'gap_size': options.gap_size,
         'gap_color': options.gap_color,
-        'hst': options.hst,
+        'mosaic': options.mosaic,
         # scaling options
         'valid': options.valid,
         'limits': options.limits,

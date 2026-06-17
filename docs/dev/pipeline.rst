@@ -48,19 +48,19 @@ zoom controls to read the labels at any size.
        PI --> Q
        PF --> Q
        PG --> Q
-       Q --> R{hst=True?}
-       R -->|yes| S[_hst_mosaic_rgb<br/>WFPC2 quad or ACS panel mosaic]
-       R -->|no| T[slice_array]
+       Q --> TINT{tint=True AND<br/>instrument has apply_tint?}
+       TINT -->|yes| ATC[apply_tint<br/>custom RGB]
+       TINT -->|no| MOS{mosaic=True AND<br/>instrument has apply_mosaic?}
+       MOS -->|yes| AMC[apply_mosaic<br/>panel assembly RGB]
+       MOS -->|no| T[slice_array]
        T --> U[fill_zebra_stripes<br/>optional]
        U --> V[get_limits]
-       V --> AT{apply_tint?}
-       AT -->|instrument has apply_tint| ATC[apply_tint<br/>custom RGB]
-       AT -->|no| W[apply_colormap]
+       V --> W[apply_colormap]
        ATC --> X[rotate_array_rgb]
-       W --> X[rotate_array_rgb]
+       AMC --> X
+       W --> X
        X --> Y[apply_gamma]
        Y --> Z[get_size + array_to_pil]
-       S --> Z
        Z --> AA[filter_image]
        AA --> BB[resize_image]
        BB --> CC{sections > 1?}
@@ -80,13 +80,19 @@ Three short observations on the diagram:
   twice. The first pass computes the per-frame limits, the second
   pass uses the median of those limits so every frame shares one
   stretch.
-* The HST mosaic branch (``hst=True``) handles WFPC2 quad-panel and
-  ACS/WFC two-panel composites; array extraction happens in
-  :func:`picmaker.instruments.hst.read_file`, and ``_hst_mosaic_rgb``
-  handles panel layout and colormap application.
-* The ``apply_tint`` branch fires when ``--tint`` is set and the
+* The ``apply_tint`` branch fires only when ``--tint`` is set and the
   instrument module defines :func:`!apply_tint`; it produces the final
   RGB array directly, bypassing :func:`~picmaker.enhance.apply_colormap`.
+* The ``apply_mosaic`` branch fires only when ``--mosaic`` is set and
+  the instrument module defines :func:`!apply_mosaic`; it handles
+  multi-detector panel assembly (currently HST ACS/WFC two-panel and
+  WFPC2 quad-panel composites).  Array extraction is split: the raw
+  per-detector data is gathered by :func:`picmaker.instruments.hst.read_file`
+  via its private :func:`!_extract_hst_array` helper, and
+  :func:`!apply_mosaic` handles panel layout and colormap application.
+* Both instrument hooks are checked after the ``apply_tint`` gate so
+  that ``apply_tint`` takes priority when both are defined; the standard
+  ``_band_to_rgb`` path runs when neither hook fires.
 
 
 Major functions
@@ -125,8 +131,8 @@ pipeline. Its :meth:`~picmaker.options.PicmakerOptions.validate`
 method runs every mutex / value-validity check that does not depend
 on raw argparse fields:
 
-* ``hst`` + ``bands`` is rejected (HST mosaic mode consumes every
-  detector).
+* ``mosaic`` + ``bands`` is rejected (mosaic mode consumes every
+  detector panel).
 * ``frame`` + ``size`` is rejected (both specify output dimensions).
 * ``frame`` + ``wrap_ratio`` is rejected (incompatible layout
   decisions).
@@ -183,7 +189,7 @@ falls through to the next:
    ``instrument.read_file(filename, obj, **kwargs)``.  The ``kwargs``
    dict is assembled in :func:`picmaker.pipeline._process_one_image`
    from the :class:`~picmaker.options.PicmakerOptions` fields named in
-   :data:`picmaker.options.READ_FILE_KWARGS` (currently ``hst`` and
+   :data:`picmaker.options.READ_FILE_KWARGS` (currently ``mosaic`` and
    ``pds3_label_method``).  Each instrument handles its own format
    detection (VICAR magic, FITS magic, file-extension heuristic, etc.)
    and returns :class:`~picmaker._types.ReadResult` on success or
@@ -262,17 +268,25 @@ following phases for one input file:
    label branch of the reader cascade.  The caller's ``reuse`` tuple
    short-circuits the read for the single-file batches that
    :func:`process_images` builds per ``option_dict``.
-3. If ``hst=True`` and the instrument is ACS/WFC or WFPC2, dispatch to
-   :func:`!picmaker.pipeline._hst_mosaic_rgb` for the per-detector
-   mosaic RGB assembly.  The multi-detector array data is already
-   extracted by :func:`picmaker.instruments.hst.read_file` via its
-   private :func:`!_extract_hst_array` helper; ``_hst_mosaic_rgb``
-   only handles the panel-layout and colormap application.
-4. Otherwise: slice (:func:`~picmaker.geometry.slice_array`),
-   optionally fill zebra stripes
-   (:func:`~picmaker.enhance.fill_zebra_stripes`), compute limits
-   (:func:`~picmaker.enhance.get_limits`), apply the colormap
-   (:func:`~picmaker.enhance.apply_colormap`).
+3. Resolve the colormap: if ``tint=True``, ask
+   :func:`picmaker.color.tinted_colormap` for a filter-specific colormap
+   override; otherwise use the user's ``colormap`` option.
+4. Run the instrument hooks, in priority order:
+
+   a. If ``tint=True`` and the instrument module defines
+      :func:`!apply_tint`, call it with ``(array3d, filter_info,
+      options)``.  A non-``None`` return is the final RGB array.
+   b. Else if ``mosaic=True`` and the instrument module defines
+      :func:`!apply_mosaic`, call it with ``(array3d, filter_info,
+      options, default_is_up=…, colormap=…, imagefile=…)``.  A
+      non-``None`` return is the final RGB array and orientation is
+      treated as already-baked (``this_display_upward`` is set to
+      ``False``).
+   c. Otherwise: slice (:func:`~picmaker.geometry.slice_array`),
+      optionally fill zebra stripes
+      (:func:`~picmaker.enhance.fill_zebra_stripes`), compute limits
+      (:func:`~picmaker.enhance.get_limits`), apply the colormap
+      (:func:`~picmaker.enhance.apply_colormap`).
 5. Apply the orientation override
    (:func:`~picmaker.geometry.rotate_array_rgb`) and gamma
    (:func:`~picmaker.enhance.apply_gamma`).
@@ -289,12 +303,11 @@ The function returns ``(low, high, reuse)`` so callers (or the
 ``--movie`` second pass) can either consume the limits or replay the
 read.
 
-:func:`!picmaker.pipeline._hst_mosaic_rgb` itself further delegates
-the panel-assembly geometry to two private helpers,
-:func:`!picmaker.pipeline._hst_wfpc2_mosaic` (four detectors,
-PC1/WF2/WF3/WF4 in a 2x2 quadrant) and
-:func:`!picmaker.pipeline._hst_acs_panel_mosaic` (two detectors,
-WFC1 above and WFC2 below). Each helper is unit-tested directly in
+The HST mosaic path (step 4b) delegates the panel-assembly geometry to
+two private helpers in :mod:`picmaker.instruments.hst`:
+:func:`!_wfpc2_mosaic` (four detectors, PC1/WF2/WF3/WF4 in a 2×2
+quadrant) and :func:`!_acs_panel_mosaic` (two detectors, WFC1 above
+and WFC2 below).  Both helpers are unit-tested directly in
 :file:`tests/test_pipeline_helpers.py`.
 
 :func:`picmaker.pipeline.process_images` is the thin loop that drives

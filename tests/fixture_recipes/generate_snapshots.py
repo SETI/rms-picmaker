@@ -8,7 +8,7 @@ against. Run from the repo root inside the project venv:
 The script:
 - Iterates a hardcoded list of `(fixture, combo, output_ext)` triples,
   pre-filtered to drop combos that don't make sense for the fixture
-  (e.g. `--hst` for non-HST images).
+  (e.g. `--mosaic` for non-HST images).
 - Reads each input from `tests/fixtures/<name>` and writes the produced
   snapshot to `tests/fixtures/expected/`.
 - Logs each generation as success/failure; failures are removed from the

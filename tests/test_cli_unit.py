@@ -135,17 +135,17 @@ def _parse(*args: str) -> argparse.Namespace:
     return _build_parser().parse_args(list(args))
 
 
-def test_normalize_hst_band_incompatible() -> None:
-    """``--hst`` rejects ``--band``."""
-    ns = _parse('--hst', '--band', '0')
-    with pytest.raises(ValueError, match='hst and band'):
+def test_normalize_mosaic_band_incompatible() -> None:
+    """``--mosaic`` rejects ``--band``."""
+    ns = _parse('--mosaic', '--band', '0')
+    with pytest.raises(ValueError, match='mosaic and band'):
         _normalize_and_validate(ns, 'all', False)
 
 
-def test_normalize_hst_bands_incompatible() -> None:
-    """``--hst`` rejects ``--bands``."""
-    ns = _parse('--hst', '--bands', '0', '1')
-    with pytest.raises(ValueError, match='hst and band'):
+def test_normalize_mosaic_bands_incompatible() -> None:
+    """``--mosaic`` rejects ``--bands``."""
+    ns = _parse('--mosaic', '--bands', '0', '1')
+    with pytest.raises(ValueError, match='mosaic and band'):
         _normalize_and_validate(ns, 'all', False)
 
 
@@ -165,10 +165,10 @@ def test_normalize_band_bands_aligned_ok() -> None:
     assert list(out['bands']) == [3, 3]
 
 
-def test_normalize_hst_movie_incompatible() -> None:
-    """``--hst`` rejects ``--movie``."""
-    ns = _parse('--hst', '--movie')
-    with pytest.raises(ValueError, match='hst and movie'):
+def test_normalize_mosaic_movie_incompatible() -> None:
+    """``--mosaic`` rejects ``--movie``."""
+    ns = _parse('--mosaic', '--movie')
+    with pytest.raises(ValueError, match='mosaic and movie'):
         _normalize_and_validate(ns, 'all', False)
 
 
@@ -309,9 +309,9 @@ def test_normalize_overlap_default_zero() -> None:
     assert out['overlap'] == (0.0, 0.0)
 
 
-def test_normalize_hst_skips_band_default() -> None:
-    """``--hst`` mode leaves the band fields untouched (``None``)."""
-    ns = _parse('--hst')
+def test_normalize_mosaic_skips_band_default() -> None:
+    """``--mosaic`` mode leaves the band fields untouched (``None``)."""
+    ns = _parse('--mosaic')
     out = _normalize_and_validate(ns, 'all', False)
     assert out['bands'] is None
 

@@ -88,9 +88,9 @@ def test_fits_obj_string_int(fixtures_dir: Path) -> None:
 
 
 def test_fits_hst_acs_wfc_mosaic(fixtures_dir: Path) -> None:
-    """``hst=True`` on an ACS/WFC fixture stacks the two detector HDUs."""
+    """``mosaic=True`` on an ACS/WFC fixture stacks the two detector HDUs."""
     arr, default_is_up, filter_info = read_one_image_array(
-        str(fixtures_dir / 'hst_acs.fits'), None, hst=True
+        str(fixtures_dir / 'hst_acs.fits'), None, mosaic=True
     )
     assert arr.shape == (2, 16, 16)
     assert default_is_up is True
@@ -100,9 +100,9 @@ def test_fits_hst_acs_wfc_mosaic(fixtures_dir: Path) -> None:
 
 
 def test_fits_hst_wfpc2_mosaic(fixtures_dir: Path) -> None:
-    """``hst=True`` on a WFPC2 fixture collects every 2-/3-D HDU."""
+    """``mosaic=True`` on a WFPC2 fixture collects every 2-/3-D HDU."""
     arr, default_is_up, filter_info = read_one_image_array(
-        str(fixtures_dir / 'hst_wfpc2.fits'), None, hst=True
+        str(fixtures_dir / 'hst_wfpc2.fits'), None, mosaic=True
     )
     assert arr.shape == (4, 16, 16)
     assert default_is_up is True

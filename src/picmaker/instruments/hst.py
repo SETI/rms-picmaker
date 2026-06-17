@@ -10,8 +10,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 from picmaker._rgb import BFUNC, GFUNC, RFUNC, RGB_BY_NM
-from picmaker._types import ObjectSelector, ReadResult
+from picmaker._types import FilterInfo, ObjectSelector, ReadResult
+from picmaker.enhance import _band_to_rgb
 from picmaker.instruments import _shared
+from picmaker.options import PicmakerOptions
+
+_MOSAIC_INSTRUMENTS = ('ACS/WFC', 'WFPC2')
 
 logger = logging.getLogger(__name__)
 
@@ -121,14 +125,14 @@ def read_file(
 
     Checks the FITS magic bytes, opens the file, identifies it as HST
     via the ``TELESCOP`` header keyword, and extracts the data array.
-    When ``hst=True`` (passed via ``kwargs``) and the instrument is
+    When ``mosaic=True`` (passed via ``kwargs``) and the instrument is
     ``ACS/WFC`` or ``WFPC2``, the multi-CCD mosaic is assembled from
     multiple HDUs.
 
     Parameters:
         filename: Path to the candidate file.
         obj: HDU index, name, or list/tuple of indices to stack.
-        **kwargs: Instrument-specific options. Recognises ``hst``
+        **kwargs: Instrument-specific options. Recognises ``mosaic``
             (bool, default ``False``): when ``True``, assemble the
             ACS/WFC or WFPC2 mosaic.
 
@@ -136,7 +140,7 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as an HST FITS image.
     """
-    hst: bool = kwargs.get('hst', False)
+    hst: bool = kwargs.get('mosaic', False)
     if not _shared.is_fits_file(filename):
         return None
     try:
@@ -151,6 +155,137 @@ def read_file(
             return ReadResult(array3d, True, filter_info)
     except (UserWarning, OSError):
         return None
+
+
+def _wfpc2_mosaic(arrays_rgb: list[Any], imagefile: Any) -> Any:
+    """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
+
+    When ``imagefile`` is a list of per-detector file paths, the band order is
+    inferred from substrings (``PC1``, ``WF2``, ``WF3``, ``WF4``) in each
+    filename. When ``imagefile`` is a single string (e.g. a multi-extension FITS
+    file), bands are placed in ``b``-order with a ``b``-step ``np.rot90``
+    rotation. Each non-PC1 detector is rotated to share the PC1's pixel
+    orientation.
+
+    Parameters:
+        arrays_rgb: Per-band RGB arrays (length 4), each ``(lines, samples, 3)``.
+        imagefile: Either a single string or a list of strings.
+
+    Returns:
+        The assembled 2x2 mosaic, shape ``(2 * lines, 2 * samples, 3)``.
+    """
+    quads_rgb = np.zeros((4, *arrays_rgb[0].shape))
+    for b in range(len(arrays_rgb)):
+        if isinstance(imagefile, str):
+            quads_rgb[b] = np.rot90(arrays_rgb[b], b)
+        else:
+            testfile = imagefile[b].upper()
+            if 'PC1' in testfile:
+                quads_rgb[0] = arrays_rgb[b]
+            elif 'WF2' in testfile:
+                quads_rgb[1] = np.rot90(arrays_rgb[b], 1)
+            elif 'WF3' in testfile:
+                quads_rgb[2] = np.rot90(arrays_rgb[b], 2)
+            elif 'WF4' in testfile:
+                quads_rgb[3] = np.rot90(arrays_rgb[b], 3)
+            else:
+                quads_rgb[b] = np.rot90(arrays_rgb[b], b)
+
+    (_, dl, ds, db) = quads_rgb.shape
+    mosaic = np.empty((2 * dl, 2 * ds, db))
+    mosaic[:dl, -ds:] = quads_rgb[0]
+    mosaic[:dl, :ds] = quads_rgb[1]
+    mosaic[-dl:, :ds] = quads_rgb[2]
+    mosaic[-dl:, -ds:] = quads_rgb[3]
+    return mosaic
+
+
+def _acs_panel_mosaic(arrays_rgb: list[Any], imagefile: Any) -> Any:
+    """Assemble ACS/WFC's two detectors (WFC1 above, WFC2 below).
+
+    When ``imagefile`` is a list of per-detector file paths, the panel order is
+    inferred from substrings (``WFC1``, ``WFC2``) in each filename. When
+    ``imagefile`` is a single string, band 0 is placed below and band 1 above
+    (matching the legacy ``1 - b`` indexing).
+
+    Parameters:
+        arrays_rgb: Per-band RGB arrays (length 2), each ``(lines, samples, 3)``.
+        imagefile: Either a single string or a list of strings.
+
+    Returns:
+        The assembled panel mosaic, shape ``(2 * lines, samples, 3)``.
+    """
+    panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
+    for b in range(2):
+        if isinstance(imagefile, str):
+            panels_rgb[1 - b] = arrays_rgb[b]
+        else:
+            testfile = imagefile[b].upper()
+            if 'WFC1' in testfile:
+                panels_rgb[0] = arrays_rgb[b]
+            elif 'WFC2' in testfile:
+                panels_rgb[1] = arrays_rgb[b]
+            else:
+                panels_rgb[b] = arrays_rgb[b]
+
+    (dl, ds, db) = arrays_rgb[0].shape
+    mosaic = np.zeros((2 * dl, ds, db))
+    mosaic[:dl] = panels_rgb[0]
+    mosaic[-dl:] = panels_rgb[1]
+    return mosaic
+
+
+def apply_mosaic(
+    array3d: NDArray[Any],
+    filter_info: FilterInfo,
+    options: PicmakerOptions,
+    *,
+    default_is_up: bool = False,
+    colormap: Any = None,
+    imagefile: Any = None,
+) -> NDArray[Any] | None:
+    """Assemble the ACS/WFC or WFPC2 multi-detector mosaic when ``--mosaic`` is set.
+
+    Called by the pipeline only when ``--mosaic`` is specified. Returns ``None``
+    for non-mosaic HST instruments, letting the standard single-band colormap
+    pipeline handle them.
+
+    Parameters:
+        array3d: ``(bands, lines, samples)`` stack from :func:`read_file`.
+        filter_info: ``(host, instrument, filter)`` triple; only
+            ``filter_info[1]`` (``'ACS/WFC'`` or ``'WFPC2'``) is used.
+        options: Pipeline options dataclass.
+        default_is_up: When ``True`` the array is flipped vertically before
+            mosaicking so panels assemble in the correct spatial order.
+        colormap: Pre-resolved colormap (post-tint override from the pipeline).
+        imagefile: Source file path or list of paths — used to identify
+            per-detector files by name substring.
+
+    Returns:
+        Assembled ``(lines, samples, 3)`` uint8-range RGB array, or ``None``
+        when the instrument is not an ACS/WFC or WFPC2 mosaic target.
+    """
+    if filter_info is None or filter_info[1] not in _MOSAIC_INSTRUMENTS:
+        return None
+
+    inst_id: str = filter_info[1]
+
+    if default_is_up:
+        array3d = array3d[:, ::-1, :]
+
+    is_int = array3d.dtype.kind in ('i', 'u')
+    arrays_rgb: list[NDArray[Any]] = []
+    for b in range(array3d.shape[0]):
+        array_rgb, _ = _band_to_rgb(
+            array3d, (b, b + 1), options=options, is_int=is_int, colormap=colormap,
+        )
+        arrays_rgb.append(array_rgb)
+
+    if inst_id == 'WFPC2':
+        return np.asarray(_wfpc2_mosaic(arrays_rgb, imagefile))
+    if len(arrays_rgb) > 1:
+        return np.asarray(_acs_panel_mosaic(arrays_rgb, imagefile))
+    return arrays_rgb[0]
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
@@ -240,4 +375,4 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     return [(0, 0, 0), (r, g, b), (255, 255, 255)]
 
 
-__all__ = ['matches', 'read_file', 'tint_for']
+__all__ = ['apply_mosaic', 'matches', 'read_file', 'tint_for']

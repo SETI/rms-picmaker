@@ -24,8 +24,8 @@ functions:
 
    def tint_for(inst_id: str, filter_name) -> list[tuple[int, int, int]] | None: ...
 
-**Optional** — define this only when the instrument needs a custom
-colorization algorithm that cannot be expressed as a fixed colormap:
+**Optional** — define these only when the instrument needs behaviour
+beyond what ``tint_for`` can express:
 
 .. code-block:: python
 
@@ -33,6 +33,16 @@ colorization algorithm that cannot be expressed as a fixed colormap:
        array3d: NDArray[Any],
        filter_info: FilterInfo,
        options: PicmakerOptions,
+   ) -> NDArray[Any] | None: ...
+
+   def apply_mosaic(
+       array3d: NDArray[Any],
+       filter_info: FilterInfo,
+       options: PicmakerOptions,
+       *,
+       default_is_up: bool = False,
+       colormap: Any = None,
+       imagefile: Any = None,
    ) -> NDArray[Any] | None: ...
 
 Function descriptions
@@ -47,7 +57,7 @@ Function descriptions
   :class:`~picmaker._types.ReadResult` on success, or ``None`` if the
   file / label is not owned by this instrument.  Each instrument owns
   its own format detection; the caller never pre-opens the file.
-  Instruments that only support VICAR or FITS paths can safely receive
+  Instruments that do not support PDS3 label inputs can safely receive
   a :class:`pdsparser.PdsLabel` and return ``None`` — the shared
   helpers (:func:`~picmaker.instruments._shared.try_open_vicar` and
   :func:`~picmaker.instruments._shared.is_fits_file`) both handle a
@@ -55,11 +65,11 @@ Function descriptions
   :mod:`picmaker.instruments._shared`.
 
   ``**kwargs`` carries every pipeline option listed in
-  :data:`picmaker.options.READ_FILE_KWARGS`; currently that is ``hst``
+  :data:`picmaker.options.READ_FILE_KWARGS`; currently that is ``mosaic``
   and ``pds3_label_method``.  Instruments that do not need any of these
   values simply accept and ignore them.  An instrument that *does* need
   one extracts it with ``kwargs.get('key', default)`` — see
-  :mod:`picmaker.instruments.hst` for the ``hst`` example and
+  :mod:`picmaker.instruments.hst` for the ``mosaic`` example and
   :ref:`adding-instrument-option` below for how to introduce a new
   instrument-specific option.
 
@@ -75,12 +85,25 @@ Function descriptions
   infer; keep the user's colormap").
 
 * ``apply_tint(array3d, filter_info, options)`` — checked via
-  :func:`hasattr` in
-  :func:`picmaker.pipeline._process_one_image`; only define it when the
-  tinting algorithm cannot be expressed as a fixed colormap list.
-  Return a ``(lines, samples, 3)`` uint8 RGB array to bypass the
-  standard colormap pipeline, or ``None`` to fall through to
-  :func:`picmaker.color.tinted_colormap` / ``_band_to_rgb``.
+  :func:`hasattr` in :func:`picmaker.pipeline._process_one_image`; called
+  only when ``--tint`` is set.  Define it when the tinting algorithm
+  cannot be expressed as a fixed colormap list.  Return a
+  ``(lines, samples, C)`` RGB array to bypass the standard colormap
+  pipeline, or ``None`` to fall through.
+
+* ``apply_mosaic(array3d, filter_info, options, *, default_is_up,
+  colormap, imagefile)`` — checked via :func:`hasattr`; called only
+  when ``--mosaic`` is set, and only if ``apply_tint`` did not already
+  return a non-``None`` result.  Define it for instruments that assemble
+  images from multiple detectors.  Receives the pipeline's resolved
+  ``colormap`` (post-tint override) and ``imagefile`` so it can identify
+  per-detector files by name substring.  ``default_is_up`` signals
+  whether the raw data is stored display-upward; if so, flip lines
+  before assembling panels.  Return the assembled ``(lines, samples, C)``
+  array, or ``None`` to fall through to the standard
+  :func:`~picmaker.enhance._band_to_rgb` path.  When non-``None`` is
+  returned the pipeline treats orientation as already baked in and sets
+  ``this_display_upward = False``.
 
 Shared format utilities
 -----------------------
@@ -101,15 +124,17 @@ instrument modules can import without circular-import issues:
   (direct index) selectors.
 * :func:`~picmaker.instruments._shared.read_pds3_image_array` — resolve
   the first ``^*IMAGE`` pointer in a :class:`pdsparser.PdsLabel`, then
-  read the referenced data file as VICAR or FITS.  Used by instruments
+  read the referenced data file via VICAR or FITS.  Used by instruments
   that support PDS3 label inputs and by the generic PDS3 fallback in
   :func:`picmaker.io.read_one_image_array`.
 
-Step-by-step
-------------
+Writing the instrument module
+-----------------------------
 
-1. **Create the module.** The template below covers the VICAR case —
-   the most common pattern.
+1. **Create the module.** Choose the detection pattern that matches
+   the file format(s) your instrument produces.
+
+   **VICAR-based instrument** (e.g. Cassini ISS, Voyager ISS, Galileo SSI):
 
    .. code-block:: python
 
@@ -141,7 +166,7 @@ Step-by-step
 
 
       def read_file(
-          filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+          filename: str | os.PathLike[str],
           obj: ObjectSelector = None,
           **kwargs: Any,
       ) -> ReadResult | None:
@@ -174,8 +199,9 @@ Step-by-step
 
       __all__ = ['matches', 'read_file', 'tint_for']
 
-   For a **FITS-based instrument**, replace ``_detect_vicar`` +
-   ``try_open_vicar`` with ``_detect_fits`` + ``is_fits_file``:
+   **FITS-based instrument** (e.g. HST, New Horizons MVIC) — replace
+   ``_detect_vicar`` + ``try_open_vicar`` with ``_detect_fits`` +
+   ``is_fits_file``:
 
    .. code-block:: python
 
@@ -194,7 +220,7 @@ Step-by-step
           return None
 
       def read_file(
-          filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+          filename: str | os.PathLike[str],
           obj: ObjectSelector = None,
           **kwargs: Any,
       ) -> ReadResult | None:
@@ -212,6 +238,46 @@ Step-by-step
           except (UserWarning, OSError):
               return None
 
+   **PDS3-labeled instrument** (e.g. Cassini ISS via ``.LBL``, NH LORRI
+   via ``.LBL``) — add a ``_detect_pds3`` path and dispatch at the top of
+   ``read_file``.  The actual image data pointed to by the label may be
+   in any format supported by
+   :func:`~picmaker.instruments._shared.read_pds3_image_array`:
+
+   .. code-block:: python
+
+      import pdsparser
+
+      def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
+          """Return ('MYMISSION', 'MYINST', filter) or None."""
+          try:
+              d = label.as_dict()
+              if d.get('INSTRUMENT_HOST_NAME') != 'MY MISSION':
+                  return None
+              filter_name = str(d.get('FILTER_NAME', '')).upper().strip()
+              return ('MYMISSION', 'MYINST', filter_name)
+          except TypeError:
+              return None
+
+      def read_file(
+          filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+          obj: ObjectSelector = None,
+          **kwargs: Any,
+      ) -> ReadResult | None:
+          """Try to detect and read a My-Mission image."""
+          if isinstance(filename, pdsparser.PdsLabel):
+              filter_info = _detect_pds3(filename)
+              if filter_info is None:
+                  return None
+              array3d = _shared.read_pds3_image_array(filename, obj)
+              return ReadResult(array3d, False, filter_info)
+          # ... VICAR or FITS detection below for non-label paths ...
+
+   An instrument can combine all three patterns: check
+   ``isinstance(filename, pdsparser.PdsLabel)`` first, then fall through
+   to VICAR / FITS detection for bare file paths (see
+   :mod:`picmaker.instruments.cassini_iss` for a complete example).
+
 2. **Register the module.** Open
    :file:`src/picmaker/instruments/__init__.py` and add the new module
    to the import line and to :data:`~picmaker.instruments.ALL_INSTRUMENTS`:
@@ -226,21 +292,31 @@ Step-by-step
    returns on the first match, so put more-specific instruments before
    more-general ones.
 
-3. **Add a fixture recipe.** Create
-   :file:`tests/fixture_recipes/mymission_myinst_recipe.py` that
-   builds a tiny synthetic VICAR or FITS file containing the metadata
-   keys your :func:`!_detect_vicar` / :func:`!_detect_fits` reads.  Run
-   it once from the venv to create the fixture binary:
+Writing the unit tests
+----------------------
+
+3. **Create a fixture.** Create
+   :file:`tests/fixture_recipes/mymission_myinst_recipe.py` that builds a
+   tiny synthetic file in whatever format(s) your instrument reads —
+   VICAR, FITS, a PDS3 label pointing to a data file, or any other
+   format.  The file only needs to be large enough to contain the
+   metadata keys your detection function reads; a 4×4 or 8×8 pixel
+   image is sufficient.
+
+   Run it once from the venv to write the fixture to
+   :file:`tests/fixtures/`:
 
    .. code-block:: bash
 
       python tests/fixture_recipes/mymission_myinst_recipe.py
 
-   Then add :file:`tests/fixtures/mymission_myinst.vic` (or ``.fits``)
-   to git.
+   Commit the resulting fixture file(s) to git.  If the instrument
+   supports both a bare data-file path and a PDS3 ``.LBL`` label, create
+   separate fixtures for each path so both branches of ``read_file`` are
+   exercised.
 
-4. **Wire it into the cross-instrument tests.** Open
-   :file:`tests/test_io.py` and add an entry to ``INSTRUMENT_FIXTURES``:
+4. **Wire into the cascade tests.** Open :file:`tests/test_io.py` and
+   add an entry to ``INSTRUMENT_FIXTURES``:
 
    .. code-block:: python
 
@@ -251,19 +327,25 @@ Step-by-step
       ]
 
    :func:`!tests.test_io.test_instrument_detection` parametrizes over
-   this list, so the new entry exercises both
-   :func:`picmaker.io.read_one_image_array` (the full cascade) and
-   :func:`picmaker.instruments.lookup` (the ``filter_info`` triple).
+   this list, exercising both :func:`picmaker.io.read_one_image_array`
+   (the full reader cascade) and :func:`picmaker.instruments.lookup`
+   (the ``filter_info`` triple).  Add a second entry for any PDS3 label
+   fixture, pointing to the ``.LBL`` filename with the same expected
+   ``filter_info``.
 
-5. **Add direct unit tests for the per-instrument helpers.** Open
-   :file:`tests/test_instruments_branches.py` and add a parametrize
-   case for every :func:`!tint_for` branch you want pinned, mirroring
-   the existing Cassini and Voyager parametrize blocks.
+5. **Add per-instrument unit tests.** Open
+   :file:`tests/test_instruments_branches.py` and add:
 
-6. **Add a snapshot.** If the new fixture supports the ``--tint``,
-   ``--default``, ``--rot90``, etc. combinations exercised by
-   :file:`tests/fixture_recipes/generate_snapshots.py`, append the
-   fixture name to ``ALL_FIXTURES`` in that file and regenerate:
+   * A parametrize case for every ``tint_for`` branch you want pinned,
+     mirroring the existing Cassini and Voyager blocks.
+   * If you added ``apply_mosaic``, unit tests in
+     :file:`tests/test_pipeline_helpers.py` covering each mosaic variant
+     (and verifying ``None`` is returned for non-mosaic instrument IDs),
+     following the HST ``apply_mosaic`` tests as a model.
+
+6. **Add a snapshot.** If the new fixture should be included in the
+   pixel-level regression suite, append it to ``ALL_FIXTURES`` in
+   :file:`tests/fixture_recipes/generate_snapshots.py` and regenerate:
 
    .. code-block:: bash
 
@@ -272,6 +354,9 @@ Step-by-step
    The script writes new files under :file:`tests/fixtures/expected/`
    and rewrites :file:`tests/snapshots_index.py`. Both should be
    committed.
+
+Completing the addition
+-----------------------
 
 7. **Document it.** Open :file:`docs/user_guide.rst` and add a section
    under "Supported instruments and filters" describing the new
@@ -306,7 +391,7 @@ forwards to every ``read_file`` call as keyword arguments:
 .. code-block:: python
 
    # options.py
-   READ_FILE_KWARGS: tuple[str, ...] = ('hst', 'pds3_label_method')
+   READ_FILE_KWARGS: tuple[str, ...] = ('mosaic', 'pds3_label_method')
 
 In :func:`picmaker.pipeline._process_one_image` the kwargs dict is
 assembled generically from those names:
@@ -343,7 +428,7 @@ Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
       .. code-block:: python
 
          READ_FILE_KWARGS: tuple[str, ...] = (
-             'cassini_encoding', 'hst', 'pds3_label_method'
+             'cassini_encoding', 'mosaic', 'pds3_label_method'
          )
 
    That is the only change required to make the value flow from the CLI
@@ -385,8 +470,10 @@ Three existing modules deviate slightly from the minimal template:
   :func:`!_extract_hst_array` helper that handles ACS/WFC two-detector
   and WFPC2 four-detector mosaic extraction in :func:`!read_file`,
   because the array layout depends on the instrument sub-type, and it
-  extracts ``hst = kwargs.get('hst', False)`` at the top of
-  ``read_file`` to gate the mosaic assembly path.
+  extracts ``mosaic = kwargs.get('mosaic', False)`` at the top of
+  ``read_file`` to gate the multi-detector array extraction path.  The
+  colormap application and panel layout are handled separately in
+  :func:`!apply_mosaic` (called by the pipeline under ``--mosaic``).
 
 All three still expose the full required protocol; the internal
 implementation just differs.

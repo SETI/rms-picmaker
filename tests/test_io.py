@@ -28,8 +28,8 @@ def test_instrument_detection(
     assert detect == expected
     assert color is is_color
     # All instrument fixtures are 16x16 single-band synthetic frames.
-    # ACS/WFC and WFPC2 are multi-band when read with hst=True; this
-    # test exercises the default `hst=False` path so each is 1 band.
+    # ACS/WFC and WFPC2 are multi-band when read with mosaic=True; this
+    # test exercises the default `mosaic=False` path so each is 1 band.
     assert array.shape == (1, 16, 16)
 
 

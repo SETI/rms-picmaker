@@ -92,7 +92,7 @@ Control options
 * ``--pattern PATTERN`` (default: ``'*'``) — Glob filter applied to file
   names during recursion.
 * ``--movie`` — Share one set of enhancement limits across every input.
-  Incompatible with ``--hst``.
+  Incompatible with ``--mosaic``.
 * ``--versions FILE`` — For each non-blank line in ``FILE``, re-parse
   the command line with that line's tokens appended and run the
   resulting pipeline. Produces one output per non-blank line.
@@ -182,8 +182,8 @@ Layout options
   of the gap drawn between wrapped sections.
 * ``--gap-color NAME``, ``--gapcolor NAME`` (default: ``white``) — Gap
   color (X11 color name or ``#RRGGBB``).
-* ``--hst`` — Construct a mosaic from all HST detector panels (ACS/WFC,
-  WFPC2). Incompatible with ``--band`` / ``--bands`` / ``--movie``.
+* ``--mosaic`` — Construct a mosaic from all detector panels (currently
+  HST ACS/WFC and WFPC2). Incompatible with ``--band`` / ``--bands`` / ``--movie``.
 
 Scaling options (histogram and intensity controls)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -259,7 +259,7 @@ Processing options
   the label, which enables instrument-aware tinting (see section 6).
 * **FITS** — including HST (WFC3, ACS, WFPC2, NICMOS) and New
   Horizons (MVIC). HST mosaics across multiple detector panels are
-  reconstructed with ``--hst``.
+  reconstructed with ``--mosaic``.
 * **Pickled NumPy arrays** (``.pkl``) and **NumPy** ``.npy`` files.
 * **Common raster formats** — BMP, GIF, JPEG, PNG, plain TIFF.
 
@@ -490,9 +490,9 @@ See :doc:`module` for the full API reference.
 * ``Unknown HST filter: <inst> <name>`` — HST wavelength inference
   failed for this filter; no tint is applied and the existing colormap
   is preserved.
-* ``hst and band options are incompatible`` — ``--hst`` (mosaic mode)
-  consumes every detector panel, so it cannot be combined with
-  ``--band`` or ``--bands``.
+* ``mosaic and band options are incompatible`` — ``--mosaic`` consumes
+  every detector panel, so it cannot be combined with ``--band`` or
+  ``--bands``.
 * ``band and bands options are incompatible`` — ``--band`` and
   ``--bands`` were both given with mismatched values. Use one or the
   other.

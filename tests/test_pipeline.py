@@ -89,7 +89,7 @@ def test_movie_option_writes_outputs(
         'size': None, 'scale': (100., 100.), 'crop': None, 'frame': None,
         'pad': False, 'pad_color': 'black', 'frame_max': None, 'wrap': False,
         'wrap_ratio': None, 'overlap': (0., 0.), 'gap_size': 1,
-        'gap_color': 'white', 'hst': False, 'valid': None, 'limits': None,
+        'gap_color': 'white', 'mosaic': False, 'valid': None, 'limits': None,
         'percentiles': None, 'trim': 0, 'trim_zeros': False, 'footprint': 0,
         'histogram': False, 'colormap': None, 'below_color': None,
         'above_color': None, 'invalid_color': None, 'gamma': 1.0,
@@ -123,7 +123,7 @@ def test_hst_acs_branch_executes(fixtures_dir: Path, tmp_path: Path) -> None:
     images_to_pics(
         [str(fixtures_dir / 'hst_acs.fits')],
         directory=str(tmp_path),
-        hst=True,
+        mosaic=True,
     )
     assert (tmp_path / 'hst_acs.jpg').exists()
 
@@ -133,6 +133,6 @@ def test_hst_wfpc2_branch_executes(fixtures_dir: Path, tmp_path: Path) -> None:
     images_to_pics(
         [str(fixtures_dir / 'hst_wfpc2.fits')],
         directory=str(tmp_path),
-        hst=True,
+        mosaic=True,
     )
     assert (tmp_path / 'hst_wfpc2.jpg').exists()

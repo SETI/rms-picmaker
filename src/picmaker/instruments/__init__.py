@@ -4,7 +4,7 @@ Each instrument module exposes a uniform protocol:
 
 **Required methods:**
 
-* ``read_file(filename, obj, hst, *, pds3_label_method) -> ReadResult | None``
+* ``read_file(filename, obj, *, mosaic, pds3_label_method) -> ReadResult | None``
   — tries to detect and read *filename*; returns a
   :class:`~picmaker._types.ReadResult` on success or ``None`` if the
   file is not owned by this instrument.
@@ -17,9 +17,13 @@ Each instrument module exposes a uniform protocol:
 **Optional methods (checked via** ``hasattr`` **):**
 
 * ``apply_tint(array3d, filter_info, options) -> NDArray | None`` —
-  custom colorization algorithm; return a ``(H, W, 3)`` uint8 RGB array
-  to replace the standard colormap pipeline, or ``None`` to fall
-  through to :func:`~picmaker.color.tinted_colormap` / ``_band_to_rgb``.
+  custom colorization; called only under ``--tint``; return a
+  ``(H, W, C)`` RGB array to replace the standard colormap pipeline,
+  or ``None`` to fall through.
+* ``apply_mosaic(array3d, filter_info, options, *, default_is_up, colormap,
+  imagefile) -> NDArray | None`` — multi-detector array assembly; called only
+  under ``--mosaic``; return the assembled ``(H, W, C)`` array, or ``None``
+  to fall through to the standard ``_band_to_rgb`` path.
 """
 
 from types import ModuleType

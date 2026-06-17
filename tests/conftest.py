@@ -64,7 +64,7 @@ def basic_option_dict() -> dict[str, Any]:
         'overlap': (0.0, 0.0),
         'gap_size': 1,
         'gap_color': 'white',
-        'hst': False,
+        'mosaic': False,
         'valid': None,
         'limits': None,
         'percentiles': (0.0, 100.0),

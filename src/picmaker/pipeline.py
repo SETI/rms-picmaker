@@ -1,8 +1,8 @@
 """Top-level orchestration: walk directories, process one image, drive a movie.
 
 :func:`process_images` and :func:`images_to_pics` are the CLI's main
-entry points; the module-private helpers :func:`!_hst_mosaic_rgb` and
-:func:`!_process_one_image` each handle one phase of the per-image
+entry points; the module-private helper :func:`!_process_one_image`
+handles one phase of the per-image
 pipeline so that :func:`images_to_pics` reads as a flat loop.
 """
 
@@ -18,17 +18,14 @@ from picmaker import instruments
 from picmaker._filters import filter_image
 from picmaker.color import tinted_colormap
 from picmaker.enhance import (
-    apply_colormap,
+    _band_to_rgb,
     apply_gamma,
-    fill_zebra_stripes,
-    get_limits,
 )
 from picmaker.geometry import (
     get_size,
     pad_image,
     resize_image,
     rotate_array_rgb,
-    slice_array,
     wrap_image,
 )
 from picmaker.io import get_outfile, read_image_array
@@ -192,202 +189,6 @@ def _pds3_resolve_pointer(
     return imagefile, filter_info, label
 
 
-def _hst_wfpc2_mosaic(
-    arrays_rgb: list[Any],
-    imagefile: Any,
-) -> Any:
-    """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
-
-    When ``imagefile`` is a list of per-detector file paths, the band
-    order is inferred from substrings (``PC1``, ``WF2``, ``WF3``,
-    ``WF4``) in each filename. When ``imagefile`` is a single string
-    (e.g. a multi-extension FITS file), bands are placed in ``b``-order
-    with a ``b``-step ``np.rot90`` rotation. Each non-PC1 detector is
-    rotated to share the PC1's pixel orientation.
-
-    Parameters:
-        arrays_rgb: Per-band RGB arrays (length 4), each
-            ``(lines, samples, 3)``.
-        imagefile: Either a single string or a list of strings.
-
-    Returns:
-        The assembled 2x2 mosaic, shape
-        ``(2 * lines, 2 * samples, 3)``.
-    """
-    quads_rgb = np.zeros((4, *arrays_rgb[0].shape))
-    for b in range(len(arrays_rgb)):
-        if isinstance(imagefile, str):
-            quads_rgb[b] = np.rot90(arrays_rgb[b], b)
-        else:
-            testfile = imagefile[b].upper()
-            if 'PC1' in testfile:
-                quads_rgb[0] = arrays_rgb[b]
-            elif 'WF2' in testfile:
-                quads_rgb[1] = np.rot90(arrays_rgb[b], 1)
-            elif 'WF3' in testfile:
-                quads_rgb[2] = np.rot90(arrays_rgb[b], 2)
-            elif 'WF4' in testfile:
-                quads_rgb[3] = np.rot90(arrays_rgb[b], 3)
-            else:
-                quads_rgb[b] = np.rot90(arrays_rgb[b], b)
-
-    (_, dl, ds, db) = quads_rgb.shape
-    mosaic = np.empty((2 * dl, 2 * ds, db))
-    mosaic[:dl, -ds:] = quads_rgb[0]
-    mosaic[:dl, :ds] = quads_rgb[1]
-    mosaic[-dl:, :ds] = quads_rgb[2]
-    mosaic[-dl:, -ds:] = quads_rgb[3]
-    return mosaic
-
-
-def _hst_acs_panel_mosaic(
-    arrays_rgb: list[Any],
-    imagefile: Any,
-) -> Any:
-    """Assemble ACS/WFC's two detectors (WFC1 above, WFC2 below).
-
-    When ``imagefile`` is a list of per-detector file paths, the panel
-    order is inferred from substrings (``WFC1``, ``WFC2``) in each
-    filename. When ``imagefile`` is a single string, band 0 is placed
-    below and band 1 above (matching the legacy `1 - b` indexing).
-
-    Parameters:
-        arrays_rgb: Per-band RGB arrays (length 2), each
-            ``(lines, samples, 3)``.
-        imagefile: Either a single string or a list of strings.
-
-    Returns:
-        The assembled panel mosaic, shape
-        ``(2 * lines, samples, 3)``.
-    """
-    panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
-    for b in range(2):
-        if isinstance(imagefile, str):
-            panels_rgb[1 - b] = arrays_rgb[b]
-        else:
-            testfile = imagefile[b].upper()
-            if 'WFC1' in testfile:
-                panels_rgb[0] = arrays_rgb[b]
-            elif 'WFC2' in testfile:
-                panels_rgb[1] = arrays_rgb[b]
-            else:
-                panels_rgb[b] = arrays_rgb[b]
-
-    (dl, ds, db) = arrays_rgb[0].shape
-    mosaic = np.zeros((2 * dl, ds, db))
-    mosaic[:dl] = panels_rgb[0]
-    mosaic[-dl:] = panels_rgb[1]
-    return mosaic
-
-
-def _band_to_rgb(
-    array3d: Any,
-    bands: Any,
-    *,
-    options: PicmakerOptions,
-    is_int: bool,
-    colormap: Any,
-) -> tuple[Any, tuple[Any, Any]]:
-    """Slice → optional zebra fill → get_limits → apply_colormap for one band selection.
-
-    Encapsulates the chain that appears once per detector in
-    :func:`!_hst_mosaic_rgb` and once total in :func:`!_process_one_image`'
-    single-detector branch, so the stretch / colormap parameters are
-    threaded through the dataclass from one place.
-
-    Parameters:
-        array3d: ``(bands, lines, samples)`` input stack.
-        bands: ``(b0, b1)`` half-open band range to average, passed
-            through to :func:`~picmaker.geometry.slice_array`.
-        options: Picmaker options dataclass; supplies the slice,
-            stretch, and colormap knobs.
-        is_int: Whether ``array3d.dtype`` is an integer kind (passed
-            to :func:`~picmaker.enhance.get_limits`).
-        colormap: The resolved colormap (post-``tint`` override).
-
-    Returns:
-        ``(array_rgb, these_limits)`` where ``array_rgb`` is the
-        ``(lines, samples, channels)`` colormapped output and
-        ``these_limits`` is the ``(lo, hi)`` pair the caller may want
-        to record for the movie-mode median.
-    """
-    (array2d, invalid_mask) = slice_array(
-        array3d, options.samples, options.lines, bands, options.valid, options.crop,
-    )
-
-    if options.zebra:
-        array2d = fill_zebra_stripes(array2d)
-
-    these_limits = get_limits(
-        array2d, invalid_mask, options.limits, options.percentiles, assume_int=is_int,
-        trim=options.trim, trim_zeros=options.trim_zeros, footprint=options.footprint,
-    )
-
-    array_rgb = apply_colormap(
-        array2d, these_limits, options.histogram, colormap, invalid_mask,
-        options.below_color, options.above_color, options.invalid_color,
-    )
-    return array_rgb, these_limits
-
-
-def _hst_mosaic_rgb(
-    array3d: Any,
-    filter_info: tuple[Any, Any, Any],
-    imagefile: Any,
-    *,
-    options: PicmakerOptions,
-    default_is_up: bool,
-    is_int: bool,
-    colormap: Any,
-) -> tuple[Any, Any]:
-    """Build the HST ACS/WFC or WFPC2 mosaic from a per-detector array stack.
-
-    Each band of ``array3d`` is sliced, stretched, and colormapped independently, then the
-    per-detector RGB arrays are assembled into a single mosaic via :func:`!_hst_wfpc2_mosaic` (4
-    detectors, instrument ``WFPC2``) or :func:`!_hst_acs_panel_mosaic` (2 detectors, instrument
-    ``ACS/WFC``). A single-band ACS/WFC input is returned unmosaicked.
-
-    The optional ``default_is_up`` flip is applied here (and ``array3d`` is returned to the caller
-    so the caller's reuse tuple records the flipped variant).
-
-    Parameters:
-        array3d: ``(bands, lines, samples)`` stack.
-        filter_info: Reader-cascade ``(host, instrument, filter)``
-            triple; only ``filter_info[1]`` (``'ACS/WFC'`` or
-            ``'WFPC2'``) is inspected here.
-        imagefile: Source file path or list of paths — used by the
-            assembly helpers to identify per-detector files.
-        options: Picmaker options dataclass for slice, stretch, and
-            colormap parameters.
-        default_is_up: Caller's ``default_is_up`` flag from the reader.
-        is_int: Whether ``array3d.dtype`` is an integer kind (passed
-            through to :func:`~picmaker.enhance.get_limits`).
-        colormap: The resolved colormap (post-``tint`` override).
-
-    Returns:
-        ``(mosaic_rgb, array3d_for_reuse)``. The second element is the
-        possibly-flipped input array — callers persist it in their
-        reuse tuple.
-    """
-    if default_is_up:
-        array3d = array3d[:, ::-1, :]
-
-    arrays_rgb: list[Any] = []
-    for b in range(array3d.shape[0]):
-        array_rgb, _ = _band_to_rgb(
-            array3d, (b, b + 1), options=options, is_int=is_int, colormap=colormap,
-        )
-        arrays_rgb.append(array_rgb)
-
-    if filter_info[1] == 'WFPC2':
-        mosaic = _hst_wfpc2_mosaic(arrays_rgb, imagefile)
-    elif len(arrays_rgb) > 1:
-        mosaic = _hst_acs_panel_mosaic(arrays_rgb, imagefile)
-    else:
-        mosaic = arrays_rgb[0]
-
-    return mosaic, array3d
-
 
 def _process_one_image(
     infile: str,
@@ -456,48 +257,40 @@ def _process_one_image(
     is_int = array3d.dtype.kind in ('i', 'u')
     limits_pair: tuple[Any, Any] = (None, None)
 
-    # --- Per-instrument custom colorization (optional apply_tint method) ---
-    # When an instrument defines apply_tint(), it owns the full (H, W, 3)
-    # RGB output; limits_pair stays (None, None) as in the HST mosaic branch.
-    _custom_rgb = None
+    # Resolve colormap; tint override applies to both mosaic and standard paths.
+    colormap = options.colormap
     if options.tint and filter_info is not None:
+        tint_override = tinted_colormap(filter_info)
+        if tint_override is not None:
+            colormap = tint_override
+
+    # Per-instrument hooks — when non-None the instrument owns orientation;
+    # pipeline sets this_display_upward = False to avoid a double flip.
+    # apply_tint: custom colorization, gated on --tint.
+    # apply_mosaic: array assembly (e.g. multi-detector panels), gated on --mosaic.
+    _custom_rgb = None
+    if filter_info is not None:
         _inst = instruments.lookup(filter_info[0], filter_info[1])
-        if _inst is not None and hasattr(_inst, 'apply_tint'):
-            _custom_rgb = _inst.apply_tint(array3d, filter_info, options)
+        if _inst is not None:
+            if options.tint and hasattr(_inst, 'apply_tint'):
+                _custom_rgb = _inst.apply_tint(array3d, filter_info, options)
+            if _custom_rgb is None and options.mosaic and hasattr(_inst, 'apply_mosaic'):
+                _custom_rgb = _inst.apply_mosaic(
+                    array3d, filter_info, options,
+                    default_is_up=default_is_up,
+                    colormap=colormap,
+                    imagefile=imagefile,
+                )
 
     if _custom_rgb is not None:
         array_rgb = _custom_rgb
+        this_display_upward = False
     else:
-        # Resolve the effective colormap: tint mode overrides the user's
-        # colormap when the instrument has a known per-filter tint.
-        colormap = options.colormap
-        if options.tint:
-            tint_override = tinted_colormap(filter_info)
-            if tint_override is not None:
-                colormap = tint_override
-
-        use_hst_mosaic = (
-            options.hst
-            and filter_info is not None
-            and filter_info[0] == 'HST'
-            and filter_info[1] in ('ACS/WFC', 'WFPC2')
+        array_rgb, these_limits = _band_to_rgb(
+            array3d, options.bands,
+            options=options, is_int=is_int, colormap=colormap,
         )
-
-        if use_hst_mosaic:
-            array_rgb, array3d = _hst_mosaic_rgb(
-                array3d, filter_info, imagefile,
-                options=options,
-                default_is_up=default_is_up,
-                is_int=is_int,
-                colormap=colormap,
-            )
-            this_display_upward = False
-        else:
-            array_rgb, these_limits = _band_to_rgb(
-                array3d, options.bands,
-                options=options, is_int=is_int, colormap=colormap,
-            )
-            limits_pair = (these_limits[0], these_limits[1])
+        limits_pair = (these_limits[0], these_limits[1])
 
     array_rgb = rotate_array_rgb(array_rgb, this_display_upward, options.rotate)
     array_rgb = apply_gamma(array_rgb, options.gamma)
@@ -642,7 +435,7 @@ def images_to_pics(
     overlap: tuple[float, float] = (0.0, 0.0),
     gap_size: int = 1,
     gap_color: Any = 'white',
-    hst: bool = False,
+    mosaic: bool = False,
     valid: Any = None,
     limits: Any = None,
     percentiles: Any = None,
@@ -692,7 +485,7 @@ def images_to_pics(
         size=size, scale=scale, crop=crop, frame=frame, pad=pad,
         pad_color=pad_color, frame_max=frame_max, wrap=wrap,
         wrap_ratio=wrap_ratio, overlap=overlap, gap_size=gap_size,
-        gap_color=gap_color, hst=hst, valid=valid, limits=limits,
+        gap_color=gap_color, mosaic=mosaic, valid=valid, limits=limits,
         percentiles=percentiles, trim=trim, trim_zeros=trim_zeros,
         footprint=footprint, histogram=histogram, colormap=colormap,
         below_color=below_color, above_color=above_color,

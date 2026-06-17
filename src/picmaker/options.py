@@ -21,7 +21,7 @@ PDS3_LABEL_METHODS: tuple[str, ...] = ('strict', 'loose', 'compound', 'fast')
 
 # Names of PicmakerOptions fields forwarded to instrument read_file() as **kwargs.
 # Add the name of any new instrument-specific option here alongside its field definition above.
-READ_FILE_KWARGS: tuple[str, ...] = ('hst', 'pds3_label_method')
+READ_FILE_KWARGS: tuple[str, ...] = ('mosaic', 'pds3_label_method')
 
 
 @dataclass
@@ -67,7 +67,7 @@ class PicmakerOptions:
     overlap: tuple[float, float] = (0.0, 0.0)
     gap_size: int = 1
     gap_color: Any = 'white'
-    hst: bool = False
+    mosaic: bool = False
     # scaling
     valid: Any = None
     limits: Any = None
@@ -99,8 +99,8 @@ class PicmakerOptions:
                 both set, or when ``twobytes`` is combined with a
                 non-TIFF extension or a non-trivial filter.
         """
-        if self.hst and self.bands is not None:
-            raise ValueError('hst and bands options are incompatible')
+        if self.mosaic and self.bands is not None:
+            raise ValueError('mosaic and bands options are incompatible')
         if self.frame is not None and self.size is not None:
             raise ValueError('frame and size options are incompatible')
         if self.frame is not None and self.wrap_ratio:

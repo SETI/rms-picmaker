@@ -11,7 +11,8 @@ from scipy.ndimage import median_filter
 from scipy.stats import rankdata
 
 from picmaker.colornames import ColorNames
-from picmaker.geometry import circle_mask
+from picmaker.geometry import circle_mask, slice_array
+from picmaker.options import PicmakerOptions
 
 HISTOGRAM_BINS = 1024
 
@@ -361,6 +362,50 @@ def apply_colormap(
             channel[invalid_mask] = highlights[2][c]
 
     return result
+
+
+def _band_to_rgb(
+    array3d: Any,
+    bands: Any,
+    *,
+    options: PicmakerOptions,
+    is_int: bool,
+    colormap: Any,
+) -> tuple[Any, tuple[Any, Any]]:
+    """Slice → optional zebra fill → get_limits → apply_colormap for one band selection.
+
+    Parameters:
+        array3d: ``(bands, lines, samples)`` input stack.
+        bands: ``(b0, b1)`` half-open band range to average, passed through to
+            :func:`~picmaker.geometry.slice_array`.
+        options: Picmaker options dataclass; supplies the slice, stretch, and
+            colormap knobs.
+        is_int: Whether ``array3d.dtype`` is an integer kind (passed to
+            :func:`get_limits`).
+        colormap: The resolved colormap (post-``tint`` override).
+
+    Returns:
+        ``(array_rgb, these_limits)`` where ``array_rgb`` is the
+        ``(lines, samples, channels)`` colormapped output and ``these_limits``
+        is the ``(lo, hi)`` pair the caller may want to record for movie-mode.
+    """
+    (array2d, invalid_mask) = slice_array(
+        array3d, options.samples, options.lines, bands, options.valid, options.crop,
+    )
+
+    if options.zebra:
+        array2d = fill_zebra_stripes(array2d)
+
+    these_limits = get_limits(
+        array2d, invalid_mask, options.limits, options.percentiles, assume_int=is_int,
+        trim=options.trim, trim_zeros=options.trim_zeros, footprint=options.footprint,
+    )
+
+    array_rgb = apply_colormap(
+        array2d, these_limits, options.histogram, colormap, invalid_mask,
+        options.below_color, options.above_color, options.invalid_color,
+    )
+    return array_rgb, these_limits
 
 
 def apply_gamma(array: Any, gamma: float) -> Any:

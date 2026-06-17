@@ -18,13 +18,13 @@ from picmaker.pipeline import images_to_pics, process_images
 # ---------------------------------------------------------------------------
 
 
-def test_hst_bands_incompatible(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``hst=True`` plus ``bands=...`` is rejected before any I/O."""
-    with pytest.raises(ValueError, match='hst and bands'):
+def test_mosaic_bands_incompatible(fixtures_dir: Path, tmp_path: Path) -> None:
+    """``mosaic=True`` plus ``bands=...`` is rejected before any I/O."""
+    with pytest.raises(ValueError, match='mosaic and bands'):
         images_to_pics(
             [str(fixtures_dir / 'cassini_iss.vic')],
             directory=str(tmp_path),
-            hst=True,
+            mosaic=True,
             bands=(0, 1),
         )
 
@@ -172,40 +172,40 @@ def test_no_proceed_raises_on_first_error(
 # ---------------------------------------------------------------------------
 
 
-def test_hst_acs_mosaic_writes_output(
+def test_mosaic_acs_writes_output(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """``hst=True`` on an ACS/WFC fixture writes a single mosaicked JPG."""
+    """``mosaic=True`` on an ACS/WFC fixture writes a single mosaicked JPG."""
     images_to_pics(
         [str(fixtures_dir / 'hst_acs.fits')],
         directory=str(tmp_path),
-        hst=True,
+        mosaic=True,
         replace='all',
     )
     assert (tmp_path / 'hst_acs.jpg').exists()
 
 
-def test_hst_wfpc2_mosaic_writes_output(
+def test_mosaic_wfpc2_writes_output(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """``hst=True`` on a WFPC2 fixture writes a single mosaicked JPG."""
+    """``mosaic=True`` on a WFPC2 fixture writes a single mosaicked JPG."""
     images_to_pics(
         [str(fixtures_dir / 'hst_wfpc2.fits')],
         directory=str(tmp_path),
-        hst=True,
+        mosaic=True,
         replace='all',
     )
     assert (tmp_path / 'hst_wfpc2.jpg').exists()
 
 
-def test_hst_mosaic_with_zebra(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``hst=True`` plus ``zebra=True`` runs ``fill_zebra_stripes`` inside
+def test_mosaic_with_zebra(fixtures_dir: Path, tmp_path: Path) -> None:
+    """``mosaic=True`` plus ``zebra=True`` runs ``fill_zebra_stripes`` inside
     the per-detector loop without crashing.
     """
     images_to_pics(
         [str(fixtures_dir / 'hst_acs.fits')],
         directory=str(tmp_path),
-        hst=True,
+        mosaic=True,
         zebra=True,
         replace='all',
     )
