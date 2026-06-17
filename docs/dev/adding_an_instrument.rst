@@ -15,7 +15,7 @@ functions:
 .. code-block:: python
 
    def read_file(
-       filename: str | os.PathLike[str],
+       filename: str | os.PathLike[str] | pdsparser.PdsLabel,
        obj: ObjectSelector = None,
        **kwargs: Any,
    ) -> ReadResult | None: ...
@@ -39,14 +39,20 @@ Function descriptions
 ~~~~~~~~~~~~~~~~~~~~~
 
 * ``read_file(filename, obj, **kwargs)`` — the instrument's complete
-  file reader.  It must detect whether *filename* belongs to this
-  instrument (via magic bytes, header keywords, file extension, or any
-  other heuristic), extract the image array, and return a
+  file reader.  *filename* is either a file path (``str | PathLike``)
+  or a pre-parsed :class:`pdsparser.PdsLabel` (passed when the pipeline
+  is given a ``.LBL`` input).  The function must detect whether the
+  input belongs to this instrument (via magic bytes, header keywords,
+  file extension, label metadata, or any other heuristic) and return a
   :class:`~picmaker._types.ReadResult` on success, or ``None`` if the
-  file is not owned by this instrument.  Each instrument owns its own
-  format detection; the caller never pre-opens the file.  Shared format
-  utilities (VICAR parser, FITS magic-byte sniff, FITS array extractor)
-  are available in :mod:`picmaker.instruments._shared`.
+  file / label is not owned by this instrument.  Each instrument owns
+  its own format detection; the caller never pre-opens the file.
+  Instruments that only support VICAR or FITS paths can safely receive
+  a :class:`pdsparser.PdsLabel` and return ``None`` — the shared
+  helpers (:func:`~picmaker.instruments._shared.try_open_vicar` and
+  :func:`~picmaker.instruments._shared.is_fits_file`) both handle a
+  label argument gracefully.  Shared format utilities are available in
+  :mod:`picmaker.instruments._shared`.
 
   ``**kwargs`` carries every pipeline option listed in
   :data:`picmaker.options.READ_FILE_KWARGS`; currently that is ``hst``
@@ -69,10 +75,11 @@ Function descriptions
   infer; keep the user's colormap").
 
 * ``apply_tint(array3d, filter_info, options)`` — checked via
-  :func:`hasattr` in :func:`picmaker.pipeline.images_to_pics`; only
-  define it when the tinting algorithm cannot be expressed as a fixed
-  colormap list.  Return a ``(lines, samples, 3)`` uint8 RGB array to
-  bypass the standard colormap pipeline, or ``None`` to fall through to
+  :func:`hasattr` in
+  :func:`picmaker.pipeline._process_one_image`; only define it when the
+  tinting algorithm cannot be expressed as a fixed colormap list.
+  Return a ``(lines, samples, 3)`` uint8 RGB array to bypass the
+  standard colormap pipeline, or ``None`` to fall through to
   :func:`picmaker.color.tinted_colormap` / ``_band_to_rgb``.
 
 Shared format utilities
@@ -83,13 +90,20 @@ instrument modules can import without circular-import issues:
 
 * :func:`~picmaker.instruments._shared.try_open_vicar` — parse
   *filename* as a VICAR file and return a :class:`vicar.VicarImage`, or
-  ``None`` on any error (including non-VICAR files).
+  ``None`` on any error (including non-VICAR files or a
+  :class:`pdsparser.PdsLabel` argument).
 * :func:`~picmaker.instruments._shared.is_fits_file` — return ``True``
-  iff the file begins with the FITS magic bytes ``b'SIMPLE  ='``.
+  iff the file begins with the FITS magic bytes ``b'SIMPLE  ='``; also
+  returns ``False`` safely when given a :class:`pdsparser.PdsLabel`.
 * :func:`~picmaker.instruments._shared.extract_fits_array` — extract a
   3-D ``(bands, lines, samples)`` array from an open FITS HDU list,
   handling ``obj=None`` (auto-detect), list/tuple (stack), and scalar
   (direct index) selectors.
+* :func:`~picmaker.instruments._shared.read_pds3_image_array` — resolve
+  the first ``^*IMAGE`` pointer in a :class:`pdsparser.PdsLabel`, then
+  read the referenced data file as VICAR or FITS.  Used by instruments
+  that support PDS3 label inputs and by the generic PDS3 fallback in
+  :func:`picmaker.io.read_one_image_array`.
 
 Step-by-step
 ------------
@@ -127,7 +141,7 @@ Step-by-step
 
 
       def read_file(
-          filename: str | os.PathLike[str],
+          filename: str | os.PathLike[str] | pdsparser.PdsLabel,
           obj: ObjectSelector = None,
           **kwargs: Any,
       ) -> ReadResult | None:
@@ -180,7 +194,7 @@ Step-by-step
           return None
 
       def read_file(
-          filename: str | os.PathLike[str],
+          filename: str | os.PathLike[str] | pdsparser.PdsLabel,
           obj: ObjectSelector = None,
           **kwargs: Any,
       ) -> ReadResult | None:

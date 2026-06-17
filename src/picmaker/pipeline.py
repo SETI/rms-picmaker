@@ -1,8 +1,7 @@
 """Top-level orchestration: walk directories, process one image, drive a movie.
 
 :func:`process_images` and :func:`images_to_pics` are the CLI's main
-entry points; the module-private helpers
-:func:`!_pds3_resolve_pointer`, :func:`!_hst_mosaic_rgb`, and
+entry points; the module-private helpers :func:`!_hst_mosaic_rgb` and
 :func:`!_process_one_image` each handle one phase of the per-image
 pipeline so that :func:`images_to_pics` reads as a flat loop.
 """
@@ -441,25 +440,11 @@ def _process_one_image(
         (array3d, default_is_up, filter_info, infile) = reuse
         imagefile: Any = infile
     else:
-        upperfile = infile.upper()
-        if upperfile.endswith('.LBL'):
-            imagefile, filter_info_from_label, _ = _pds3_resolve_pointer(
-                infile, options.pointer, options.obj,
-                pds3_label_method=options.pds3_label_method,
-            )
-            (array3d, default_is_up, filter_info) = read_image_array(
-                imagefile, options.obj,
-                **{k: getattr(options, k) for k in READ_FILE_KWARGS},
-            )
-            filter_info = filter_info or filter_info_from_label
-        else:
-            imagefile = infile
-            filter_info = None
-            (array3d, default_is_up, filter_info2) = read_image_array(
-                infile, options.obj,
-                **{k: getattr(options, k) for k in READ_FILE_KWARGS},
-            )
-            filter_info = filter_info or filter_info2
+        imagefile = infile
+        (array3d, default_is_up, filter_info) = read_image_array(
+            infile, options.obj,
+            **{k: getattr(options, k) for k in READ_FILE_KWARGS},
+        )
 
     if options.display_upward:
         this_display_upward = True

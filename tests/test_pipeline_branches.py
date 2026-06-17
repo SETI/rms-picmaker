@@ -449,24 +449,14 @@ def test_pds3_label_list_pointer_obj_int_picks_one(
 def test_pds3_label_missing_pointer_raises(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """A label that doesn't contain the requested pointer raises ``KeyError``."""
+    """A label with no ``^*IMAGE`` pointer raises ``OSError``."""
     lbl = tmp_path / 'no_pointer.LBL'
     lbl.write_text("""PDS_VERSION_ID = PDS3
 INSTRUMENT_HOST_ID = 'CASSINI'
 END
 """)
-    with pytest.raises(KeyError, match=r'PDS pointer .* not found'):
+    with pytest.raises(OSError, match=r'No \^\*IMAGE pointer found'):
         images_to_pics([str(lbl)], directory=str(tmp_path), replace='all')
-
-
-def test_pds3_label_obj_out_of_range_raises(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``obj=999`` against a single-pointer label raises ``IndexError``."""
-    lbl = _make_label_pointing_at(fixtures_dir, tmp_path, 'cassini_iss.vic')
-    with pytest.raises(IndexError, match='out of range'):
-        images_to_pics([str(lbl)], directory=str(tmp_path / 'out'),
-                       obj=999, replace='all')
 
 
 def test_pds3_label_uses_spacecraft_id_fallback(

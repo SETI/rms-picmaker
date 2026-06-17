@@ -33,16 +33,18 @@ zoom controls to read the labels at any size.
        J --> K
        K --> L[get_outfile]
        L -->|skip if replace='none'| M[Done]
-       L --> PR[_pds3_resolve_pointer<br/>only for .LBL inputs]
-       PR --> N[read_image_array]
-       L --> N
+       L --> N[read_image_array]
        N --> O[read_one_image_array<br/>format cascade]
-       O --> P[pickle / numpy]
+       O -->|.LBL / PdsLabel| NPI[instrument cascade<br/>PDS3-aware read_file]
+       NPI -->|unrecognized label| NPF[read_pds3_image_array<br/>generic PDS3 fallback]
+       O -->|other paths| P[pickle / numpy]
        P --> PI[instrument cascade<br/>read_file per ALL_INSTRUMENTS]
        PI --> PF[generic VICAR fallback]
        PF --> PG[generic FITS fallback]
-       PG --> PH[PIL / PDS3]
+       PG --> PH[PIL / 16-bit TIFF<br/>PDS3 auto-detect]
        PH --> Q[ReadResult<br/>array3d, default_is_up, filter_info]
+       NPI --> Q
+       NPF --> Q
        PI --> Q
        PF --> Q
        PG --> Q
@@ -149,9 +151,28 @@ The reader cascade
 ~~~~~~~~~~~~~~~~~~
 
 :func:`picmaker.io.read_one_image_array` is the single-file reader.
-It tries every supported format in turn and returns a
-:class:`~picmaker._types.ReadResult` triple on the first match.  The
-cascade order is:
+It returns a :class:`~picmaker._types.ReadResult` triple on the first
+format match and has two top-level branches depending on the input type.
+
+**PDS3 label branch** — taken when *filename* is a
+:class:`pdsparser.PdsLabel` object, or a path whose extension is
+``.LBL`` / ``.lbl`` (auto-parsed at the top of the function).  The
+cascade within this branch is:
+
+1. **Per-instrument readers (PDS3-aware)** — iterates
+   :data:`picmaker.instruments.ALL_INSTRUMENTS` and calls each
+   instrument's :func:`!read_file` with the label object, ``obj``, and
+   ``**kwargs``.  Instruments that support PDS3 (Cassini ISS, Voyager
+   ISS, Galileo SSI, NH LORRI) detect the label's metadata and extract
+   the data file; unrecognised instruments return ``None`` safely.
+2. **Generic PDS3 fallback** —
+   :func:`~picmaker.instruments._shared.read_pds3_image_array`, for
+   labels not matched by any instrument.  Resolves the ``^IMAGE``
+   pointer and reads via VICAR or FITS.  Returns ``filter_info=None``.
+
+**Non-label cascade** — taken for all other paths.  Stages are tried in
+order; each catches its specific exception type so an unrecognized file
+falls through to the next:
 
 1. **pickle** — :func:`pickle.load`, catches any exception.
 2. **numpy** — :func:`numpy.load`, catches :class:`OSError` /
@@ -166,9 +187,8 @@ cascade order is:
    ``pds3_label_method``).  Each instrument handles its own format
    detection (VICAR magic, FITS magic, file-extension heuristic, etc.)
    and returns :class:`~picmaker._types.ReadResult` on success or
-   ``None`` to pass to the next instrument; instruments that do not need
-   a particular kwarg simply ignore it.  Shared format utilities live in
-   :mod:`picmaker.instruments._shared`.
+   ``None`` to pass to the next instrument.  Shared format utilities
+   live in :mod:`picmaker.instruments._shared`.
 4. **generic VICAR fallback** — :meth:`vicar.VicarImage.from_file` with
    ``strict=False``, for VICAR files from instruments not yet in
    :data:`~picmaker.instruments.ALL_INSTRUMENTS`.  Returns
@@ -180,13 +200,16 @@ cascade order is:
    ``filterwarnings('error')`` and swallowed at the branch boundary.
    Returns ``filter_info=None``.
 6. **PIL / 16-bit TIFF** — :func:`~picmaker.io.read_array`.
-7. **PDS3 label** — :func:`~picmaker.io.read_pds_labeled_image_array`,
-   only attempted when a ``labelfile`` path is provided.
+7. **PDS3 auto-detection** —
+   :func:`~picmaker.io.read_pds_labeled_image_array` tries to parse the
+   input file itself as a PDS3 label; if that fails and the extension is
+   not ``.lbl``, it also checks for a sibling ``.lbl`` / ``.LBL`` file
+   next to the data file.  Returns ``None`` (falls through to the final
+   :class:`OSError`) if no parseable label is found.
 
-Each branch catches its specific exception types so an unrecognized file
-falls through to the next; the cascade-end :class:`OSError` is chained
-from an :class:`ExceptionGroup` that carries every per-reader failure
-for diagnostic purposes.
+The cascade-end :class:`OSError` is chained from an
+:class:`ExceptionGroup` that carries every per-reader failure for
+diagnostic purposes.
 
 :func:`picmaker.io.read_image_array` is the multi-file wrapper: it
 delegates to :func:`~picmaker.io.read_one_image_array` per file and
@@ -233,11 +256,12 @@ following phases for one input file:
 
 1. Build the output path (:func:`~picmaker.io.get_outfile`); skip if
    ``replace='none'`` returned ``''``.
-2. Read the array (:func:`~picmaker.io.read_image_array`), with PDS3
-   detached-label pointer resolution delegated to
-   :func:`!picmaker.pipeline._pds3_resolve_pointer`. The caller's
-   ``reuse`` tuple short-circuits the read for the single-file batches
-   that :func:`process_images` builds per ``option_dict``.
+2. Read the array (:func:`~picmaker.io.read_image_array`).  Paths
+   ending in ``.LBL`` are auto-parsed inside
+   :func:`~picmaker.io.read_one_image_array` and dispatched to the PDS3
+   label branch of the reader cascade.  The caller's ``reuse`` tuple
+   short-circuits the read for the single-file batches that
+   :func:`process_images` builds per ``option_dict``.
 3. If ``hst=True`` and the instrument is ACS/WFC or WFPC2, dispatch to
    :func:`!picmaker.pipeline._hst_mosaic_rgb` for the per-detector
    mosaic RGB assembly.  The multi-detector array data is already
@@ -258,7 +282,7 @@ following phases for one input file:
    (:func:`~picmaker.geometry.wrap_image`), optionally pad
    (:func:`~picmaker.geometry.pad_image`).
 7. Write (:func:`~picmaker.pil_utils.write_pil`), which dispatches
-   16-bit output to :func:`picmaker.tiff16.WriteTiff16` and
+   16-bit output to :func:`picmaker.tiff16.write_tiff16` and
    everything else to :meth:`PIL.Image.Image.save`.
 
 The function returns ``(low, high, reuse)`` so callers (or the
@@ -358,5 +382,5 @@ the dict.
 :func:`picmaker.pil_utils.write_pil` are the three numpy ↔ PIL
 bridges. :func:`~picmaker.pil_utils.write_pil` dispatches 16-bit
 output (list-of-three ``'I'``-mode images, or a single ``'I'``-mode
-image) through :func:`picmaker.tiff16.WriteTiff16` and the 8-bit
+image) through :func:`picmaker.tiff16.write_tiff16` and the 8-bit
 path through :meth:`PIL.Image.Image.save`.
