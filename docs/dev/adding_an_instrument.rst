@@ -17,9 +17,7 @@ functions:
    def read_file(
        filename: str | os.PathLike[str],
        obj: ObjectSelector = None,
-       hst: bool = False,
-       *,
-       pds3_label_method: str = 'strict',
+       **kwargs: Any,
    ) -> ReadResult | None: ...
 
    def matches(inst_host: str, inst_id: str) -> bool: ...
@@ -40,15 +38,24 @@ colorization algorithm that cannot be expressed as a fixed colormap:
 Function descriptions
 ~~~~~~~~~~~~~~~~~~~~~
 
-* ``read_file(filename, obj, hst, *, pds3_label_method)`` — the
-  instrument's complete file reader.  It must detect whether *filename*
-  belongs to this instrument (via magic bytes, header keywords, file
-  extension, or any other heuristic), extract the image array, and
-  return a :class:`~picmaker._types.ReadResult` on success, or ``None``
-  if the file is not owned by this instrument.  Each instrument owns its
-  own format detection; the caller never pre-opens the file.  Shared
-  format utilities (VICAR parser, FITS magic-byte sniff, FITS array
-  extractor) are available in :mod:`picmaker.instruments._shared`.
+* ``read_file(filename, obj, **kwargs)`` — the instrument's complete
+  file reader.  It must detect whether *filename* belongs to this
+  instrument (via magic bytes, header keywords, file extension, or any
+  other heuristic), extract the image array, and return a
+  :class:`~picmaker._types.ReadResult` on success, or ``None`` if the
+  file is not owned by this instrument.  Each instrument owns its own
+  format detection; the caller never pre-opens the file.  Shared format
+  utilities (VICAR parser, FITS magic-byte sniff, FITS array extractor)
+  are available in :mod:`picmaker.instruments._shared`.
+
+  ``**kwargs`` carries every pipeline option listed in
+  :data:`picmaker.options.READ_FILE_KWARGS`; currently that is ``hst``
+  and ``pds3_label_method``.  Instruments that do not need any of these
+  values simply accept and ignore them.  An instrument that *does* need
+  one extracts it with ``kwargs.get('key', default)`` — see
+  :mod:`picmaker.instruments.hst` for the ``hst`` example and
+  :ref:`adding-instrument-option` below for how to introduce a new
+  instrument-specific option.
 
 * ``matches(inst_host, inst_id)`` — quick host-level predicate used
   by :func:`picmaker.instruments.lookup` once the cascade already has a
@@ -122,9 +129,7 @@ Step-by-step
       def read_file(
           filename: str | os.PathLike[str],
           obj: ObjectSelector = None,
-          hst: bool = False,
-          *,
-          pds3_label_method: str = 'strict',
+          **kwargs: Any,
       ) -> ReadResult | None:
           """Try to detect and read a My-Mission VICAR image."""
           vic = _shared.try_open_vicar(filename)
@@ -177,9 +182,7 @@ Step-by-step
       def read_file(
           filename: str | os.PathLike[str],
           obj: ObjectSelector = None,
-          hst: bool = False,
-          *,
-          pds3_label_method: str = 'strict',
+          **kwargs: Any,
       ) -> ReadResult | None:
           """Try to detect and read a My-Mission FITS image."""
           if not _shared.is_fits_file(filename):
@@ -268,6 +271,88 @@ Step-by-step
 
    The new module must pass ruff, mypy strict, bandit, and vulture.
 
+.. _adding-instrument-option:
+
+Adding an instrument-specific option
+-------------------------------------
+
+Sometimes a new feature only makes sense for one instrument — for example
+a Cassini-specific decompression mode or an HST-specific scaling flag.
+The pipeline is designed so that adding such an option touches exactly
+three files; no other instrument files and neither :mod:`picmaker.io` nor
+:mod:`picmaker.pipeline` need to change.
+
+How the forwarding works
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:data:`picmaker.options.READ_FILE_KWARGS` is a tuple of
+:class:`~picmaker.options.PicmakerOptions` field names that the pipeline
+forwards to every ``read_file`` call as keyword arguments:
+
+.. code-block:: python
+
+   # options.py
+   READ_FILE_KWARGS: tuple[str, ...] = ('hst', 'pds3_label_method')
+
+In :func:`picmaker.pipeline._process_one_image` the kwargs dict is
+assembled generically from those names:
+
+.. code-block:: python
+
+   **{k: getattr(options, k) for k in READ_FILE_KWARGS}
+
+:func:`picmaker.io.read_one_image_array` then forwards the whole dict
+unchanged to every instrument's ``read_file``.  Instruments that do not
+need a value ignore it silently; instruments that do extract it with
+``kwargs.get``.
+
+Step-by-step for a new instrument-specific option
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
+
+1. **Add the CLI argument.** In :file:`src/picmaker/cli.py`, add the
+   ``--cassini-encoding`` argument to the argparse parser in
+   :func:`!_build_parser`.
+
+2. **Register the option.** In :file:`src/picmaker/options.py`, do two
+   things in the same edit:
+
+   a. Add the field to :class:`~picmaker.options.PicmakerOptions`:
+
+      .. code-block:: python
+
+         cassini_encoding: str = 'standard'
+
+   b. Add its name to :data:`~picmaker.options.READ_FILE_KWARGS`:
+
+      .. code-block:: python
+
+         READ_FILE_KWARGS: tuple[str, ...] = (
+             'cassini_encoding', 'hst', 'pds3_label_method'
+         )
+
+   That is the only change required to make the value flow from the CLI
+   all the way to the instrument reader — no edits to
+   :mod:`picmaker.pipeline` or :mod:`picmaker.io` are needed.
+
+3. **Consume the option in the instrument.** In
+   :file:`src/picmaker/instruments/cassini_iss.py`, extract the value at
+   the top of ``read_file``:
+
+   .. code-block:: python
+
+      def read_file(
+          filename: str | os.PathLike[str],
+          obj: ObjectSelector = None,
+          **kwargs: Any,
+      ) -> ReadResult | None:
+          encoding: str = kwargs.get('cassini_encoding', 'standard')
+          ...
+
+   All other instrument ``read_file`` functions already accept
+   ``**kwargs`` and ignore it, so they need no changes.
+
 When to break the protocol
 --------------------------
 
@@ -285,7 +370,9 @@ Three existing modules deviate slightly from the minimal template:
 * :mod:`picmaker.instruments.hst` also contains a private
   :func:`!_extract_hst_array` helper that handles ACS/WFC two-detector
   and WFPC2 four-detector mosaic extraction in :func:`!read_file`,
-  because the array layout depends on the instrument sub-type.
+  because the array layout depends on the instrument sub-type, and it
+  extracts ``hst = kwargs.get('hst', False)`` at the top of
+  ``read_file`` to gate the mosaic assembly path.
 
 All three still expose the full required protocol; the internal
 implementation just differs.

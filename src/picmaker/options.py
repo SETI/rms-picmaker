@@ -19,6 +19,10 @@ from typing import Any
 
 PDS3_LABEL_METHODS: tuple[str, ...] = ('strict', 'loose', 'compound', 'fast')
 
+# Names of PicmakerOptions fields forwarded to instrument read_file() as **kwargs.
+# Add the name of any new instrument-specific option here alongside its field definition above.
+READ_FILE_KWARGS: tuple[str, ...] = ('hst', 'pds3_label_method')
+
 
 @dataclass
 class PicmakerOptions:
@@ -133,4 +137,4 @@ class PicmakerOptions:
         return cls(**kwargs)
 
 
-__all__ = ['PDS3_LABEL_METHODS', 'PicmakerOptions']
+__all__ = ['PDS3_LABEL_METHODS', 'READ_FILE_KWARGS', 'PicmakerOptions']

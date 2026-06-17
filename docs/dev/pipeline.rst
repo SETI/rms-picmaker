@@ -158,11 +158,17 @@ cascade order is:
    :class:`ValueError`.
 3. **per-instrument readers** — iterates
    :data:`picmaker.instruments.ALL_INSTRUMENTS` and calls each
-   instrument's :func:`!read_file`.  Each instrument handles its own
-   format detection (VICAR magic, FITS magic, file-extension heuristic,
-   etc.) and returns :class:`~picmaker._types.ReadResult` on success or
-   ``None`` to pass to the next instrument.  Shared format utilities
-   live in :mod:`picmaker.instruments._shared`.
+   instrument's :func:`!read_file` as
+   ``instrument.read_file(filename, obj, **kwargs)``.  The ``kwargs``
+   dict is assembled in :func:`picmaker.pipeline._process_one_image`
+   from the :class:`~picmaker.options.PicmakerOptions` fields named in
+   :data:`picmaker.options.READ_FILE_KWARGS` (currently ``hst`` and
+   ``pds3_label_method``).  Each instrument handles its own format
+   detection (VICAR magic, FITS magic, file-extension heuristic, etc.)
+   and returns :class:`~picmaker._types.ReadResult` on success or
+   ``None`` to pass to the next instrument; instruments that do not need
+   a particular kwarg simply ignore it.  Shared format utilities live in
+   :mod:`picmaker.instruments._shared`.
 4. **generic VICAR fallback** — :meth:`vicar.VicarImage.from_file` with
    ``strict=False``, for VICAR files from instruments not yet in
    :data:`~picmaker.instruments.ALL_INSTRUMENTS`.  Returns

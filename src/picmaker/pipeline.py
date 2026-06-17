@@ -33,7 +33,7 @@ from picmaker.geometry import (
     wrap_image,
 )
 from picmaker.io import get_outfile, read_image_array
-from picmaker.options import PicmakerOptions
+from picmaker.options import READ_FILE_KWARGS, PicmakerOptions
 from picmaker.pil_utils import array_to_pil, write_pil
 
 logger = logging.getLogger(__name__)
@@ -451,8 +451,8 @@ def _process_one_image(
             filter_info = None
 
         (array3d, default_is_up, filter_info2) = read_image_array(
-            imagefile, labelfile, options.obj, options.hst,
-            pds3_label_method=options.pds3_label_method,
+            imagefile, labelfile, options.obj,
+            **{k: getattr(options, k) for k in READ_FILE_KWARGS},
         )
         filter_info = filter_info or filter_info2
 

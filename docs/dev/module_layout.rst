@@ -190,6 +190,14 @@ subpackage exposes the three-function protocol (``read_file``,
 ``matches``, ``tint_for``) plus an optional ``apply_tint`` described in
 :doc:`adding_an_instrument`.  Each instrument owns its own format
 detection and array extraction inside :func:`!read_file`.
+
+``read_file`` accepts ``**kwargs`` so that pipeline options relevant only
+to specific instruments can be forwarded without touching every
+instrument module.  The set of options forwarded is controlled by
+:data:`picmaker.options.READ_FILE_KWARGS`; :mod:`picmaker.io` passes the
+assembled dict through unchanged and each instrument extracts only what
+it needs (``kwargs.get('key', default)``).
+
 :func:`picmaker.instruments.lookup` picks the right instrument module
 given a host string; :data:`~picmaker.instruments.ALL_INSTRUMENTS` is
 the ordered dispatch list that :func:`picmaker.io.read_one_image_array`

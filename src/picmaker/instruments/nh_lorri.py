@@ -52,9 +52,7 @@ def _detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
 def read_file(
     filename: str | os.PathLike[str],
     obj: ObjectSelector = None,
-    hst: bool = False,
-    *,
-    pds3_label_method: str = 'strict',
+    **kwargs: Any,
 ) -> ReadResult | None:
     """Try to detect and read a New Horizons FITS image.
 
@@ -64,8 +62,8 @@ def read_file(
     Parameters:
         filename: Path to the candidate file.
         obj: HDU index, name, or list/tuple of indices to stack.
-        hst: Ignored (New Horizons is not HST).
-        pds3_label_method: Ignored (NH files are FITS, not PDS3).
+        **kwargs: Accepted but ignored; NH files need no
+            instrument-specific options.
 
     Returns:
         :class:`~picmaker._types.ReadResult` on success, ``None`` if

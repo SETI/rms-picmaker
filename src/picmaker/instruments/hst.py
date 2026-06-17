@@ -115,27 +115,28 @@ def _extract_hst_array(
 def read_file(
     filename: str | os.PathLike[str],
     obj: ObjectSelector = None,
-    hst: bool = False,
-    *,
-    pds3_label_method: str = 'strict',
+    **kwargs: Any,
 ) -> ReadResult | None:
     """Try to detect and read an HST FITS image.
 
     Checks the FITS magic bytes, opens the file, identifies it as HST
     via the ``TELESCOP`` header keyword, and extracts the data array.
-    When ``hst=True`` and the instrument is ``ACS/WFC`` or ``WFPC2``,
-    the multi-CCD mosaic is assembled from multiple HDUs.
+    When ``hst=True`` (passed via ``kwargs``) and the instrument is
+    ``ACS/WFC`` or ``WFPC2``, the multi-CCD mosaic is assembled from
+    multiple HDUs.
 
     Parameters:
         filename: Path to the candidate file.
         obj: HDU index, name, or list/tuple of indices to stack.
-        hst: When ``True``, assemble the ACS/WFC or WFPC2 mosaic.
-        pds3_label_method: Ignored (HST files are FITS, not PDS3).
+        **kwargs: Instrument-specific options. Recognises ``hst``
+            (bool, default ``False``): when ``True``, assemble the
+            ACS/WFC or WFPC2 mosaic.
 
     Returns:
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as an HST FITS image.
     """
+    hst: bool = kwargs.get('hst', False)
     if not _shared.is_fits_file(filename):
         return None
     try:

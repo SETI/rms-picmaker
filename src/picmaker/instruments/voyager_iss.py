@@ -48,9 +48,7 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
 def read_file(
     filename: str | os.PathLike[str],
     obj: ObjectSelector = None,
-    hst: bool = False,
-    *,
-    pds3_label_method: str = 'strict',
+    **kwargs: Any,
 ) -> ReadResult | None:
     """Try to detect and read a Voyager ISS VICAR image.
 
@@ -61,8 +59,8 @@ def read_file(
     Parameters:
         filename: Path to the candidate file.
         obj: Ignored (VICAR files contain a single array).
-        hst: Ignored (Voyager is not HST).
-        pds3_label_method: Ignored (Voyager files are not PDS3-labeled).
+        **kwargs: Accepted but ignored; Voyager files need no
+            instrument-specific options.
 
     Returns:
         :class:`~picmaker._types.ReadResult` on success, ``None`` if

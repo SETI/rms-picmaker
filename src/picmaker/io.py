@@ -32,9 +32,7 @@ def read_image_array(
     filename: str | Sequence[str | os.PathLike[str]],
     labelfile: str | os.PathLike[str] | None,
     obj: ObjectSelector = None,
-    hst: bool = False,
-    *,
-    pds3_label_method: str = 'strict',
+    **kwargs: Any,
 ) -> ReadResult:
     """Read one or more image files and return a stacked 3-D array.
 
@@ -46,10 +44,10 @@ def read_image_array(
         obj: Index or name of the object to load when the file contains
             multiple image objects. If a list/tuple, multiple objects
             are stacked.
-        hst: True to mosaic an HST image involving multiple CCDs.
-        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
-            its ``method=`` argument when a PDS3 ``.LBL`` is parsed
-            (``'strict'``, ``'loose'``, ``'compound'``, or ``'fast'``).
+        **kwargs: Instrument-specific options forwarded to each
+            instrument's :func:`read_file`. See
+            :data:`picmaker.options.READ_FILE_KWARGS` for the list of
+            options passed from the pipeline.
 
     Returns:
         ``(array3d, display_upward, filter_info)``:
@@ -61,17 +59,11 @@ def read_image_array(
           tuple.
     """
     if isinstance(filename, str):
-        return read_one_image_array(
-            filename, labelfile, obj, hst,
-            pds3_label_method=pds3_label_method,
-        )
+        return read_one_image_array(filename, labelfile, obj, **kwargs)
 
     results = []
     for k in range(len(filename)):
-        results.append(read_one_image_array(
-            filename[k], labelfile, None, hst,
-            pds3_label_method=pds3_label_method,
-        ))
+        results.append(read_one_image_array(filename[k], labelfile, None, **kwargs))
 
     arrays = [r[0] for r in results]
     for k in range(len(arrays)):
@@ -87,9 +79,7 @@ def read_one_image_array(
     filename: str | os.PathLike[str],
     labelfile: str | os.PathLike[str] | None,
     obj: ObjectSelector = None,
-    hst: bool = False,
-    *,
-    pds3_label_method: str = 'strict',
+    **kwargs: Any,
 ) -> ReadResult:
     """Read a single image array, trying each known format in turn.
 
@@ -102,10 +92,10 @@ def read_one_image_array(
         filename: Path to the input file.
         labelfile: Optional path to a sibling PDS3 label file.
         obj: Object index/name for multi-image files.
-        hst: True to mosaic an HST image involving multiple CCDs.
-        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
-            its ``method=`` argument when the PDS3-label branch fires
-            (``'strict'``, ``'loose'``, ``'compound'``, or ``'fast'``).
+        **kwargs: Instrument-specific options forwarded verbatim to each
+            instrument's :func:`read_file`. See
+            :data:`picmaker.options.READ_FILE_KWARGS` for the standard
+            set.
 
     Returns:
         ``(array3d, display_upward, filter_info)``. ``filter_info`` is
@@ -150,7 +140,7 @@ def read_one_image_array(
     # array extraction.  Instruments that share a format (VICAR, FITS)
     # call shared utilities from picmaker.instruments._shared internally.
     for instrument in instruments.ALL_INSTRUMENTS:
-        result = instrument.read_file(filename, obj, hst, pds3_label_method=pds3_label_method)
+        result = instrument.read_file(filename, obj, **kwargs)
         if result is not None:
             return cast('ReadResult', result)
 
@@ -191,7 +181,8 @@ def read_one_image_array(
     # ---- PDS3 label attempt ----
     if labelfile:
         pds3_result = read_pds_labeled_image_array(
-            labelfile, obj, pds3_label_method=pds3_label_method,
+            labelfile, obj,
+            pds3_label_method=kwargs.get('pds3_label_method', 'strict'),
         )
         if pds3_result is not None:
             return pds3_result
