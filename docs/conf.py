@@ -120,10 +120,10 @@ nitpick_ignore = [
     ('py:data', 'picmaker._rgb.GFUNC'),
     ('py:data', 'picmaker._rgb.BFUNC'),
     ('py:data', 'picmaker.io.FilterInfo'),
-    ('py:data', 'picmaker.instruments.galileo.FILTER_DICT'),
-    ('py:data', 'picmaker.instruments.galileo.FILTER_NAMES'),
-    ('py:data', 'picmaker.instruments.nh.FILTER_DICT'),
-    ('py:data', 'picmaker.instruments.voyager.FILTER_DICT'),
+    ('py:data', 'picmaker.instruments.galileo_ssi.FILTER_DICT'),
+    ('py:data', 'picmaker.instruments.galileo_ssi.FILTER_NAMES'),
+    ('py:data', 'picmaker.instruments.nh_lorri.FILTER_DICT'),
+    ('py:data', 'picmaker.instruments.voyager_iss.FILTER_DICT'),
     # ColorNames is a singleton-style class whose only public surface
     # is a staticmethod; autodoc treats the ClassVar dicts as primary
     # members and the class itself disappears from the index.

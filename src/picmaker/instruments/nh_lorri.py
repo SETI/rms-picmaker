@@ -109,7 +109,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     Parameters:
         inst_id: Instrument id (``'MVIC'`` / ``'MVI'`` for the color
             path).
-        filter_name: A key into :data:`picmaker.instruments.nh.FILTER_DICT`.
+        filter_name: A key into :data:`picmaker.instruments.nh_lorri.FILTER_DICT`.
 
     Returns:
         ``[(0, 0, 0), tint, (255, 255, 255)]`` for an MVIC filter or
@@ -117,7 +117,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
 
     Raises:
         KeyError: If ``filter_name`` is not in
-            :data:`picmaker.instruments.nh.FILTER_DICT` and
+            :data:`picmaker.instruments.nh_lorri.FILTER_DICT` and
             ``inst_id`` selects the MVIC path.
     """
     if inst_id not in ('MVIC', 'MVI'):

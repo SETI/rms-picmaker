@@ -36,7 +36,7 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
 
     Two label conventions are tried in order: the ``MISSION`` keyword
     with a numeric ``FILTER`` index into
-    :data:`picmaker.instruments.galileo.FILTER_NAMES`, then a
+    :data:`picmaker.instruments.galileo_ssi.FILTER_NAMES`, then a
     ``GLL/SSI`` prefix in ``LAB01`` with ``FILTER=<digit>`` somewhere
     in ``LAB03``.
 
@@ -119,7 +119,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
 
     Parameters:
         inst_id: Instrument id.
-        filter_name: A key into :data:`picmaker.instruments.galileo.FILTER_DICT`.
+        filter_name: A key into :data:`picmaker.instruments.galileo_ssi.FILTER_DICT`.
 
     Returns:
         ``[(0, 0, 0), tint, (255, 255, 255)]`` for an SSI filter or
@@ -127,7 +127,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
 
     Raises:
         KeyError: If ``filter_name`` is not in
-            :data:`picmaker.instruments.galileo.FILTER_DICT` and
+            :data:`picmaker.instruments.galileo_ssi.FILTER_DICT` and
             ``inst_id`` selects the SSI path.
     """
     if not (inst_id == 'SSI' or inst_id.startswith('SOLID')):

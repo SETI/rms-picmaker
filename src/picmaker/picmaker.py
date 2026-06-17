@@ -32,10 +32,10 @@ from picmaker.geometry import (
     slice_array,
     wrap_image,
 )
-from picmaker.instruments.galileo import FILTER_DICT as GALILEO_SSI_DICT
-from picmaker.instruments.galileo import FILTER_NAMES as GALILEO_SSI_NAMES
-from picmaker.instruments.nh import FILTER_DICT as NH_MVIC_DICT
-from picmaker.instruments.voyager import FILTER_DICT as VOYAGER_ISS_DICT
+from picmaker.instruments.galileo_ssi import FILTER_DICT as GALILEO_SSI_DICT
+from picmaker.instruments.galileo_ssi import FILTER_NAMES as GALILEO_SSI_NAMES
+from picmaker.instruments.nh_lorri import FILTER_DICT as NH_MVIC_DICT
+from picmaker.instruments.voyager_iss import FILTER_DICT as VOYAGER_ISS_DICT
 from picmaker.io import (
     get_outfile,
     read_array,

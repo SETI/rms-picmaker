@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from picmaker import instruments
-from picmaker.instruments import cassini, galileo, hst, nh, voyager
+from picmaker.instruments import cassini_iss as cassini, galileo_ssi as galileo, hst, nh_lorri as nh, voyager_iss as voyager
 
 
 def test_cassini_tint_falls_back_to_grey() -> None:

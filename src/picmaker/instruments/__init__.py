@@ -25,13 +25,13 @@ Each instrument module exposes a uniform protocol:
 from types import ModuleType
 from typing import Any
 
-from picmaker.instruments import cassini, galileo, hst, nh, voyager
+from picmaker.instruments import cassini_iss, galileo_ssi, hst, nh_lorri, voyager_iss
 
 #: Every registered instrument module, in cascade priority order.
 #: :func:`read_one_image_array <picmaker.io.read_one_image_array>` tries
 #: each instrument's ``read_file()`` in this order; the first to return
 #: a non-``None`` result wins.
-ALL_INSTRUMENTS: list[ModuleType] = [cassini, voyager, galileo, hst, nh]
+ALL_INSTRUMENTS: list[ModuleType] = [cassini_iss, voyager_iss, galileo_ssi, hst, nh_lorri]
 
 
 def lookup(inst_host: str | None, inst_id: str | None) -> Any | None:

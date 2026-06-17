@@ -185,19 +185,19 @@ Source: `src/picmaker/instruments/
 .. automodule:: picmaker.instruments
    :members:
 
-.. automodule:: picmaker.instruments.cassini
+.. automodule:: picmaker.instruments.cassini_iss
    :members:
 
-.. automodule:: picmaker.instruments.voyager
+.. automodule:: picmaker.instruments.voyager_iss
    :members:
 
-.. automodule:: picmaker.instruments.galileo
+.. automodule:: picmaker.instruments.galileo_ssi
    :members:
 
 .. automodule:: picmaker.instruments.hst
    :members:
 
-.. automodule:: picmaker.instruments.nh
+.. automodule:: picmaker.instruments.nh_lorri
    :members:
 
 TIFF 16
