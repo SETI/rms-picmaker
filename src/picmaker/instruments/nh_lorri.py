@@ -103,8 +103,7 @@ def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | Non
     """Return the full ``[black, tint, white]`` colormap for an NH filter.
 
     Only the MVIC camera gets a colored tint; every other New Horizons
-    instrument falls through to the 2-element ``[black, white]``
-    colormap.
+    instrument falls through to the 2-element ``[black, white]`` colormap.
 
     Parameters:
         inst_id: Instrument id (``'MVIC'`` / ``'MVI'`` for the color

@@ -285,8 +285,7 @@ def _band_to_rgb(
     is_int: bool,
     colormap: Any,
 ) -> tuple[Any, tuple[Any, Any]]:
-    """Slice → optional zebra fill → get_limits → apply_colormap for one
-    band selection.
+    """Slice → optional zebra fill → get_limits → apply_colormap for one band selection.
 
     Encapsulates the chain that appears once per detector in
     :func:`!_hst_mosaic_rgb` and once total in :func:`!_process_one_image`'
@@ -310,33 +309,20 @@ def _band_to_rgb(
         to record for the movie-mode median.
     """
     (array2d, invalid_mask) = slice_array(
-        array3d, options.samples, options.lines, bands,
-        options.valid, options.crop,
+        array3d, options.samples, options.lines, bands, options.valid, options.crop,
     )
 
     if options.zebra:
         array2d = fill_zebra_stripes(array2d)
 
     these_limits = get_limits(
-        array2d,
-        invalid_mask,
-        options.limits,
-        options.percentiles,
-        assume_int=is_int,
-        trim=options.trim,
-        trim_zeros=options.trim_zeros,
-        footprint=options.footprint,
+        array2d, invalid_mask, options.limits, options.percentiles, assume_int=is_int,
+        trim=options.trim, trim_zeros=options.trim_zeros, footprint=options.footprint,
     )
 
     array_rgb = apply_colormap(
-        array2d,
-        these_limits,
-        options.histogram,
-        colormap,
-        invalid_mask,
-        options.below_color,
-        options.above_color,
-        options.invalid_color,
+        array2d, these_limits, options.histogram, colormap, invalid_mask,
+        options.below_color, options.above_color, options.invalid_color,
     )
     return array_rgb, these_limits
 
@@ -353,16 +339,13 @@ def _hst_mosaic_rgb(
 ) -> tuple[Any, Any]:
     """Build the HST ACS/WFC or WFPC2 mosaic from a per-detector array stack.
 
-    Each band of ``array3d`` is sliced, stretched, and colormapped
-    independently, then the per-detector RGB arrays are assembled into
-    a single mosaic via :func:`!_hst_wfpc2_mosaic` (4 detectors,
-    instrument ``WFPC2``) or :func:`!_hst_acs_panel_mosaic` (2
-    detectors, instrument ``ACS/WFC``). A single-band ACS/WFC input is
-    returned unmosaicked.
+    Each band of ``array3d`` is sliced, stretched, and colormapped independently, then the
+    per-detector RGB arrays are assembled into a single mosaic via :func:`!_hst_wfpc2_mosaic` (4
+    detectors, instrument ``WFPC2``) or :func:`!_hst_acs_panel_mosaic` (2 detectors, instrument
+    ``ACS/WFC``). A single-band ACS/WFC input is returned unmosaicked.
 
-    The optional ``default_is_up`` flip is applied here (and ``array3d``
-    is returned to the caller so the caller's reuse tuple records the
-    flipped variant).
+    The optional ``default_is_up`` flip is applied here (and ``array3d`` is returned to the caller
+    so the caller's reuse tuple records the flipped variant).
 
     Parameters:
         array3d: ``(bands, lines, samples)`` stack.
@@ -389,8 +372,7 @@ def _hst_mosaic_rgb(
     arrays_rgb: list[Any] = []
     for b in range(array3d.shape[0]):
         array_rgb, _ = _band_to_rgb(
-            array3d, (b, b + 1),
-            options=options, is_int=is_int, colormap=colormap,
+            array3d, (b, b + 1), options=options, is_int=is_int, colormap=colormap,
         )
         arrays_rgb.append(array_rgb)
 
@@ -413,11 +395,9 @@ def _process_one_image(
 ) -> tuple[tuple[Any, Any], tuple[Any, Any, Any, str]] | None:
     """Run the per-image pipeline on one input file.
 
-    Encapsulates the loop body of :func:`images_to_pics`: it builds the
-    output path, optionally reuses a prior read, decides between the
-    HST mosaic branch and the single-detector branch, applies the
-    orientation / gamma / size / wrap / pad chain, and writes the
-    result.
+    Encapsulates the loop body of :func:`images_to_pics`: it builds the output path, optionally
+    reuses a prior read, decides between the HST mosaic branch and the single-detector branch,
+    applies the orientation / gamma / size / wrap / pad chain, and writes the result.
 
     Parameters:
         infile: Input file path.
@@ -435,13 +415,11 @@ def _process_one_image(
             input.
 
     Returns:
-        ``None`` when ``get_outfile`` returned ``''`` (the
-        ``replace='none'`` skip path). Otherwise
-        ``((min_limit, max_limit), reuse_tuple)`` where ``min_limit`` /
-        ``max_limit`` are the stretch endpoints (or ``None`` in the HST
-        mosaic branch, which computes per-detector stretches
-        internally) and ``reuse_tuple`` is the read-result tuple the
-        caller persists for a possible later reuse.
+        ``None`` when ``get_outfile`` returned ``''`` (the ``replace='none'`` skip path). Otherwise
+        ``((min_limit, max_limit), reuse_tuple)`` where ``min_limit`` / ``max_limit`` are the
+        stretch endpoints (or ``None`` in the HST mosaic branch, which computes per-detector
+        stretches internally) and ``reuse_tuple`` is the read-result tuple the caller persists
+        for a possible later reuse.
     """
     # ``images_to_pics`` backfills ``options.extension`` to ``'jpg'`` or
     # ``'tiff'`` before calling this helper. The cast narrows the

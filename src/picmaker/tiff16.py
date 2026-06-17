@@ -1,4 +1,4 @@
-################################################################################
+####################################################################################################
 # tiff16.py
 #
 # Simple method write_tiff16() to write a numpy array as a 16-bit uncompressed
@@ -12,7 +12,7 @@
 # reason, a "translate" option is provided, which converts palette color to RGB.
 #
 # Mark R. Showalter, SETI Institute, July 2009
-################################################################################
+####################################################################################################
 
 import sys
 from struct import pack, unpack

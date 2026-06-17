@@ -113,9 +113,8 @@ def matches(inst_host: str, inst_id: str) -> bool:
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
     """Return the full ``[black, tint, white]`` colormap for a Galileo filter.
 
-    Only the SSI camera and the ``SOLID``-prefixed variants get a
-    colored tint; every other Galileo instrument falls through to the
-    2-element ``[black, white]`` colormap.
+    Only the SSI camera and the ``SOLID``-prefixed variants get a colored tint; every other Galileo
+    instrument falls through to the 2-element ``[black, white]`` colormap.
 
     Parameters:
         inst_id: Instrument id.

@@ -122,8 +122,7 @@ def matches(inst_host: str, inst_id: str) -> bool:
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:
     """Return the full ``[black, tint, white]`` colormap for a Cassini filter.
 
-    Non-ISS Cassini instruments fall through to the 2-element
-    ``[black, white]`` colormap (no tint).
+    Non-ISS Cassini instruments fall through to the 2-element ``[black, white]`` colormap (no tint).
 
     Parameters:
         inst_id: Instrument id (typically ``'ISS'``).

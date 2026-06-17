@@ -234,16 +234,12 @@ def read_pds_labeled_image_array(
         if ext.lower() != '.lbl':
             if os.path.exists(head + '.lbl'):
                 try:
-                    label = pdsparser.PdsLabel(
-                        head + '.lbl', method=pds3_label_method,
-                    )
+                    label = pdsparser.PdsLabel(head + '.lbl', method=pds3_label_method)
                 except (pdsparser.ParseException, SyntaxError):
                     pass
             elif os.path.exists(head + '.LBL'):
                 try:
-                    label = pdsparser.PdsLabel(
-                        head + '.LBL', method=pds3_label_method,
-                    )
+                    label = pdsparser.PdsLabel(head + '.LBL', method=pds3_label_method)
                 except (pdsparser.ParseException, SyntaxError):
                     pass
 
