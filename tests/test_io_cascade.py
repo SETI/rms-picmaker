@@ -259,7 +259,7 @@ def test_pds_label_passed_directly_to_read_one_image_array(
         'END\n'
     )
     label = pdsparser.Pds3Label(str(lbl_path))
-    arr, default_is_up, filter_info = read_one_image_array(label)
+    arr, _, filter_info = read_one_image_array(label)
     assert arr.ndim == 3
     assert filter_info == ('CASSINI', 'ISS', 'CL1+GRN')
 
@@ -328,7 +328,7 @@ def test_sibling_lbl_lowercase_detected(tmp_path: Path) -> None:
     assert result[0].shape == (1, 8, 8)
 
 
-def test_sibling_LBL_uppercase_detected(tmp_path: Path) -> None:
+def test_sibling_lbl_uppercase_detected(tmp_path: Path) -> None:
     """When the primary data file is missing, io.py finds an uppercase .LBL sibling.
 
     No lowercase .lbl exists, so the elif branch for .LBL is taken.

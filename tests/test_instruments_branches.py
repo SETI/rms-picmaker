@@ -247,7 +247,8 @@ class TestGalileoDetectPds3Branches:
     def test_filter_number_used_when_filter_name_absent(self) -> None:
         """FILTER_NUMBER is read when FILTER_NAME is missing."""
         result = galileo._detect_pds3(  # type: ignore[arg-type]
-            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER', 'INSTRUMENT_ID': 'SSI', 'FILTER_NUMBER': '1'})
+            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER', 'INSTRUMENT_ID': 'SSI',
+                        'FILTER_NUMBER': '1'})
         )
         assert result == ('GALILEO', 'SSI', 'GREEN')
 
@@ -261,7 +262,8 @@ class TestGalileoDetectPds3Branches:
     def test_out_of_range_filter_number_returns_none(self) -> None:
         """An out-of-range FILTER_NUMBER index is caught and returns None."""
         assert galileo._detect_pds3(  # type: ignore[arg-type]
-            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER', 'INSTRUMENT_ID': 'SSI', 'FILTER_NUMBER': '99'})
+            self._fake({'SPACECRAFT_NAME': 'GALILEO ORBITER', 'INSTRUMENT_ID': 'SSI',
+                        'FILTER_NUMBER': '99'})
         ) is None
 
 
