@@ -100,6 +100,7 @@ class TestPds3LabelDispatch:
             'cassini.LBL',
             'PDS_VERSION_ID = PDS3\n'
             'INSTRUMENT_HOST_NAME = "CASSINI ORBITER"\n'
+            'INSTRUMENT_ID = "ISSNA"\n'
             'FILTER_NAME = ("CL1", "RED")\n'
             '^IMAGE = "cassini_iss.vic"\n'
             'END\n',
@@ -120,6 +121,7 @@ class TestPds3LabelDispatch:
             'voyager.LBL',
             'PDS_VERSION_ID = PDS3\n'
             'INSTRUMENT_HOST_NAME = "VOYAGER 2"\n'
+            'INSTRUMENT_ID = "ISSNA"\n'
             'FILTER_NAME = "CLEAR"\n'
             '^IMAGE = "voyager_iss.vic"\n'
             'END\n',
@@ -140,6 +142,7 @@ class TestPds3LabelDispatch:
             'galileo.LBL',
             'PDS_VERSION_ID = PDS3\n'
             'SPACECRAFT_NAME = "GALILEO ORBITER"\n'
+            'INSTRUMENT_ID = "SSI"\n'
             'FILTER_NAME = "CLEAR"\n'
             '^IMAGE = "galileo_ssi_a.vic"\n'
             'END\n',

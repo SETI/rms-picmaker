@@ -253,6 +253,7 @@ def test_pds_label_passed_directly_to_read_one_image_array(
     lbl_path.write_text(
         'PDS_VERSION_ID = PDS3\n'
         'INSTRUMENT_HOST_NAME = "CASSINI ORBITER"\n'
+        'INSTRUMENT_ID = "ISSNA"\n'
         'FILTER_NAME = ("CL1", "GRN")\n'
         '^IMAGE = "cassini_iss.vic"\n'
         'END\n'

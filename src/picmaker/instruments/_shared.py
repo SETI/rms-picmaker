@@ -140,8 +140,9 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
         3-D numpy array.
 
     Raises:
-        OSError: If ``obj`` is ``None`` and no valid image array is
-            found in the HDU list.
+        OSError: If no valid image array is found (``obj=None``), if a
+            named/indexed HDU contains no array data, or if any HDU in
+            a list/tuple ``obj`` contains no array data.
     """
     array3d: NDArray[Any] | None = None
 
@@ -153,6 +154,8 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
                 break
     elif isinstance(obj, (list, tuple)):
         layers = [hdulist[o].data for o in obj]
+        if not all(isinstance(layer, np.ndarray) for layer in layers):
+            raise OSError('One or more HDUs in obj list do not contain image arrays')
         array3d = np.stack(layers)
     else:
         obj_key: Any = obj
@@ -160,7 +163,10 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
             obj_key = int(obj_key)
         except (ValueError, TypeError):
             pass
-        array3d = hdulist[obj_key].data.copy()
+        data = hdulist[obj_key].data
+        if not isinstance(data, np.ndarray):
+            raise OSError(f'HDU {obj_key!r} does not contain an image array')
+        array3d = data.copy()
 
     if array3d is None:
         raise OSError('Image array not found in FITS file')

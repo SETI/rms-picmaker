@@ -61,6 +61,8 @@ def _detect_pds3(label: pdsparser.Pds3Label) -> tuple[str, str, str] | None:
         host = d.get('INSTRUMENT_HOST_NAME', '') or d.get('INSTRUMENT_HOST_ID', '')
         if not (str(host).startswith('VOYAGER') or str(host).startswith('VG')):
             return None
+        if not str(d.get('INSTRUMENT_ID', '')).startswith('ISS'):
+            return None
         filter_name = str(d.get('FILTER_NAME', '')).upper().strip()
         return ('VOYAGER', 'ISS', filter_name)
     except TypeError:

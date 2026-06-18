@@ -77,6 +77,8 @@ def _detect_pds3(label: pdsparser.Pds3Label) -> tuple[str, str, str] | None:
         d = label.as_dict()
         if d.get('SPACECRAFT_NAME') != 'GALILEO ORBITER':
             return None
+        if not str(d.get('INSTRUMENT_ID', '')).startswith('SSI'):
+            return None
         if 'FILTER_NAME' in d:
             filter_name = str(d['FILTER_NAME'])
         elif 'FILTER_NUMBER' in d:
