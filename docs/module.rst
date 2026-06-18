@@ -40,6 +40,7 @@ arranged by topic.
 .. autofunction:: picmaker.write_pil
 .. autoclass:: picmaker.ReadResult
    :no-members:
+   :no-index:
 
 The :data:`~picmaker.FilterInfo` type alias is documented in the I/O
 section below.
