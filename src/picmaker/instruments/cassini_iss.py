@@ -72,11 +72,11 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
     return None
 
 
-def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
+def _detect_pds3(label: pdsparser.Pds3Label) -> tuple[str, str, str] | None:
     """Extract Cassini ISS metadata from a PDS3 label.
 
     Parameters:
-        label: A parsed :class:`pdsparser.PdsLabel`.
+        label: A parsed :class:`pdsparser.Pds3Label`.
 
     Returns:
         ``('CASSINI', 'ISS', '<filter1>+<filter2>')`` if the label
@@ -97,14 +97,14 @@ def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
 
 
 def read_file(
-    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+    filename: str | os.PathLike[str] | pdsparser.Pds3Label,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
     """Try to detect and read a Cassini ISS image.
 
     Accepts either a file path (VICAR format) or a pre-parsed
-    :class:`pdsparser.PdsLabel`.  Returns ``None`` if the file is not
+    :class:`pdsparser.Pds3Label`.  Returns ``None`` if the file is not
     recognized as a Cassini ISS image.
 
     Parameters:
@@ -117,7 +117,7 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as a Cassini ISS image.
     """
-    if isinstance(filename, pdsparser.PdsLabel):
+    if isinstance(filename, pdsparser.Pds3Label):
         filter_info = _detect_pds3(filename)
         if filter_info is None:
             return None

@@ -55,7 +55,7 @@ def is_fits_file(filename: str | os.PathLike[str]) -> bool:
 
 
 def read_pds3_image_array(
-    label: pdsparser.PdsLabel,
+    label: pdsparser.Pds3Label,
     obj: ObjectSelector,
 ) -> NDArray[Any]:
     """Read the image array pointed to by a PDS3 label's ``^IMAGE`` pointer.
@@ -66,7 +66,7 @@ def read_pds3_image_array(
     the file starts with the FITS magic bytes.
 
     Parameters:
-        label: A parsed :class:`pdsparser.PdsLabel` with at least one
+        label: A parsed :class:`pdsparser.Pds3Label` with at least one
             ``^IMAGE`` (or ``^*IMAGE``) pointer.
         obj: Forwarded to :func:`extract_fits_array` when the data file
             is a FITS image; ignored for VICAR images.

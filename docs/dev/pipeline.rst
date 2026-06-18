@@ -35,7 +35,7 @@ zoom controls to read the labels at any size.
        L -->|skip if replace='none'| M[Done]
        L --> N[read_image_array]
        N --> O[read_one_image_array<br/>format cascade]
-       O -->|.LBL / PdsLabel| NPI[instrument cascade<br/>PDS3-aware read_file]
+       O -->|.LBL / Pds3Label| NPI[instrument cascade<br/>PDS3-aware read_file]
        NPI -->|unrecognized label| NPF[read_pds3_image_array<br/>generic PDS3 fallback]
        O -->|other paths| P[pickle / numpy]
        P --> PI[instrument cascade<br/>read_file per ALL_INSTRUMENTS]
@@ -142,7 +142,7 @@ on raw argparse fields:
 * ``pds3_label_method`` must be one of the values in
   :data:`~picmaker.options.PDS3_LABEL_METHODS`
   (``'strict'``, ``'loose'``, ``'compound'``, ``'fast'``); the value is
-  forwarded as :class:`pdsparser.PdsLabel`'s ``method=`` argument when
+  forwarded as :class:`pdsparser.Pds3Label`'s ``method=`` argument when
   a PDS3 ``.LBL`` is parsed.
 
 The CLI's :func:`!picmaker.cli._normalize_and_validate` does a few
@@ -161,7 +161,7 @@ It returns a :class:`~picmaker._types.ReadResult` triple on the first
 format match and has two top-level branches depending on the input type.
 
 **PDS3 label branch** — taken when *filename* is a
-:class:`pdsparser.PdsLabel` object, or a path whose extension is
+:class:`pdsparser.Pds3Label` object, or a path whose extension is
 ``.LBL`` / ``.lbl`` (auto-parsed at the top of the function).  The
 cascade within this branch is:
 

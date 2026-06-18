@@ -15,7 +15,7 @@ from picmaker.instruments._shared import (
 
 
 class _FakeLabel:
-    """Minimal stand-in for pdsparser.PdsLabel used to unit-test _shared internals."""
+    """Minimal stand-in for pdsparser.Pds3Label used to unit-test _shared internals."""
 
     def __init__(self, filepath: str, d: dict[str, Any]) -> None:
         self._filepath = filepath

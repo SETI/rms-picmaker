@@ -140,7 +140,7 @@ Selection options
   when ``--pointer`` is not in the label.
 * ``--pds3-label-method METHOD``, ``--pds3_label_method METHOD``
   (default: ``fast``) — Parsing strictness forwarded to
-  :class:`pdsparser.PdsLabel` for ``.LBL`` inputs. Choices:
+  :class:`pdsparser.Pds3Label` for ``.LBL`` inputs. Choices:
   ``fast`` (minimum-overhead key/value scan), ``strict`` (rigorous
   PDS3 grammar), ``loose`` (allow common deviations), ``compound``
   (try strict then loose).

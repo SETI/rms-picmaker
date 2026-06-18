@@ -15,7 +15,7 @@ functions:
 .. code-block:: python
 
    def read_file(
-       filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+       filename: str | os.PathLike[str] | pdsparser.Pds3Label,
        obj: ObjectSelector = None,
        **kwargs: Any,
    ) -> ReadResult | None: ...
@@ -50,7 +50,7 @@ Function descriptions
 
 * ``read_file(filename, obj, **kwargs)`` — the instrument's complete
   file reader.  *filename* is either a file path (``str | PathLike``)
-  or a pre-parsed :class:`pdsparser.PdsLabel` (passed when the pipeline
+  or a pre-parsed :class:`pdsparser.Pds3Label` (passed when the pipeline
   is given a ``.LBL`` input).  The function must detect whether the
   input belongs to this instrument (via magic bytes, header keywords,
   file extension, label metadata, or any other heuristic) and return a
@@ -58,7 +58,7 @@ Function descriptions
   file / label is not owned by this instrument.  Each instrument owns
   its own format detection; the caller never pre-opens the file.
   Instruments that do not support PDS3 label inputs can safely receive
-  a :class:`pdsparser.PdsLabel` and return ``None`` — the shared
+  a :class:`pdsparser.Pds3Label` and return ``None`` — the shared
   helpers (:func:`~picmaker.instruments._shared.try_open_vicar` and
   :func:`~picmaker.instruments._shared.is_fits_file`) both handle a
   label argument gracefully.  Shared format utilities are available in
@@ -114,16 +114,16 @@ instrument modules can import without circular-import issues:
 * :func:`~picmaker.instruments._shared.try_open_vicar` — parse
   *filename* as a VICAR file and return a :class:`vicar.VicarImage`, or
   ``None`` on any error (including non-VICAR files or a
-  :class:`pdsparser.PdsLabel` argument).
+  :class:`pdsparser.Pds3Label` argument).
 * :func:`~picmaker.instruments._shared.is_fits_file` — return ``True``
   iff the file begins with the FITS magic bytes ``b'SIMPLE  ='``; also
-  returns ``False`` safely when given a :class:`pdsparser.PdsLabel`.
+  returns ``False`` safely when given a :class:`pdsparser.Pds3Label`.
 * :func:`~picmaker.instruments._shared.extract_fits_array` — extract a
   3-D ``(bands, lines, samples)`` array from an open FITS HDU list,
   handling ``obj=None`` (auto-detect), list/tuple (stack), and scalar
   (direct index) selectors.
 * :func:`~picmaker.instruments._shared.read_pds3_image_array` — resolve
-  the first ``^*IMAGE`` pointer in a :class:`pdsparser.PdsLabel`, then
+  the first ``^*IMAGE`` pointer in a :class:`pdsparser.Pds3Label`, then
   read the referenced data file via VICAR or FITS.  Used by instruments
   that support PDS3 label inputs and by the generic PDS3 fallback in
   :func:`picmaker.io.read_one_image_array`.
@@ -248,7 +248,7 @@ Writing the instrument module
 
       import pdsparser
 
-      def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, str] | None:
+      def _detect_pds3(label: pdsparser.Pds3Label) -> tuple[str, str, str] | None:
           """Return ('MYMISSION', 'MYINST', filter) or None."""
           try:
               d = label.as_dict()
@@ -260,12 +260,12 @@ Writing the instrument module
               return None
 
       def read_file(
-          filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+          filename: str | os.PathLike[str] | pdsparser.Pds3Label,
           obj: ObjectSelector = None,
           **kwargs: Any,
       ) -> ReadResult | None:
           """Try to detect and read a My-Mission image."""
-          if isinstance(filename, pdsparser.PdsLabel):
+          if isinstance(filename, pdsparser.Pds3Label):
               filter_info = _detect_pds3(filename)
               if filter_info is None:
                   return None
@@ -274,7 +274,7 @@ Writing the instrument module
           # ... VICAR or FITS detection below for non-label paths ...
 
    An instrument can combine all three patterns: check
-   ``isinstance(filename, pdsparser.PdsLabel)`` first, then fall through
+   ``isinstance(filename, pdsparser.Pds3Label)`` first, then fall through
    to VICAR / FITS detection for bare file paths (see
    :mod:`picmaker.instruments.cassini_iss` for a complete example).
 

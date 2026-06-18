@@ -29,7 +29,7 @@ from picmaker.geometry import (
     wrap_image,
 )
 from picmaker.io import get_outfile, read_image_array
-from picmaker.options import READ_FILE_KWARGS, PicmakerOptions
+from picmaker.options import DEFAULT_PDS3_LABEL_METHOD, READ_FILE_KWARGS, PicmakerOptions
 from picmaker.pil_utils import array_to_pil, write_pil
 
 logger = logging.getLogger(__name__)
@@ -80,8 +80,8 @@ def _pds3_resolve_pointer(
     pointer: Any,
     obj: Any,
     *,
-    pds3_label_method: str = 'fast',
-) -> tuple[Any, tuple[Any, Any, Any] | None, pdsparser.PdsLabel]:
+    pds3_label_method: str = DEFAULT_PDS3_LABEL_METHOD,
+) -> tuple[Any, tuple[Any, Any, Any] | None, pdsparser.Pds3Label]:
     """Parse a PDS3 ``.LBL`` and resolve its image-object pointer.
 
     The pointer name list is tried in order; the first one present in
@@ -95,7 +95,7 @@ def _pds3_resolve_pointer(
             names to try in order. A leading ``^`` is optional.
         obj: ``None`` (all objects), an ``int`` (one object), or a
             sequence of ``int`` (several objects).
-        pds3_label_method: Forwarded to :class:`pdsparser.PdsLabel` as
+        pds3_label_method: Forwarded to :class:`pdsparser.Pds3Label` as
             its ``method=`` argument (``'strict'``, ``'loose'``,
             ``'compound'``, or ``'fast'``).
 
@@ -105,7 +105,7 @@ def _pds3_resolve_pointer(
         ``filter_info`` is the ``(host, instrument, filter)`` triple
         extracted from the label, or ``None`` when no instrument
         metadata is present; ``label`` is the parsed
-        :class:`pdsparser.PdsLabel` object (to avoid re-parsing in the
+        :class:`pdsparser.Pds3Label` object (to avoid re-parsing in the
         caller).
 
     Raises:
@@ -114,7 +114,7 @@ def _pds3_resolve_pointer(
         IndexError: When ``obj`` selects an index past the end of the
             resolved pointer list.
     """
-    label = pdsparser.PdsLabel(infile, method=pds3_label_method)
+    label = pdsparser.Pds3Label(infile, method=pds3_label_method)
     labeldict = label.as_dict()
 
     if 'INSTRUMENT_HOST_ID' in labeldict:
@@ -422,7 +422,7 @@ def images_to_pics(
     samples: Any = None,
     obj: Any = None,
     pointer: Any = None,
-    pds3_label_method: str = 'fast',
+    pds3_label_method: str = DEFAULT_PDS3_LABEL_METHOD,
     size: Any = None,
     scale: Any = (100.0, 100.0),
     crop: Any = None,

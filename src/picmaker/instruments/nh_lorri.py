@@ -50,11 +50,11 @@ def _detect_fits(hdulist: Any) -> tuple[str, str, Any] | None:
     return (inst_host, inst_id, filter_name)
 
 
-def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, None] | None:
+def _detect_pds3(label: pdsparser.Pds3Label) -> tuple[str, str, None] | None:
     """Extract New Horizons LORRI metadata from a PDS3 label.
 
     Parameters:
-        label: A parsed :class:`pdsparser.PdsLabel`.
+        label: A parsed :class:`pdsparser.Pds3Label`.
 
     Returns:
         ``('NEW HORIZONS', 'LORRI', None)`` if the label identifies a
@@ -72,14 +72,14 @@ def _detect_pds3(label: pdsparser.PdsLabel) -> tuple[str, str, None] | None:
 
 
 def read_file(
-    filename: str | os.PathLike[str] | pdsparser.PdsLabel,
+    filename: str | os.PathLike[str] | pdsparser.Pds3Label,
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
     """Try to detect and read a New Horizons FITS image or LORRI PDS3 label.
 
     Accepts either a file path (FITS format) or a pre-parsed
-    :class:`pdsparser.PdsLabel` (for LORRI).  Returns ``None`` if the
+    :class:`pdsparser.Pds3Label` (for LORRI).  Returns ``None`` if the
     file is not recognized as a New Horizons image.
 
     Parameters:
@@ -92,7 +92,7 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as a New Horizons FITS image.
     """
-    if isinstance(filename, pdsparser.PdsLabel):
+    if isinstance(filename, pdsparser.Pds3Label):
         filter_info = _detect_pds3(filename)
         if filter_info is None:
             return None

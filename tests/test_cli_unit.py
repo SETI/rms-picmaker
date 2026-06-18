@@ -20,6 +20,7 @@ from picmaker.cli import (
     _separate_files_and_dirs,
     main,
 )
+from picmaker.options import DEFAULT_PDS3_LABEL_METHOD
 
 # ---------------------------------------------------------------------------
 # _build_parser
@@ -324,11 +325,11 @@ def test_normalize_filter_and_rotate_lowercased() -> None:
     assert out['rotate'] == 'rot90'
 
 
-def test_normalize_pds3_label_method_default_is_strict() -> None:
-    """``--pds3-label-method`` defaults to ``'strict'``."""
+def test_normalize_pds3_label_method_default_is_fast() -> None:
+    """``--pds3-label-method`` defaults to ``'fast'``."""
     ns = _parse()
     out = _normalize_and_validate(ns, 'all', False)
-    assert out['pds3_label_method'] == 'strict'
+    assert out['pds3_label_method'] == DEFAULT_PDS3_LABEL_METHOD
 
 
 @pytest.mark.parametrize('method', ['strict', 'loose', 'compound', 'fast'])

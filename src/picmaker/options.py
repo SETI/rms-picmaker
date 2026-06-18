@@ -18,6 +18,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 PDS3_LABEL_METHODS: tuple[str, ...] = ('strict', 'loose', 'compound', 'fast')
+DEFAULT_PDS3_LABEL_METHOD: str = 'fast'
 
 # Names of PicmakerOptions fields forwarded to instrument read_file() as **kwargs.
 # Add the name of any new instrument-specific option here alongside its field definition above.
@@ -52,7 +53,7 @@ class PicmakerOptions:
     samples: Any = None
     obj: Any = None
     pointer: Any = None
-    pds3_label_method: str = 'fast'
+    pds3_label_method: str = DEFAULT_PDS3_LABEL_METHOD
     # sizing
     size: Any = None
     scale: Any = (100.0, 100.0)

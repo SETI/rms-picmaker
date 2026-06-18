@@ -6,6 +6,7 @@ error.
 """
 
 import pickle
+import shutil
 from pathlib import Path
 
 import astropy.io.fits as pyfits
@@ -238,16 +239,15 @@ def test_read_pil_tiff_with_bogus_content_falls_through_to_pil(
 
 
 # ---------------------------------------------------------------------------
-# PdsLabel passed directly (bypasses the str/PathLike branch)
+# Pds3Label passed directly (bypasses the str/PathLike branch)
 # ---------------------------------------------------------------------------
 
 
 def test_pds_label_passed_directly_to_read_one_image_array(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """Passing a PdsLabel object directly skips the path-string branch in
+    """Passing a Pds3Label object directly skips the path-string branch in
     read_one_image_array and dispatches straight to the PDS3 label cascade."""
-    import shutil
     shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'cassini_iss.vic')
     lbl_path = tmp_path / 'cassini.LBL'
     lbl_path.write_text(
@@ -257,7 +257,7 @@ def test_pds_label_passed_directly_to_read_one_image_array(
         '^IMAGE = "cassini_iss.vic"\n'
         'END\n'
     )
-    label = pdsparser.PdsLabel(str(lbl_path))
+    label = pdsparser.Pds3Label(str(lbl_path))
     arr, default_is_up, filter_info = read_one_image_array(label)
     assert arr.ndim == 3
     assert filter_info == ('CASSINI', 'ISS', 'CL1+GRN')

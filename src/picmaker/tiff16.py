@@ -1,9 +1,9 @@
 """Read and write 16-bit TIFF files.
 
 :func:`write_tiff16` writes a numpy array as a 16-bit uncompressed TIFF in
-grayscale, RGB, or palette colour.  :func:`read_tiff16` reads files written by
-``write_tiff16``; it is not a general TIFF reader.  Note that 16-bit palette
-colour is not widely supported, so ``write_tiff16`` translates it to RGB by
+grayscale, RGB, or palette color. :func:`read_tiff16` reads files written by
+:func:`write_tiff16`; it is not a general TIFF reader. Note that 16-bit palette
+color is not widely supported, so :func:`write_tiff16` translates it to RGB by
 default.
 """
 
