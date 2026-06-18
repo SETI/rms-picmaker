@@ -1,11 +1,7 @@
-####################################################################################################
-# colornames.py
-#
-# A simple class to import the standard X11 color names into Python. Because I
-# couldn't find a better way to do it.
-#
-# Mark R. Showalter, SETI Institute
-####################################################################################################
+"""Import the standard X11 color names into Python.
+
+Mark R. Showalter, SETI Institute.
+"""
 
 import ast
 import re

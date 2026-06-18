@@ -99,6 +99,13 @@ def read_pds3_image_array(
 
     data_file = os.path.join(label_dir, data_filename)
 
+    # Guard against path traversal in untrusted label files (e.g. "../../etc/passwd").
+    real_label_dir = os.path.realpath(label_dir or '.')
+    real_data_file = os.path.realpath(data_file)
+    if not (real_data_file == real_label_dir
+            or real_data_file.startswith(real_label_dir + os.sep)):
+        raise OSError(f'Data file path escapes the label directory: {data_file!r}')
+
     vic = try_open_vicar(data_file)
     if vic is not None:
         array3d: NDArray[Any] = vic.data_3d

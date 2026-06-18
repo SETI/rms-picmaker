@@ -1,4 +1,4 @@
-"""New Horizons MVIC detection and tint."""
+"""New Horizons LORRI/MVIC detection and tint."""
 
 import os
 import warnings
@@ -76,7 +76,7 @@ def read_file(
     obj: ObjectSelector = None,
     **kwargs: Any,
 ) -> ReadResult | None:
-    """Try to detect and read a New Horizons FITS image.
+    """Try to detect and read a New Horizons FITS image or LORRI PDS3 label.
 
     Accepts either a file path (FITS format) or a pre-parsed
     :class:`pdsparser.PdsLabel` (for LORRI).  Returns ``None`` if the

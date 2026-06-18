@@ -67,7 +67,7 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
         if vic['INSTRUMENT_HOST_NAME'] == 'CASSINI ORBITER':
             filter1, filter2 = vic['FILTER_NAME']
             return ('CASSINI', 'ISS', filter1 + '+' + filter2)
-    except (VicarError, KeyError):
+    except (VicarError, KeyError, ValueError, TypeError):
         pass
     return None
 

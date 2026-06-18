@@ -63,7 +63,10 @@ def test_cassini_detect_vicar_swallows_keyerror() -> None:
     """A VICAR label without expected keys returns ``None``."""
 
     class FakeVic:
+        """Minimal fake VicarImage that raises KeyError for every key access."""
+
         def __getitem__(self, key: str) -> Any:
+            """Raise KeyError unconditionally to simulate a missing VICAR label field."""
             raise KeyError(key)
 
     assert cassini._detect_vicar(FakeVic()) is None
@@ -84,7 +87,10 @@ def test_voyager_detect_vicar_swallows_keyerror() -> None:
     """Vicar labels without LAB02 / LAB03 return ``None`` (caught KeyError)."""
 
     class FakeVic:
+        """Minimal fake VicarImage that raises KeyError for every key access."""
+
         def __getitem__(self, key: str) -> Any:
+            """Raise KeyError unconditionally to simulate a missing VICAR label field."""
             raise KeyError(key)
 
     assert voyager._detect_vicar(FakeVic()) is None
@@ -99,7 +105,10 @@ def test_galileo_detect_vicar_swallows_keyerror() -> None:
     """A label without MISSION or LAB01/LAB03 returns ``None``."""
 
     class FakeVic:
+        """Minimal fake VicarImage that raises KeyError for every key access."""
+
         def __getitem__(self, key: str) -> Any:
+            """Raise KeyError unconditionally to simulate a missing VICAR label field."""
             raise KeyError(key)
 
     assert galileo._detect_vicar(FakeVic()) is None

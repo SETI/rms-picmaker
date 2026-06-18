@@ -140,7 +140,7 @@ def read_file(
         :class:`~picmaker._types.ReadResult` on success, ``None`` if
         the file is not recognized as an HST FITS image.
     """
-    hst: bool = kwargs.get('mosaic', False)
+    use_mosaic: bool = kwargs.get('mosaic', False)
     if not _shared.is_fits_file(filename):
         return None
     try:
@@ -151,7 +151,7 @@ def read_file(
             if filter_info is None:
                 return None
             inst_id = filter_info[1]
-            array3d = _extract_hst_array(hdulist, inst_id, obj, hst)
+            array3d = _extract_hst_array(hdulist, inst_id, obj, use_mosaic)
             return ReadResult(array3d, True, filter_info)
     except (UserWarning, OSError):
         return None

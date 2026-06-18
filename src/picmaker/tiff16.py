@@ -1,18 +1,11 @@
-####################################################################################################
-# tiff16.py
-#
-# Simple method write_tiff16() to write a numpy array as a 16-bit uncompressed
-# tiff, in grayscale, RGB color or palette color.
-#
-# Associated method read_tiff16() is not a general implementation of the Tiff
-# standard; however, it will successfully read 16-bit Tiffs written by
-# write_tiff16().
-#
-# Note, however, that 16-bit palette color is not widely supported. For this
-# reason, a "translate" option is provided, which converts palette color to RGB.
-#
-# Mark R. Showalter, SETI Institute, July 2009
-####################################################################################################
+"""Read and write 16-bit TIFF files.
+
+:func:`write_tiff16` writes a numpy array as a 16-bit uncompressed TIFF in
+grayscale, RGB, or palette colour.  :func:`read_tiff16` reads files written by
+``write_tiff16``; it is not a general TIFF reader.  Note that 16-bit palette
+colour is not widely supported, so ``write_tiff16`` translates it to RGB by
+default.
+"""
 
 import sys
 from struct import pack, unpack

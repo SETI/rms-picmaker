@@ -58,7 +58,7 @@ def _detect_vicar(vic: Any) -> tuple[str, str, str] | None:
         if vic['LAB01'][:7] == 'GLL/SSI':
             filtno = int(vic['LAB03'].partition('FILTER=')[2][0])
             return ('GALILEO', 'SSI', FILTER_NAMES[filtno])
-    except (VicarError, KeyError):
+    except (VicarError, KeyError, IndexError, ValueError):
         pass
     return None
 

@@ -262,12 +262,12 @@ def read_pds_labeled_image_array(
             if os.path.exists(head + '.lbl'):
                 try:
                     label = pdsparser.PdsLabel(head + '.lbl', method=pds3_label_method)
-                except (pdsparser.ParseException, SyntaxError):
+                except (pdsparser.ParseException, SyntaxError, OSError):
                     pass
             elif os.path.exists(head + '.LBL'):
                 try:
                     label = pdsparser.PdsLabel(head + '.LBL', method=pds3_label_method)
-                except (pdsparser.ParseException, SyntaxError):
+                except (pdsparser.ParseException, SyntaxError, OSError):
                     pass
 
     if not label:
