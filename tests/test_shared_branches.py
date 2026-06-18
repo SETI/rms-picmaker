@@ -51,7 +51,7 @@ class TestReadPds3ImageArray:
         """A label dict with no ^*IMAGE key raises OSError immediately."""
         fake = _FakeLabel(str(tmp_path / 'test.LBL'), {})
         with pytest.raises(OSError, match='No \\^\\*IMAGE pointer'):
-            read_pds3_image_array(fake, None)  # type: ignore[arg-type]
+            read_pds3_image_array(fake, None)
 
     def test_int_pointer_uses_label_basename_as_data_file(self, tmp_path: Path) -> None:
         """An integer ^IMAGE pointer sets data_filename to the label's own basename."""
@@ -61,13 +61,13 @@ class TestReadPds3ImageArray:
         # data_file resolves to the label file itself, which is neither VICAR
         # nor FITS, so the final OSError fires.
         with pytest.raises(OSError, match='Cannot read PDS3 data file'):
-            read_pds3_image_array(fake, None)  # type: ignore[arg-type]
+            read_pds3_image_array(fake, None)
 
     def test_unexpected_pointer_type_raises(self, tmp_path: Path) -> None:
         """A pointer value of unrecognized type (float) raises OSError."""
         fake = _FakeLabel(str(tmp_path / 'test.LBL'), {'^IMAGE': 3.14})
         with pytest.raises(OSError, match='Unexpected \\^IMAGE pointer value'):
-            read_pds3_image_array(fake, None)  # type: ignore[arg-type]
+            read_pds3_image_array(fake, None)
 
     def test_fits_data_file_reads_via_fits_branch(self, tmp_path: Path) -> None:
         """A string ^IMAGE pointer to a clean FITS file reads via the FITS branch."""
@@ -77,7 +77,7 @@ class TestReadPds3ImageArray:
             str(fits_path), overwrite=True
         )
         fake = _FakeLabel(str(tmp_path / 'test.LBL'), {'^IMAGE': 'data.fits'})
-        result = read_pds3_image_array(fake, None)  # type: ignore[arg-type]
+        result = read_pds3_image_array(fake, None)
         assert result.ndim == 3
 
     def test_unreadable_data_file_raises(self, tmp_path: Path) -> None:
@@ -85,4 +85,4 @@ class TestReadPds3ImageArray:
         (tmp_path / 'junk.dat').write_bytes(b'not vicar not fits data here')
         fake = _FakeLabel(str(tmp_path / 'test.LBL'), {'^IMAGE': 'junk.dat'})
         with pytest.raises(OSError, match='Cannot read PDS3 data file'):
-            read_pds3_image_array(fake, None)  # type: ignore[arg-type]
+            read_pds3_image_array(fake, None)
