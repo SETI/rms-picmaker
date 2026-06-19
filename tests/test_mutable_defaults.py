@@ -1,16 +1,16 @@
-"""PR 3 flipped the mutable defaults in `images_to_pics` and `get_outfile`.
+"""Mutable-default guards for picmaker's public API.
 
-These tests pin down the post-PR-3 state: ``strip=None`` (normalized
-internally to ``[]``) and ``pointer=None`` (normalized to
-``['IMAGE']``). The PR 2 xfail placeholders are gone; if a future
-change re-introduces a mutable default the test fails immediately.
+:class:`~picmaker.options.PicmakerOptions` uses ``field(default_factory=list)``
+for ``strip`` and ``pointer`` so each instance gets its own empty list.
+:func:`~picmaker.io.get_outfile` still defaults ``strip`` to ``None``.
 """
 
 import inspect
 from collections.abc import Callable
 from typing import Any
 
-from picmaker import get_outfile, images_to_pics
+from picmaker import get_outfile
+from picmaker.options import PicmakerOptions
 
 
 def _default(func: Callable[..., Any], name: str) -> Any:
@@ -18,12 +18,16 @@ def _default(func: Callable[..., Any], name: str) -> Any:
     return sig.parameters[name].default
 
 
-def test_images_to_pics_strip_default_is_not_mutable() -> None:
-    assert _default(images_to_pics, 'strip') is None
+def test_picmaker_options_strip_default_is_empty_list() -> None:
+    a, b = PicmakerOptions(), PicmakerOptions()
+    assert a.strip == []
+    assert a.strip is not b.strip
 
 
-def test_images_to_pics_pointer_default_is_not_mutable() -> None:
-    assert _default(images_to_pics, 'pointer') is None
+def test_picmaker_options_pointer_default_is_empty_list() -> None:
+    a, b = PicmakerOptions(), PicmakerOptions()
+    assert a.pointer == []
+    assert a.pointer is not b.pointer
 
 
 def test_get_outfile_strip_default_is_not_mutable() -> None:

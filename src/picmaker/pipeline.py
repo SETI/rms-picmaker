@@ -9,7 +9,7 @@ pipeline so that :func:`images_to_pics` reads as a flat loop.
 
 import logging
 import os
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
 
 import numpy as np
 import pdsparser
@@ -28,11 +28,21 @@ from picmaker.geometry import (
     rotate_array_rgb,
     wrap_image,
 )
+from picmaker.instruments._shared import _extract_pds3_filter_info
 from picmaker.io import get_outfile, read_image_array
 from picmaker.options import DEFAULT_PDS3_LABEL_METHOD, READ_FILE_KWARGS, PicmakerOptions
 from picmaker.pil_utils import array_to_pil, write_pil
 
 logger = logging.getLogger(__name__)
+
+_ReuseT = tuple[Any, Any, Any, str] | None
+
+
+class _ImagesResult(NamedTuple):
+    """Return value of :func:`images_to_pics`."""
+    low: float | None
+    high: float | None
+    reuse: _ReuseT
 
 
 def find_common_path(directories: list[str]) -> str:
@@ -117,30 +127,7 @@ def _pds3_resolve_pointer(
     label = pdsparser.Pds3Label(infile, method=pds3_label_method)
     labeldict = label.as_dict()
 
-    if 'INSTRUMENT_HOST_ID' in labeldict:
-        inst_host = labeldict['INSTRUMENT_HOST_ID']
-    elif 'SPACECRAFT_ID' in labeldict:
-        inst_host = labeldict['SPACECRAFT_ID']
-    elif 'SPACECRAFT_NAME' in labeldict:
-        inst_host = labeldict['SPACECRAFT_NAME']
-    else:
-        inst_host = None
-
-    filter_info: tuple[Any, Any, Any] | None = None
-    if inst_host is not None:
-        if 'INSTRUMENT_ID' in labeldict:
-            inst_id = labeldict['INSTRUMENT_ID']
-            if 'DETECTOR_ID' in labeldict:
-                detector_id = labeldict['DETECTOR_ID']
-                if isinstance(detector_id, str):
-                    inst_id += '/' + detector_id
-        elif 'INSTRUMENT_NAME' in labeldict:
-            inst_id = labeldict['INSTRUMENT_NAME']
-        else:
-            inst_id = None
-
-        pds_filter_name = labeldict.get('FILTER_NAME')
-        filter_info = (inst_host, inst_id, pds_filter_name)
+    filter_info = _extract_pds3_filter_info(labeldict)
 
     if isinstance(pointer, str):
         pointer = [pointer]
@@ -205,13 +192,10 @@ def _process_one_image(
 
     Parameters:
         infile: Input file path.
-        options: Validated and post-normalized
-            :class:`~picmaker.options.PicmakerOptions`. The caller is
-            responsible for filling in defaults that the legacy
-            :func:`~picmaker.pipeline.images_to_pics` kwarg interface
-            used to set inline (``strip`` defaults to ``[]``,
-            ``pointer`` to ``['IMAGE']``, ``bands`` to ``(0, 1)``,
-            ``extension`` to ``'jpg'`` / ``'tiff'``).
+        options: Normalized and validated
+            :class:`~picmaker.options.PicmakerOptions` (after calling
+            :meth:`~picmaker.options.PicmakerOptions.normalize` and
+            :meth:`~picmaker.options.PicmakerOptions.validate`).
         reuse: A 4-tuple ``(array3d, default_is_up, filter_info,
             infile)`` from a previous call, or ``None`` to read from
             disk.
@@ -225,10 +209,10 @@ def _process_one_image(
         stretches internally) and ``reuse_tuple`` is the read-result tuple the caller persists
         for a possible later reuse.
     """
-    # ``images_to_pics`` backfills ``options.extension`` to ``'jpg'`` or
-    # ``'tiff'`` before calling this helper. The cast narrows the
-    # ``str | None`` field for mypy without introducing an ``assert``
-    # that ``python -O`` would strip.
+    # ``options.normalize()`` sets ``extension`` to ``'jpg'`` or ``'tiff'``
+    # before this helper is called. The cast narrows the ``str | None``
+    # field for mypy without introducing an ``assert`` that ``python -O``
+    # would strip.
     extension = cast(str, options.extension)
     outfile = get_outfile(
         infile, directory, options.strip, options.suffix,
@@ -410,107 +394,40 @@ def images_to_pics(
     directory: str | None = None,
     verbose: bool = False,
     *,
-    replace: str = 'all',
-    proceed: bool = False,
-    extension: str | None = 'jpg',
-    suffix: str = '',
-    strip: Any = None,
-    quality: int = 75,
-    twobytes: bool = False,
-    bands: Any = None,
-    lines: Any = None,
-    samples: Any = None,
-    obj: Any = None,
-    pointer: Any = None,
-    pds3_label_method: str = DEFAULT_PDS3_LABEL_METHOD,
-    size: Any = None,
-    scale: Any = (100.0, 100.0),
-    crop: Any = None,
-    frame: Any = None,
-    pad: bool = False,
-    pad_color: Any = 'black',
-    frame_max: int | None = None,
-    wrap: bool = False,
-    wrap_ratio: float | None = None,
-    overlap: tuple[float, float] = (0.0, 0.0),
-    gap_size: int = 1,
-    gap_color: Any = 'white',
-    mosaic: bool = False,
-    valid: Any = None,
-    limits: Any = None,
-    percentiles: Any = None,
-    trim: int = 0,
-    trim_zeros: bool = False,
-    footprint: int = 0,
-    histogram: bool = False,
-    colormap: Any = None,
-    below_color: Any = None,
-    above_color: Any = None,
-    invalid_color: Any = None,
-    gamma: float = 1.0,
-    tint: bool = False,
-    display_upward: bool = False,
-    display_downward: bool = False,
-    rotate: Any = None,
-    filter_name: str = 'NONE',
-    zebra: bool = False,
+    options: PicmakerOptions | None = None,
     reuse: Any = None,
-) -> tuple[Any, Any, Any]:
+    **kwargs: Any,
+) -> _ImagesResult:
     """Convert one or more image files to picture files.
 
-    See ``picmaker --help`` for the meaning of each keyword argument.
-    The CLI's ``--filter`` flag binds to the ``filter_name`` keyword on
-    this function (the rename in 2026-05 dropped the legacy
-    builtin-shadowing ``filter`` kwarg).
+    Pass a :class:`~picmaker.options.PicmakerOptions` instance as *options*
+    for the primary call form, or use keyword arguments matching
+    :class:`~picmaker.options.PicmakerOptions` fields for the flat-kwarg
+    backward-compatible form.  See ``picmaker --help`` for the meaning of
+    each option.
 
     Parameters:
         filenames: List of image file names to convert.
         directory: Output directory. ``None`` writes next to the input.
         verbose: Print each input filename as it is processed.
+        options: Pre-built options object. When provided, ``**kwargs`` are
+            ignored. When omitted, a :class:`~picmaker.options.PicmakerOptions`
+            is constructed from ``**kwargs``.
+        reuse: Cached read tuple from a previous :func:`images_to_pics`
+            call (``result.reuse``), used to skip re-reading the file.
 
     Returns:
-        ``(low, high, reuse)`` — the lower / upper limits of the
-        stretch and the reuse tuple if the caller wants to call again
-        without re-reading the file.
+        :class:`_ImagesResult` ``(low, high, reuse)`` — the lower / upper
+        stretch limits and the reuse tuple for subsequent calls.
     """
-    # Single source of truth for mutex / value-validity checks: build a
-    # PicmakerOptions and let its `validate()` method raise on any
-    # cross-field conflict. The CLI does this earlier via
-    # _normalize_and_validate; library callers get the same checks here.
-    options = PicmakerOptions(
-        replace=replace, proceed=proceed, extension=extension,
-        suffix=suffix, strip=strip, quality=quality, twobytes=twobytes,
-        bands=bands, lines=lines, samples=samples, obj=obj, pointer=pointer,
-        pds3_label_method=pds3_label_method,
-        size=size, scale=scale, crop=crop, frame=frame, pad=pad,
-        pad_color=pad_color, frame_max=frame_max, wrap=wrap,
-        wrap_ratio=wrap_ratio, overlap=overlap, gap_size=gap_size,
-        gap_color=gap_color, mosaic=mosaic, valid=valid, limits=limits,
-        percentiles=percentiles, trim=trim, trim_zeros=trim_zeros,
-        footprint=footprint, histogram=histogram, colormap=colormap,
-        below_color=below_color, above_color=above_color,
-        invalid_color=invalid_color, gamma=gamma, tint=tint,
-        display_upward=display_upward, display_downward=display_downward,
-        rotate=rotate, filter_name=filter_name, zebra=zebra,
-    )
+    if options is None:
+        options = PicmakerOptions(**kwargs)
+    options.normalize()
     options.validate()
-
-    # Backfill the legacy "set inline if None" defaults that the kwarg
-    # interface used to apply before the loop. PicmakerOptions stores
-    # them as-given so library callers that bypass the kwarg interface
-    # still get a consistent shape.
-    if options.strip is None:
-        options.strip = []
-    if options.pointer is None:
-        options.pointer = ['IMAGE']
-    if options.bands is None:
-        options.bands = (0, 1)
-    if options.extension is None:
-        options.extension = 'tiff' if options.twobytes else 'jpg'
 
     min_limits: list[Any] = []
     max_limits: list[Any] = []
-    last_reuse_tuple: tuple[Any, Any, Any, str] | None = None
+    last_reuse_tuple: _ReuseT = None
 
     # The caller's ``reuse`` short-circuit is only valid for a one-file
     # batch (the function returns at most one ``reuse`` tuple). Clamp it
@@ -527,7 +444,7 @@ def images_to_pics(
                 infile, options, effective_reuse, directory=directory,
             )
         except Exception:
-            if proceed:
+            if options.proceed:
                 # `logger.exception` logs the type, message, AND the full
                 # traceback in one call through the configured handler, so
                 # output ordering stays deterministic under `pytest -n auto`
@@ -555,9 +472,9 @@ def images_to_pics(
         # uses per-detector stretches), so an HST-only batch ends here
         # with no reuse — preserves the legacy return shape that movie
         # mode and process_images depend on.
-        return (None, None, None)
+        return _ImagesResult(None, None, None)
 
-    return (np.median(min_limits), np.median(max_limits), last_reuse_tuple)
+    return _ImagesResult(np.median(min_limits), np.median(max_limits), last_reuse_tuple)
 
 
 __all__ = ['find_common_path', 'images_to_pics', 'process_images']

@@ -23,7 +23,12 @@ from vicar import VicarError, VicarImage
 
 from picmaker import instruments
 from picmaker._types import FilterInfo, ObjectSelector, ReadResult
-from picmaker.instruments._shared import extract_fits_array, is_fits_file, read_pds3_image_array
+from picmaker.instruments._shared import (
+    _extract_pds3_filter_info,
+    extract_fits_array,
+    is_fits_file,
+    read_pds3_image_array,
+)
 from picmaker.options import DEFAULT_PDS3_LABEL_METHOD
 from picmaker.pil_utils import array_to_pil, pil_to_array
 from picmaker.tiff16 import read_tiff16
@@ -66,15 +71,13 @@ def read_image_array(
     if isinstance(filename, (str, os.PathLike, pdsparser.Pds3Label)):
         return read_one_image_array(filename, obj, **kwargs)
 
-    results = []
-    for k in range(len(filename)):
-        results.append(read_one_image_array(filename[k], None, **kwargs))
+    results = [read_one_image_array(f, None, **kwargs) for f in filename]
 
     arrays = [r[0] for r in results]
-    for k in range(len(arrays)):
-        array = arrays[k]
-        if len(array.shape) < 3:
-            arrays[k] = np.reshape(array, (1, *array.shape))
+    arrays = [
+        np.reshape(a, (1, *a.shape)) if len(a.shape) < 3 else a
+        for a in arrays
+    ]
 
     array = np.vstack(arrays)
     return ReadResult(array, results[0].default_is_up, results[0].filter_info)
@@ -382,14 +385,7 @@ def read_pds_labeled_image_array(
     array3d = data.reshape(1, lines, row_samples)
     array3d = array3d[..., prefix_samples : prefix_samples + samples]
 
-    inst_host = (
-        label_dict.get('INSTRUMENT_NAME', '')
-        or label_dict.get('SPACECRAFT_NAME', '')
-    )
-    inst_name = label_dict.get('INSTRUMENT_HOST_NAME', '')
-    filter_name = label_dict.get('FILTER_NAME', '')
-
-    return ReadResult(array3d, False, (inst_host, inst_name, filter_name))
+    return ReadResult(array3d, False, _extract_pds3_filter_info(label_dict) or ('', '', ''))
 
 
 def read_pil(infile: str | os.PathLike[str]) -> Image.Image | list[Image.Image]:
@@ -463,7 +459,7 @@ def read_array(infile: str | os.PathLike[str], rescale: bool) -> NDArray[Any]:
 def get_outfile(
     infile: str | os.PathLike[str],
     outdir: str | os.PathLike[str] | None = None,
-    strip: Any = None,
+    strip: str | list[str] | None = None,
     suffix: str | None = '',
     extension: str = 'jpg',
     replace: str = 'all',
@@ -473,9 +469,8 @@ def get_outfile(
     Parameters:
         infile: Name of the input file.
         outdir: Output directory, or ``None`` for the input's directory.
-        strip: A string or list of strings to strip from the input
-            filename before adding the suffix. ``None`` is equivalent
-            to ``['']``.
+        strip: A string or list of strings to strip from the input filename
+            before adding the suffix.
         suffix: Extra string added before the extension.
         extension: Output file extension (e.g. ``'jpg'``).
         replace: Replacement policy when the output already exists:
@@ -497,11 +492,11 @@ def get_outfile(
 
     if suffix is None:
         suffix = ''
-    if strip is None:
-        strip = ['']
 
     outfile = infile_str
 
+    if strip is None:
+        strip = []
     if isinstance(strip, str):
         strip = [strip]
     for substring in strip:

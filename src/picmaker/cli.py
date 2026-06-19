@@ -141,7 +141,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help='a string to strip from output filename if it is present.',
     )
     output.add_argument(
-        '--alt-strip', '--alt_strip', dest='alt_strip', type=str, default=None,
+        '--alt-strip', '--alt_strip', dest='alt_strip', type=str, default='',
         help='an additional string to strip from output filename if it is present.',
     )
     output.add_argument(
@@ -173,12 +173,12 @@ def _build_parser() -> argparse.ArgumentParser:
              'the first valid image object in the file.',
     )
     selection.add_argument(
-        '--pointer', dest='pointer', type=str, default='IMAGE',
+        '--pointer', dest='pointer', type=str, default='',
         help='the PDS pointer identifying the image object.',
     )
     selection.add_argument(
         '--alt-pointer', '--alt_pointer', dest='alt_pointer',
-        type=str, default=None,
+        type=str, default='',
         help='alternative PDS pointer used when the first pointer is not found.',
     )
     selection.add_argument(
@@ -350,7 +350,8 @@ def _separate_files_and_dirs(args: list[str]) -> tuple[list[str], list[str]]:
     """Split positional arguments into existing files vs. directories.
 
     Trailing slashes on directory paths are stripped; anything that is
-    not an existing file is treated as a directory.
+    not an existing file is treated as a directory.  A warning is emitted
+    for paths that are neither an existing file nor an existing directory.
     """
     filenames: list[str] = []
     directories: list[str] = []
@@ -360,6 +361,8 @@ def _separate_files_and_dirs(args: list[str]) -> tuple[list[str], list[str]]:
         else:
             if f.endswith('/'):
                 f = f[:-1]
+            if not os.path.isdir(f):
+                logger.warning('path does not exist or is not a directory: %s', f)
             directories.append(f)
     return filenames, directories
 
@@ -431,16 +434,13 @@ def _normalize_and_validate(
     options.scale = (options.wscale, options.hscale)
 
     if options.valid is not None:
-        options.valid = tuple(sorted(options.valid))
+        options.valid = (min(options.valid), max(options.valid))
     if options.limits is not None:
-        options.limits = tuple(sorted(options.limits))
+        options.limits = (min(options.limits), max(options.limits))
     if options.percentiles is not None:
-        options.percentiles = tuple(sorted(options.percentiles))
-
-    if options.alt_pointer is not None:
-        options.pointer = [options.pointer, options.alt_pointer]
-    if options.alt_strip is not None:
-        options.strip = [options.strip, options.alt_strip]
+        options.percentiles = (min(options.percentiles), max(options.percentiles))
+    pointers = [s for s in (options.pointer, options.alt_pointer) if s]
+    strips = [s for s in (options.strip, options.alt_strip) if s]
 
     if options.overlaps is None:
         if options.overlap is None:
@@ -455,7 +455,7 @@ def _normalize_and_validate(
         # output options
         'extension': options.extension,
         'suffix': options.suffix,
-        'strip': options.strip,
+        'strip': strips,
         'quality': options.quality,
         'twobytes': options.twobytes,
         # selection options
@@ -463,7 +463,7 @@ def _normalize_and_validate(
         'lines': lines,
         'samples': samples,
         'obj': options.obj,
-        'pointer': options.pointer,
+        'pointer': pointers,
         'pds3_label_method': options.pds3_label_method,
         # sizing options
         'size': options.size,

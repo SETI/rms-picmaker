@@ -33,34 +33,30 @@ def fill_zebra_stripes(array2d: Any) -> Any:
     """
     (lines, samples) = array2d.shape
 
+    # lprev starts at 1 (row 0 peeks at row 1 as its "above" neighbor)
+    # to match the original per-pixel algorithm's initialisation.
     lprev = 1
     for line in range(lines):
-        lnext = line + 1
-        if lnext == lines:
-            lnext = line - 1
+        lnext = line + 1 if line + 1 < lines else line - 1
 
-        for s in range(samples):
-            if array2d[line, s] != 0:
-                break
+        row = array2d[line]
+        above = array2d[lprev].astype('float64')
+        below = array2d[lnext].astype('float64')
 
-            array_above = int(array2d[lprev, s])
-            array_below = int(array2d[lnext, s])
+        nz = np.flatnonzero(row)
+        first_nz = nz[0] if len(nz) > 0 else samples
+        last_nz = nz[-1] if len(nz) > 0 else -1
 
-            if array_above and array_below:
-                array2d[line, s] = (array_above + array_below) / 2
+        if first_nz > 0:
+            cols = np.arange(first_nz)
+            mask = (above[cols] != 0) & (below[cols] != 0)
+            row[cols[mask]] = (above[cols[mask]] + below[cols[mask]]) / 2
 
-        for s in range(samples - 1, -1, -1):
-            if array2d[line, s] != 0:
-                break
+        if last_nz < samples - 1:
+            cols = np.arange(last_nz + 1, samples)
+            mask = (above[cols] != 0) & (below[cols] != 0)
+            row[cols[mask]] = (above[cols[mask]] + below[cols[mask]]) / 2
 
-            array_above = int(array2d[lprev, s])
-            array_below = int(array2d[lnext, s])
-
-            if array_above and array_below:
-                array2d[line, s] = (array_above + array_below) / 2
-
-        # Safe to update in place: we only touch zero pixels with non-zero
-        # neighbors above and below.
         lprev = line
 
     return array2d
@@ -397,7 +393,8 @@ def _band_to_rgb(
         array2d = fill_zebra_stripes(array2d)
 
     these_limits = get_limits(
-        array2d, invalid_mask, options.limits, options.percentiles, assume_int=is_int,
+        array2d, invalid_mask, options.limits,
+        options.percentiles or (0.0, 100.0), assume_int=is_int,
         trim=options.trim, trim_zeros=options.trim_zeros, footprint=options.footprint,
     )
 

@@ -17,7 +17,36 @@ import pdsparser
 from numpy.typing import NDArray
 from vicar import VicarError, VicarImage
 
-from picmaker._types import ObjectSelector
+from picmaker._types import FilterInfo, ObjectSelector
+
+
+def _extract_pds3_filter_info(label_dict: dict[str, Any]) -> FilterInfo:
+    """Extract ``(inst_host, inst_id, filter_name)`` from a PDS3 label dict.
+
+    Returns ``None`` when no host identifier is present in the label.
+    """
+    if 'INSTRUMENT_HOST_ID' in label_dict:
+        inst_host: Any = label_dict['INSTRUMENT_HOST_ID']
+    elif 'INSTRUMENT_HOST_NAME' in label_dict:
+        inst_host = label_dict['INSTRUMENT_HOST_NAME']
+    elif 'SPACECRAFT_ID' in label_dict:
+        inst_host = label_dict['SPACECRAFT_ID']
+    elif 'SPACECRAFT_NAME' in label_dict:
+        inst_host = label_dict['SPACECRAFT_NAME']
+    else:
+        return None
+
+    if 'INSTRUMENT_ID' in label_dict:
+        inst_id: Any = label_dict['INSTRUMENT_ID']
+        detector_id = label_dict.get('DETECTOR_ID')
+        if isinstance(detector_id, str):
+            inst_id = inst_id + '/' + detector_id
+    elif 'INSTRUMENT_NAME' in label_dict:
+        inst_id = label_dict['INSTRUMENT_NAME']
+    else:
+        inst_id = None
+
+    return (inst_host, inst_id, label_dict.get('FILTER_NAME'))
 
 
 def try_open_vicar(filename: str | os.PathLike[str]) -> VicarImage | None:
@@ -150,7 +179,7 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
         for hdu in hdulist:
             candidate: Any = hdu.data
             if isinstance(candidate, np.ndarray) and candidate.ndim in (2, 3):
-                array3d = candidate
+                array3d = candidate.copy()
                 break
     elif isinstance(obj, (list, tuple)):
         layers = [hdulist[o].data for o in obj]

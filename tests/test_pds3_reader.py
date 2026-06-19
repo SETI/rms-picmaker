@@ -252,7 +252,7 @@ def test_pds3_label_picks_up_metadata(tmp_path: Path) -> None:
     result = read_pds_labeled_image_array(str(lbl))
     assert result is not None
     _, _, filter_info = result
-    assert filter_info == ('ISS', 'CASSINI', 'RED')
+    assert filter_info == ('CASSINI', 'ISS', 'RED')
 
 
 def test_pds3_falls_back_to_spacecraft_name(tmp_path: Path) -> None:

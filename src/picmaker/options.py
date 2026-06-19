@@ -7,15 +7,17 @@ lived inline in both ``picmaker.cli._normalize_and_validate`` (the
 private helper that builds the CLI's option dict) and
 :func:`picmaker.pipeline.images_to_pics`.
 
-The public function signature of
-:func:`picmaker.pipeline.images_to_pics` is unchanged for backward
-compatibility — internally it builds a :class:`PicmakerOptions` and
-calls :meth:`PicmakerOptions.validate` so the duplicated mutex checks
-live in exactly one place.
+:func:`picmaker.pipeline.images_to_pics` accepts a
+:class:`PicmakerOptions` object directly (``options=``) or falls back to
+constructing one from ``**kwargs`` for backward compatibility.  Either
+way, :meth:`PicmakerOptions.normalize` and :meth:`PicmakerOptions.validate`
+run before any I/O so the mutex checks live in exactly one place.
 """
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
+
+from picmaker._types import ObjectSelector
 
 PDS3_LABEL_METHODS: tuple[str, ...] = ('strict', 'loose', 'compound', 'fast')
 DEFAULT_PDS3_LABEL_METHOD: str = 'fast'
@@ -44,21 +46,21 @@ class PicmakerOptions:
     # output
     extension: str | None = 'jpg'
     suffix: str = ''
-    strip: Any = None
+    strip: str | list[str] = field(default_factory=list)
     quality: int = 75
     twobytes: bool = False
     # selection
-    bands: Any = None
-    lines: Any = None
-    samples: Any = None
-    obj: Any = None
-    pointer: Any = None
+    bands: tuple[int, int] | None = None
+    lines: tuple[int, int] | None = None
+    samples: tuple[int, int] | None = None
+    obj: ObjectSelector = None
+    pointer: list[str] = field(default_factory=list)
     pds3_label_method: str = DEFAULT_PDS3_LABEL_METHOD
     # sizing
     size: Any = None
     scale: Any = (100.0, 100.0)
-    crop: Any = None
-    frame: Any = None
+    crop: float | None = None
+    frame: tuple[int, int] | None = None
     pad: bool = False
     pad_color: Any = 'black'
     frame_max: int | None = None
@@ -70,9 +72,9 @@ class PicmakerOptions:
     gap_color: Any = 'white'
     mosaic: bool = False
     # scaling
-    valid: Any = None
-    limits: Any = None
-    percentiles: Any = None
+    valid: tuple[float, float] | None = None
+    limits: tuple[float, float] | None = None
+    percentiles: tuple[float, float] | None = None
     trim: int = 0
     trim_zeros: bool = False
     footprint: int = 0
@@ -92,6 +94,21 @@ class PicmakerOptions:
     filter_name: str = 'NONE'
     zebra: bool = False
 
+    def normalize(self) -> None:
+        """Apply pipeline defaults that cannot be set at field-definition time.
+
+        Call this before :meth:`validate` so that ``validate`` sees fully
+        resolved values.  Calling it more than once is safe (idempotent).
+        """
+        if not self.pointer:
+            self.pointer = ['IMAGE']
+        if self.extension is None:
+            self.extension = 'tiff' if self.twobytes else 'jpg'
+        # bands must stay None for mosaic mode so validate() can catch the
+        # incompatible-combination error when the user sets both explicitly.
+        if self.bands is None and not self.mosaic:
+            self.bands = (0, 1)
+
     def validate(self) -> None:
         """Run cross-field mutex / value-validity checks.
 
@@ -100,6 +117,11 @@ class PicmakerOptions:
                 both set, or when ``twobytes`` is combined with a
                 non-TIFF extension or a non-trivial filter.
         """
+        if self.replace not in ('all', 'none', 'warn', 'error'):
+            raise ValueError(
+                f'invalid replace value {self.replace!r}; '
+                "must be one of 'all', 'none', 'warn', 'error'"
+            )
         if self.mosaic and self.bands is not None:
             raise ValueError('mosaic and bands options are incompatible')
         if self.frame is not None and self.size is not None:
@@ -125,10 +147,11 @@ class PicmakerOptions:
             )
 
     def to_kwargs(self) -> dict[str, Any]:
-        """Return a kwargs dict that unpacks into the pipeline entry point.
+        """Return a kwargs dict equivalent to this options object.
 
-        Specifically, the dict can be passed as
-        ``picmaker.pipeline.images_to_pics(**options.to_kwargs())``.
+        The dict can be passed as
+        ``picmaker.pipeline.images_to_pics(**options.to_kwargs())``
+        for the flat-kwarg backward-compatible call form.
         """
         return asdict(self)
 
@@ -138,4 +161,4 @@ class PicmakerOptions:
         return cls(**kwargs)
 
 
-__all__ = ['PDS3_LABEL_METHODS', 'READ_FILE_KWARGS', 'PicmakerOptions']
+__all__ = ['DEFAULT_PDS3_LABEL_METHOD', 'PDS3_LABEL_METHODS', 'READ_FILE_KWARGS', 'PicmakerOptions']
