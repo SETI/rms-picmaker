@@ -19,6 +19,10 @@ class _FakeLabel:
 
     def __init__(self, filepath: str, d: dict[str, Any]) -> None:
         self._filepath = filepath
+        # read_pds3_image_array reads the parsed plain dict via ``.dict``
+        # (matching real pdsparser.Pds3Label); ``as_dict()`` is kept for
+        # callers that exercise the conversion form.
+        self.dict = d
         self._d = d
 
     def as_dict(self) -> dict[str, Any]:
@@ -45,6 +49,21 @@ class TestExtractFitsArray:
         with pytest.raises(OSError, match='Image array not found'):
             extract_fits_array(hdulist, None)
 
+    def test_list_obj_with_3d_layer_raises(self) -> None:
+        """A list obj selecting a 3-D HDU raises instead of returning a 4-D array."""
+        cube = pyfits.ImageHDU(data=np.zeros((2, 4, 4), dtype=np.int16), name='CUBE')
+        hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), cube])
+        with pytest.raises(OSError, match='must each be 2-D'):
+            extract_fits_array(hdulist, [1])
+
+    def test_list_obj_of_2d_layers_stacks_into_bands(self) -> None:
+        """A list obj of 2-D HDUs stacks one band per HDU."""
+        a = pyfits.ImageHDU(data=np.zeros((4, 4), dtype=np.int16), name='A')
+        b = pyfits.ImageHDU(data=np.ones((4, 4), dtype=np.int16), name='B')
+        hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), a, b])
+        result = extract_fits_array(hdulist, [1, 2])
+        assert result.shape == (2, 4, 4)
+
 
 class TestReadPds3ImageArray:
     def test_no_image_pointer_raises(self, tmp_path: Path) -> None:
@@ -61,6 +80,15 @@ class TestReadPds3ImageArray:
         # data_file resolves to the label file itself, which is neither VICAR
         # nor FITS, so the final OSError fires.
         with pytest.raises(OSError, match='Cannot read PDS3 data file'):
+            read_pds3_image_array(fake, None)
+
+    def test_int_pointer_record_offset_above_one_raises(self, tmp_path: Path) -> None:
+        """An integer ^IMAGE record number > 1 (a real byte offset this reader
+        cannot seek to) raises rather than silently reading from byte 0."""
+        lbl = tmp_path / 'test.LBL'
+        lbl.write_bytes(b'not vicar not fits')
+        fake = _FakeLabel(str(lbl), {'^IMAGE': 5})
+        with pytest.raises(OSError, match='record offset 5 is not supported'):
             read_pds3_image_array(fake, None)
 
     def test_unexpected_pointer_type_raises(self, tmp_path: Path) -> None:

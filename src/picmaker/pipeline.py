@@ -12,7 +12,6 @@ import os
 from typing import Any, NamedTuple, cast
 
 import numpy as np
-import pdsparser
 
 from picmaker import instruments
 from picmaker._filters import filter_image
@@ -28,9 +27,8 @@ from picmaker.geometry import (
     rotate_array_rgb,
     wrap_image,
 )
-from picmaker.instruments._shared import _extract_pds3_filter_info
 from picmaker.io import get_outfile, read_image_array
-from picmaker.options import DEFAULT_PDS3_LABEL_METHOD, READ_FILE_KWARGS, PicmakerOptions
+from picmaker.options import READ_FILE_KWARGS, PicmakerOptions
 from picmaker.pil_utils import array_to_pil, write_pil
 
 logger = logging.getLogger(__name__)
@@ -83,98 +81,6 @@ def find_common_path(directories: list[str]) -> str:
     if not rest or rest == os.sep:
         return ''
     return result
-
-
-def _pds3_resolve_pointer(
-    infile: str,
-    pointer: Any,
-    obj: Any,
-    *,
-    pds3_label_method: str = DEFAULT_PDS3_LABEL_METHOD,
-) -> tuple[Any, tuple[Any, Any, Any] | None, pdsparser.Pds3Label]:
-    """Parse a PDS3 ``.LBL`` and resolve its image-object pointer.
-
-    The pointer name list is tried in order; the first one present in
-    the label wins. When the pointer resolves to multiple objects, the
-    ``obj`` argument selects which (an integer selects one, a sequence
-    selects several, ``None`` selects all).
-
-    Parameters:
-        infile: Path to a PDS3 ``.LBL`` detached-label file.
-        pointer: Pointer name (e.g. ``'IMAGE'``) or list of pointer
-            names to try in order. A leading ``^`` is optional.
-        obj: ``None`` (all objects), an ``int`` (one object), or a
-            sequence of ``int`` (several objects).
-        pds3_label_method: Forwarded to :class:`pdsparser.Pds3Label` as
-            its ``method=`` argument (``'strict'``, ``'loose'``,
-            ``'compound'``, or ``'fast'``).
-
-    Returns:
-        ``(imagefile, filter_info, label)`` — ``imagefile`` is either a
-        single path (``obj`` was an int) or a list of paths;
-        ``filter_info`` is the ``(host, instrument, filter)`` triple
-        extracted from the label, or ``None`` when no instrument
-        metadata is present; ``label`` is the parsed
-        :class:`pdsparser.Pds3Label` object (to avoid re-parsing in the
-        caller).
-
-    Raises:
-        KeyError: When none of the pointer names is present in the
-            label.
-        IndexError: When ``obj`` selects an index past the end of the
-            resolved pointer list.
-    """
-    label = pdsparser.Pds3Label(infile, method=pds3_label_method)
-    labeldict = label.as_dict()
-
-    filter_info = _extract_pds3_filter_info(labeldict)
-
-    if isinstance(pointer, str):
-        pointer = [pointer]
-
-    pds_obj: Any = None
-    pname: str = ''
-    for pname in pointer:
-        pname = pname.upper()
-        if not pname.startswith('^'):
-            pname = '^' + pname
-        if pname in labeldict:
-            pds_obj = labeldict[pname]
-            if isinstance(pds_obj, tuple):
-                pds_obj = pds_obj[0]
-            break
-
-    if pds_obj is None:
-        raise KeyError(f'PDS pointer {pointer[0].upper()} not found')
-
-    if isinstance(pds_obj, str):
-        pds_obj = [pds_obj]
-
-    # Validate the upper bound BEFORE indexing into ``pds_obj`` so the
-    # informative IndexError (which names the pointer) fires instead of
-    # Python's bare ``list index out of range``.
-    if obj is None:
-        max_obj = len(pds_obj) - 1
-    elif isinstance(obj, int):
-        max_obj = obj
-    else:
-        max_obj = max(obj)
-
-    if max_obj >= len(pds_obj):
-        raise IndexError(
-            f'index {max_obj + 1} for PDS pointer {pname[1:]} out of range'
-        )
-
-    parent = os.path.split(infile)[0]
-    if obj is None:
-        imagefile: Any = [os.path.join(parent, p) for p in pds_obj]
-    elif isinstance(obj, int):
-        imagefile = os.path.join(parent, pds_obj[obj])
-    else:
-        imagefile = [os.path.join(parent, pds_obj[o]) for o in obj]
-
-    return imagefile, filter_info, label
-
 
 
 def _process_one_image(

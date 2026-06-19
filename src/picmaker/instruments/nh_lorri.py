@@ -102,14 +102,18 @@ def read_file(
     if not _shared.is_fits_file(filename):
         return None
     try:
-        with warnings.catch_warnings(), pyfits.open(str(filename)) as hdulist:
+        # Set the error filter BEFORE entering pyfits.open() so warnings
+        # emitted while parsing the FITS headers (during __enter__) are also
+        # promoted to exceptions, not just those raised during HDU access.
+        with warnings.catch_warnings():
             warnings.filterwarnings('error')
-            _fitsobj = hdulist[0]  # IndexError / KeyError if not valid FITS
-            filter_info = _detect_fits(hdulist)
-            if filter_info is None:
-                return None
-            array3d = _shared.extract_fits_array(hdulist, obj)
-            return ReadResult(array3d, True, filter_info)
+            with pyfits.open(str(filename)) as hdulist:
+                _fitsobj = hdulist[0]  # IndexError / KeyError if not valid FITS
+                filter_info = _detect_fits(hdulist)
+                if filter_info is None:
+                    return None
+                array3d = _shared.extract_fits_array(hdulist, obj)
+                return ReadResult(array3d, True, filter_info)
     except (UserWarning, OSError):
         return None
 

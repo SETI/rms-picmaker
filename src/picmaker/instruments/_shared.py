@@ -20,6 +20,18 @@ from vicar import VicarError, VicarImage
 from picmaker._types import FilterInfo, ObjectSelector
 
 
+def ensure_3d(array: NDArray[Any]) -> NDArray[Any]:
+    """Promote a 2-D ``(lines, samples)`` array to 3-D ``(1, lines, samples)``.
+
+    A 3-D (or higher-dimensional) array is returned unchanged. Centralizes
+    the band-axis reshape that every VICAR/FITS reader applies after pulling
+    raw pixel data, so the rule lives in exactly one place.
+    """
+    if array.ndim == 2:
+        return array.reshape((1, *array.shape))
+    return array
+
+
 def _extract_pds3_filter_info(label_dict: dict[str, Any]) -> FilterInfo:
     """Extract ``(inst_host, inst_id, filter_name)`` from a PDS3 label dict.
 
@@ -107,7 +119,12 @@ def read_pds3_image_array(
         OSError: If no ``^*IMAGE`` pointer is found, or if the data file
             cannot be read as VICAR or FITS.
     """
-    label_dict = label.as_dict()
+    # Use the underlying ``.dict`` directly rather than ``as_dict()``: the
+    # latter runs a fresh ``to_old_dict`` conversion on every call, and the
+    # instrument's ``_detect_pds3`` has already paid for one such conversion
+    # before handing the label here. ``.dict`` is the parsed plain dict (the
+    # same attribute :func:`picmaker.io.read_pds_labeled_image_array` reads).
+    label_dict = label.dict
     label_filepath: str = str(label._filepath)
     label_dir = os.path.dirname(label_filepath)
 
@@ -122,6 +139,19 @@ def read_pds3_image_array(
     elif isinstance(node, str):
         data_filename = node
     elif isinstance(node, int):
+        # An integer ^IMAGE pointer is a 1-based record number into an
+        # attached-label file: the image data lives in the label file
+        # itself. This generic reader sniffs the data file as VICAR or FITS
+        # from byte 0, and both formats are self-describing, so only record 1
+        # (the start of the file) can be honored. A record number > 1 names
+        # data at a non-zero byte offset that neither ``try_open_vicar`` nor
+        # ``pyfits.open`` can seek to; reject it explicitly rather than
+        # silently reading the wrong bytes from the start of the file.
+        if node > 1:
+            raise OSError(
+                f'Attached-label ^IMAGE record offset {node} is not supported '
+                'by the generic PDS3 reader'
+            )
         data_filename = os.path.basename(label_filepath)
     else:
         raise OSError(f'Unexpected ^IMAGE pointer value: {node!r}')
@@ -137,16 +167,18 @@ def read_pds3_image_array(
 
     vic = try_open_vicar(data_file)
     if vic is not None:
-        array3d: NDArray[Any] = vic.data_3d
-        if array3d.ndim == 2:
-            array3d = array3d.reshape((1, *array3d.shape))
-        return array3d
+        return ensure_3d(vic.data_3d)
 
     if is_fits_file(data_file):
         try:
-            with warnings.catch_warnings(), pyfits.open(data_file) as hdulist:
+            # Set the error filter BEFORE entering pyfits.open() so warnings
+            # emitted while parsing the FITS headers (during __enter__) are
+            # also promoted to exceptions, not just those raised later during
+            # HDU data access.
+            with warnings.catch_warnings():
                 warnings.filterwarnings('error')
-                return extract_fits_array(hdulist, obj)
+                with pyfits.open(data_file) as hdulist:
+                    return extract_fits_array(hdulist, obj)
         except (UserWarning, OSError):
             pass
 
@@ -185,6 +217,13 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
         layers = [hdulist[o].data for o in obj]
         if not all(isinstance(layer, np.ndarray) for layer in layers):
             raise OSError('One or more HDUs in obj list do not contain image arrays')
+        # Each listed HDU contributes one band, so every layer must be 2-D;
+        # stacking a 3-D HDU would yield a 4-D array that the downstream
+        # (bands, lines, samples) pipeline cannot consume.
+        if any(layer.ndim != 2 for layer in layers):
+            raise OSError(
+                'HDUs selected by an obj list/tuple must each be 2-D to stack into bands'
+            )
         array3d = np.stack(layers)
     else:
         obj_key: Any = obj
@@ -199,9 +238,13 @@ def extract_fits_array(hdulist: Any, obj: ObjectSelector) -> NDArray[Any]:
 
     if array3d is None:
         raise OSError('Image array not found in FITS file')
-    if array3d.ndim == 2:
-        array3d = array3d.reshape((1, *array3d.shape))
-    return array3d
+    return ensure_3d(array3d)
 
 
-__all__ = ['extract_fits_array', 'is_fits_file', 'read_pds3_image_array', 'try_open_vicar']
+__all__ = [
+    'ensure_3d',
+    'extract_fits_array',
+    'is_fits_file',
+    'read_pds3_image_array',
+    'try_open_vicar',
+]

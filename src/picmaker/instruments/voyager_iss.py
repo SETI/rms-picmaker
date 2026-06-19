@@ -103,10 +103,7 @@ def read_file(
     filter_info = _detect_vicar(vic)
     if filter_info is None:
         return None
-    array3d = vic.data_3d
-    if array3d.ndim == 2:
-        array3d = array3d.reshape((1, *array3d.shape))
-    return ReadResult(array3d, False, filter_info)
+    return ReadResult(_shared.ensure_3d(vic.data_3d), False, filter_info)
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
