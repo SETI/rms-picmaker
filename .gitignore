@@ -71,6 +71,11 @@ instance/
 # Scrapy stuff:
 .scrapy
 
+# Sphinx intermediate build artifacts (keep rendered HTML, drop pickles)
+docs/_build/doctrees/
+docs/_build/html/.doctrees/
+docs/_build/html/.buildinfo
+
 # PyBuilder
 .pybuilder/
 target/
