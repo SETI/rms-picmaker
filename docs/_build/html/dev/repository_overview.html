@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repository overview &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=10858467"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Module-by-module description" href="module_layout.html" />
+    <link rel="prev" title="Developer Guide" href="../developer_guide.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            rms-picmaker
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../developer_guide.html">Developer Guide</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Repository overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#setting-up-a-development-environment">Setting up a development environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#layout">Layout</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="module_layout.html">Module-by-module description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pipeline.html">Pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="running_tests.html">Running the test suite</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adding_an_instrument.html">Adding a new instrument</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasing.html">Releasing to PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer_guide.html#where-to-look-next">Where to look next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../module.html"><code class="docutils literal notranslate"><span class="pre">picmaker</span></code> Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">rms-picmaker</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../developer_guide.html">Developer Guide</a></li>
+      <li class="breadcrumb-item active">Repository overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/dev/repository_overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="repository-overview">
+<h1>Repository overview<a class="headerlink" href="#repository-overview" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">rms-picmaker</span></code> is a SETI / PDS Ring-Moon Systems Node tool that
+converts binary astronomy images (PDS3-labeled, VICAR, FITS, plus a
+handful of common raster formats) into JPEG, PNG, BMP, GIF, or TIFF
+files. It ships as both a command-line tool (the <code class="docutils literal notranslate"><span class="pre">picmaker</span></code> console
+script) and an importable Python library (<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">picmaker</span></code>).</p>
+<p>The project is a single Python package under <code class="docutils literal notranslate"><span class="pre">src/picmaker/</span></code> with a
+small flat module layout (no deep sub-packages except for the
+<a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">instruments</span></code></a> subpackage). The CLI is a thin layer
+around the library: every <code class="docutils literal notranslate"><span class="pre">--flag</span></code> binds to a keyword argument of
+<a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.images_to_pics()</span></code></a>, and the validation rules
+that gate both surfaces live in one place
+(<a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a>).</p>
+<section id="setting-up-a-development-environment">
+<h2>Setting up a development environment<a class="headerlink" href="#setting-up-a-development-environment" title="Link to this heading"></a></h2>
+<p>Clone the repository and create a virtual environment in the project
+root. The scripts under <code class="file docutils literal notranslate"><span class="pre">scripts/</span></code> and the lint / type / test
+configuration all expect the venv to live at <code class="docutils literal notranslate"><span class="pre">./venv</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">SETI</span><span class="o">/</span><span class="n">rms</span><span class="o">-</span><span class="n">picmaker</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">rms</span><span class="o">-</span><span class="n">picmaker</span>
+<span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="n">venv</span>
+<span class="n">source</span> <span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>          <span class="c1"># On Windows: venv\Scripts\activate</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="s2">&quot;.[dev]&quot;</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">[dev]</span></code> extra pulls in the test runner, linters, type checker,
+documentation builder, and packaging audit tools used by
+<code class="file docutils literal notranslate"><span class="pre">scripts/run-all-checks.sh</span></code> and CI. Once installed, a fast
+end-to-end check is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bash</span> <span class="n">scripts</span><span class="o">/</span><span class="n">run</span><span class="o">-</span><span class="nb">all</span><span class="o">-</span><span class="n">checks</span><span class="o">.</span><span class="n">sh</span>
+</pre></div>
+</div>
+</section>
+<section id="layout">
+<h2>Layout<a class="headerlink" href="#layout" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>rms-picmaker/
+├── src/picmaker/             # Importable Python package.
+│   ├── __init__.py           # Public API re-exports + __version__.
+│   ├── picmaker.py           # Alternate import path; re-exports the same names as __init__.py.
+│   ├── cli.py                # argparse CLI; builds option_dict; dispatches.
+│   ├── pipeline.py           # process_images + images_to_pics (the pipeline).
+│   ├── options.py            # PicmakerOptions dataclass + validate().
+│   ├── io.py                 # Reader cascade + output-path helpers.
+│   ├── _types.py             # Shared types: ReadResult, FilterInfo, ObjectSelector.
+│   ├── enhance.py            # Intensity stretch / gamma / colormap.
+│   ├── geometry.py           # Slice / crop / rotate / size / wrap / pad.
+│   ├── color.py              # Per-filter tint dispatch (mission-agnostic).
+│   ├── pil_utils.py          # numpy ↔ PIL bridges + write_pil.
+│   ├── _filters.py           # PIL ImageFilter dispatch table.
+│   ├── _rgb.py               # Wavelength → RGB lookup tables (private).
+│   ├── tiff16.py             # 16-bit TIFF reader / writer (legacy).
+│   ├── colornames.py         # X11 color-name lookup (legacy).
+│   ├── instruments/          # Per-mission file readers + tint chains.
+│   │   ├── __init__.py       # ALL_INSTRUMENTS list + lookup().
+│   │   ├── _shared.py        # Format utilities: try_open_vicar, is_fits_file, extract_fits_array.
+│   │   ├── cassini.py        # Cassini ISS.
+│   │   ├── voyager.py        # Voyager ISS.
+│   │   ├── galileo.py        # Galileo SSI.
+│   │   ├── hst.py            # HST (WFC3 / ACS / WFPC2 / NICMOS).
+│   │   └── nh.py             # New Horizons MVIC.
+│   ├── py.typed              # PEP 561 typed-package marker.
+│   └── _version.py           # Auto-generated by setuptools_scm.
+├── tests/                    # pytest suite (516 tests).
+│   ├── conftest.py
+│   ├── fixtures/             # Binary fixtures + .baseline-*.txt + expected/.
+│   ├── fixture_recipes/      # Scripts that regenerate every fixture.
+│   └── test_*.py
+├── docs/                     # Sphinx documentation tree.
+│   ├── conf.py
+│   ├── index.rst
+│   ├── user_guide.rst
+│   ├── developer_guide.rst   # Index page for this guide.
+│   ├── dev/                  # Sub-pages of the developer guide.
+│   └── module.rst
+├── scripts/
+│   └── run-all-checks.sh     # Local lint + type + test orchestrator.
+├── pyproject.toml            # Single source of truth for build + tools.
+├── README.md
+├── CONTRIBUTING.md
+└── CODE_OF_CONDUCT.md
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../developer_guide.html" class="btn btn-neutral float-left" title="Developer Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="module_layout.html" class="btn btn-neutral float-right" title="Module-by-module description" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SETI Institute.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

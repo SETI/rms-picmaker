@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=10858467"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+        <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Running the test suite" href="running_tests.html" />
+    <link rel="prev" title="Module-by-module description" href="module_layout.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            rms-picmaker
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../developer_guide.html">Developer Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="repository_overview.html">Repository overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module_layout.html">Module-by-module description</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Pipeline</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#flowchart">Flowchart</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#major-functions">Major functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cli-entry-point">CLI entry point</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#option-validation">Option validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-reader-cascade">The reader cascade</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#path-planning">Path planning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#per-image-pipeline">Per-image pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#enhancement-helpers">Enhancement helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#geometry-helpers">Geometry helpers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#color-filter-and-pil-bridges">Color, filter, and PIL bridges</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="running_tests.html">Running the test suite</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adding_an_instrument.html">Adding a new instrument</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasing.html">Releasing to PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer_guide.html#where-to-look-next">Where to look next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../module.html"><code class="docutils literal notranslate"><span class="pre">picmaker</span></code> Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code_of_conduct.html">Contributor Covenant Code of Conduct</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">rms-picmaker</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../developer_guide.html">Developer Guide</a></li>
+      <li class="breadcrumb-item active">Pipeline</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/dev/pipeline.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pipeline">
+<h1>Pipeline<a class="headerlink" href="#pipeline" title="Link to this heading"></a></h1>
+<p>This section covers the CLI-to-output-file path: a flowchart of the
+major functions and a walk-through of each.</p>
+<section id="flowchart">
+<h2>Flowchart<a class="headerlink" href="#flowchart" title="Link to this heading"></a></h2>
+<p>The diagram below shows the path from a CLI invocation to a written
+output file. Cross-references below link each box to its API entry;
+the diagram itself uses bare names so it stays legible. The diagram is
+rendered as inline SVG by Mermaid (client-side); use the browser’s
+zoom controls to read the labels at any size.</p>
+<pre align="center" class="mermaid align-center">
+        flowchart TD
+    A[picmaker CLI&lt;br/&gt;argv] --&gt; B[cli.main]
+    B --&gt; C[_build_parser&lt;br/&gt;argparse]
+    B --&gt; D[_separate_files_and_dirs]
+    B --&gt; CO[_collect_option_dicts]
+    CO --&gt; E[_normalize_and_validate&lt;br/&gt;per --versions line]
+    E --&gt; F[PicmakerOptions.validate]
+    B --&gt; PD[_process_directory&lt;br/&gt;per dirpath, recursive or not]
+    F --&gt; G[process_images&lt;br/&gt;per directory]
+    PD --&gt; G
+    G --&gt;|movie=True| H[images_to_pics&lt;br/&gt;pass 1: collect limits]
+    H --&gt; I[images_to_pics&lt;br/&gt;pass 2: shared stretch]
+    G --&gt;|movie=False| J[images_to_pics&lt;br/&gt;per file]
+    I --&gt; K[_process_one_image]
+    J --&gt; K
+    K --&gt; L[get_outfile]
+    L --&gt;|skip if replace='none'| M[Done]
+    L --&gt; N[read_image_array]
+    N --&gt; O[read_one_image_array&lt;br/&gt;format cascade]
+    O --&gt;|.LBL / Pds3Label| NPI[instrument cascade&lt;br/&gt;PDS3-aware read_file]
+    NPI --&gt;|unrecognized label| NPF[read_pds3_image_array&lt;br/&gt;generic PDS3 fallback]
+    O --&gt;|other paths| P[pickle / numpy]
+    P --&gt; PI[instrument cascade&lt;br/&gt;read_file per ALL_INSTRUMENTS]
+    PI --&gt; PF[generic VICAR fallback]
+    PF --&gt; PG[generic FITS fallback]
+    PG --&gt; PH[PIL / 16-bit TIFF&lt;br/&gt;PDS3 auto-detect]
+    PH --&gt; Q[ReadResult&lt;br/&gt;array3d, default_is_up, filter_info]
+    NPI --&gt; Q
+    NPF --&gt; Q
+    PI --&gt; Q
+    PF --&gt; Q
+    PG --&gt; Q
+    Q --&gt; TINT{tint=True AND&lt;br/&gt;instrument has apply_tint?}
+    TINT --&gt;|yes| ATC[apply_tint&lt;br/&gt;custom RGB]
+    TINT --&gt;|no| MOS{mosaic=True AND&lt;br/&gt;instrument has apply_mosaic?}
+    MOS --&gt;|yes| AMC[apply_mosaic&lt;br/&gt;panel assembly RGB]
+    MOS --&gt;|no| T[slice_array]
+    T --&gt; U[fill_zebra_stripes&lt;br/&gt;optional]
+    U --&gt; V[get_limits]
+    V --&gt; W[apply_colormap]
+    ATC --&gt; X[rotate_array_rgb]
+    AMC --&gt; X
+    W --&gt; X
+    X --&gt; Y[apply_gamma]
+    Y --&gt; Z[get_size + array_to_pil]
+    Z --&gt; AA[filter_image]
+    AA --&gt; BB[resize_image]
+    BB --&gt; CC{sections &gt; 1?}
+    CC --&gt;|yes| DD[wrap_image]
+    CC --&gt;|no| EE[skip wrap]
+    DD --&gt; FF{pad?}
+    EE --&gt; FF
+    FF --&gt;|yes| GG[pad_image]
+    FF --&gt;|no| HH[skip pad]
+    GG --&gt; II[write_pil]
+    HH --&gt; II
+    II --&gt; M
+    </pre><p>Three short observations on the diagram:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">movie=True</span></code> branch runs <a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">images_to_pics()</span></code></a>
+twice. The first pass computes the per-frame limits, the second
+pass uses the median of those limits so every frame shares one
+stretch.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">apply_tint</span></code> branch fires only when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is set and the
+instrument module defines <code class="xref py py-func docutils literal notranslate"><span class="pre">apply_tint()</span></code>; it produces the final
+RGB array directly, bypassing <a class="reference internal" href="../module.html#picmaker.enhance.apply_colormap" title="picmaker.enhance.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_colormap()</span></code></a>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">apply_mosaic</span></code> branch fires only when <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> is set and
+the instrument module defines <code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code>; it handles
+multi-detector panel assembly (currently HST ACS/WFC two-panel and
+WFPC2 quad-panel composites).  Array extraction is split: the raw
+per-detector data is gathered by <a class="reference internal" href="../module.html#picmaker.instruments.hst.read_file" title="picmaker.instruments.hst.read_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.hst.read_file()</span></code></a>
+via its private <code class="xref py py-func docutils literal notranslate"><span class="pre">_extract_hst_array()</span></code> helper, and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code> handles panel layout and colormap application.</p></li>
+<li><p>Both instrument hooks are checked after the <code class="docutils literal notranslate"><span class="pre">apply_tint</span></code> gate so
+that <code class="docutils literal notranslate"><span class="pre">apply_tint</span></code> takes priority when both are defined; the standard
+<code class="docutils literal notranslate"><span class="pre">_band_to_rgb</span></code> path runs when neither hook fires.</p></li>
+</ul>
+</section>
+<section id="major-functions">
+<h2>Major functions<a class="headerlink" href="#major-functions" title="Link to this heading"></a></h2>
+<p>This subsection walks through the major library functions in pipeline
+order. Cross-references resolve to the <a class="reference internal" href="../module.html"><span class="doc">picmaker Module</span></a> reference; each
+public symbol is a clickable link to its full signature, docstring,
+and source code (via <a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/extensions/viewcode.html#module-sphinx.ext.viewcode" title="(in Sphinx v9.1.1)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sphinx.ext.viewcode</span></code></a>).</p>
+<section id="cli-entry-point">
+<h3>CLI entry point<a class="headerlink" href="#cli-entry-point" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.cli.main" title="picmaker.cli.main"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli.main()</span></code></a> is the function bound to the <code class="docutils literal notranslate"><span class="pre">picmaker</span></code>
+console script. It builds the argparse parser, splits <code class="docutils literal notranslate"><span class="pre">args.files</span></code>
+into files and directories with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli._separate_files_and_dirs()</span></code>, and delegates the two
+remaining phases to two private helpers:
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli._collect_option_dicts()</span></code> (the <code class="docutils literal notranslate"><span class="pre">--versions</span> <span class="pre">FILE</span></code>
+re-parse loop, returning one normalized option_dict per line) and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli._process_directory()</span></code> (the per-directory walk in
+recursive or non-recursive mode). Each helper is unit-tested directly
+in <code class="file docutils literal notranslate"><span class="pre">tests/test_cli_helpers.py</span></code>.</p>
+<p>The library equivalent of “run the CLI from Python” is to import
+<a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.images_to_pics()</span></code></a> directly; the kwarg names
+match the CLI flags one-to-one. The CLI does no I/O of its own —
+every file operation flows through <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a>.</p>
+</section>
+<section id="option-validation">
+<h3>Option validation<a class="headerlink" href="#option-validation" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">picmaker.options.PicmakerOptions</span></code></a> is a frozen-by-convention
+dataclass that holds the ~45 post-normalization knobs that drive the
+pipeline. Its <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions.validate" title="picmaker.options.PicmakerOptions.validate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validate()</span></code></a>
+method runs every mutex / value-validity check that does not depend
+on raw argparse fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mosaic</span></code> + <code class="docutils literal notranslate"><span class="pre">bands</span></code> is rejected (mosaic mode consumes every
+detector panel).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frame</span></code> + <code class="docutils literal notranslate"><span class="pre">size</span></code> is rejected (both specify output dimensions).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frame</span></code> + <code class="docutils literal notranslate"><span class="pre">wrap_ratio</span></code> is rejected (incompatible layout
+decisions).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">display_upward</span></code> + <code class="docutils literal notranslate"><span class="pre">display_downward</span></code> is rejected.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">twobytes</span></code> requires a TIFF extension and rejects any
+<code class="docutils literal notranslate"><span class="pre">filter_name</span></code> other than <code class="docutils literal notranslate"><span class="pre">'NONE'</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pds3_label_method</span></code> must be one of the values in
+<code class="xref py py-data docutils literal notranslate"><span class="pre">PDS3_LABEL_METHODS</span></code>
+(<code class="docutils literal notranslate"><span class="pre">'strict'</span></code>, <code class="docutils literal notranslate"><span class="pre">'loose'</span></code>, <code class="docutils literal notranslate"><span class="pre">'compound'</span></code>, <code class="docutils literal notranslate"><span class="pre">'fast'</span></code>); the value is
+forwarded as <code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code>’s <code class="docutils literal notranslate"><span class="pre">method=</span></code> argument when
+a PDS3 <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> is parsed.</p></li>
+</ul>
+<p>The CLI’s <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli._normalize_and_validate()</span></code> does a few
+more checks that are CLI-specific (band/bands mismatch,
+<code class="docutils literal notranslate"><span class="pre">--scale</span></code> + <code class="docutils literal notranslate"><span class="pre">--wscale</span></code>, <code class="docutils literal notranslate"><span class="pre">--overlap</span></code> + <code class="docutils literal notranslate"><span class="pre">--overlaps</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--movie</span></code> + <code class="docutils literal notranslate"><span class="pre">--versions</span></code>) because those operate on raw flags that
+get collapsed before the dataclass is built. Adding a new mutex rule
+that applies to both surfaces should go in
+<a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions.validate" title="picmaker.options.PicmakerOptions.validate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validate()</span></code></a>.</p>
+</section>
+<section id="the-reader-cascade">
+<h3>The reader cascade<a class="headerlink" href="#the-reader-cascade" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a> is the single-file reader.
+It returns a <a class="reference internal" href="../module.html#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> triple on the first
+format match and has two top-level branches depending on the input type.</p>
+<p><strong>PDS3 label branch</strong> — taken when <em>filename</em> is a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> object, or a path whose extension is
+<code class="docutils literal notranslate"><span class="pre">.LBL</span></code> / <code class="docutils literal notranslate"><span class="pre">.lbl</span></code> (auto-parsed at the top of the function).  The
+cascade within this branch is:</p>
+<ol class="arabic simple">
+<li><p><strong>Per-instrument readers (PDS3-aware)</strong> — iterates
+<a class="reference internal" href="../module.html#picmaker.instruments.ALL_INSTRUMENTS" title="picmaker.instruments.ALL_INSTRUMENTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.ALL_INSTRUMENTS</span></code></a> and calls each
+instrument’s <code class="xref py py-func docutils literal notranslate"><span class="pre">read_file()</span></code> with the label object, <code class="docutils literal notranslate"><span class="pre">obj</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>.  Instruments that support PDS3 (Cassini ISS, Voyager
+ISS, Galileo SSI, NH LORRI) detect the label’s metadata and extract
+the data file; unrecognised instruments return <code class="docutils literal notranslate"><span class="pre">None</span></code> safely.</p></li>
+<li><p><strong>Generic PDS3 fallback</strong> —
+<code class="xref py py-func docutils literal notranslate"><span class="pre">read_pds3_image_array()</span></code>, for
+labels not matched by any instrument.  Resolves the <code class="docutils literal notranslate"><span class="pre">^IMAGE</span></code>
+pointer and reads via VICAR or FITS.  Returns <code class="docutils literal notranslate"><span class="pre">filter_info=None</span></code>.</p></li>
+</ol>
+<p><strong>Non-label cascade</strong> — taken for all other paths.  Stages are tried in
+order; each catches its specific exception type so an unrecognized file
+falls through to the next:</p>
+<ol class="arabic simple">
+<li><p><strong>pickle</strong> — <a class="reference external" href="https://docs.python.org/3/library/pickle.html#pickle.load" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pickle.load()</span></code></a>, catches any exception.</p></li>
+<li><p><strong>numpy</strong> — <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.load.html#numpy.load" title="(in NumPy v2.4)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.load()</span></code></a>, catches <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OSError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSError</span></code></a> /
+<a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a>.</p></li>
+<li><p><strong>per-instrument readers</strong> — iterates
+<a class="reference internal" href="../module.html#picmaker.instruments.ALL_INSTRUMENTS" title="picmaker.instruments.ALL_INSTRUMENTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.ALL_INSTRUMENTS</span></code></a> and calls each
+instrument’s <code class="xref py py-func docutils literal notranslate"><span class="pre">read_file()</span></code> as
+<code class="docutils literal notranslate"><span class="pre">instrument.read_file(filename,</span> <span class="pre">obj,</span> <span class="pre">**kwargs)</span></code>.  The <code class="docutils literal notranslate"><span class="pre">kwargs</span></code>
+dict is assembled in <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline._process_one_image()</span></code>
+from the <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a> fields named in
+<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.options.READ_FILE_KWARGS</span></code> (currently <code class="docutils literal notranslate"><span class="pre">mosaic</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pds3_label_method</span></code>).  Each instrument handles its own format
+detection (VICAR magic, FITS magic, file-extension heuristic, etc.)
+and returns <a class="reference internal" href="../module.html#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> on success or
+<code class="docutils literal notranslate"><span class="pre">None</span></code> to pass to the next instrument.  Shared format utilities
+live in <code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._shared</span></code>.</p></li>
+<li><p><strong>generic VICAR fallback</strong> — <code class="xref py py-meth docutils literal notranslate"><span class="pre">vicar.VicarImage.from_file()</span></code> with
+<code class="docutils literal notranslate"><span class="pre">strict=False</span></code>, for VICAR files from instruments not yet in
+<a class="reference internal" href="../module.html#picmaker.instruments.ALL_INSTRUMENTS" title="picmaker.instruments.ALL_INSTRUMENTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALL_INSTRUMENTS</span></code></a>.  Returns
+<code class="docutils literal notranslate"><span class="pre">filter_info=None</span></code>.</p></li>
+<li><p><strong>generic FITS fallback</strong> — sniffs the first 9 bytes for
+<code class="docutils literal notranslate"><span class="pre">b'SIMPLE</span>&#160; <span class="pre">='</span></code> before calling <a class="reference external" href="https://docs.astropy.org/en/stable/io/fits/api/files.html#astropy.io.fits.open" title="(in Astropy v8.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">astropy.io.fits.open()</span></code></a>, for
+FITS files from unrecognized instruments.  Warnings from astropy are
+promoted to exceptions by <a class="reference external" href="https://docs.python.org/3/library/warnings.html#warnings.catch_warnings" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">warnings.catch_warnings</span></code></a> +
+<code class="docutils literal notranslate"><span class="pre">filterwarnings('error')</span></code> and swallowed at the branch boundary.
+Returns <code class="docutils literal notranslate"><span class="pre">filter_info=None</span></code>.</p></li>
+<li><p><strong>PIL / 16-bit TIFF</strong> — <a class="reference internal" href="../module.html#picmaker.io.read_array" title="picmaker.io.read_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_array()</span></code></a>.</p></li>
+<li><p><strong>PDS3 auto-detection</strong> —
+<a class="reference internal" href="../module.html#picmaker.io.read_pds_labeled_image_array" title="picmaker.io.read_pds_labeled_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_pds_labeled_image_array()</span></code></a> tries to parse the
+input file itself as a PDS3 label; if that fails and the extension is
+not <code class="docutils literal notranslate"><span class="pre">.lbl</span></code>, it also checks for a sibling <code class="docutils literal notranslate"><span class="pre">.lbl</span></code> / <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> file
+next to the data file.  Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> (falls through to the final
+<a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OSError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSError</span></code></a>) if no parseable label is found.</p></li>
+</ol>
+<p>The cascade-end <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OSError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSError</span></code></a> is chained from an
+<a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ExceptionGroup" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExceptionGroup</span></code></a> that carries every per-reader failure for
+diagnostic purposes.</p>
+<p><a class="reference internal" href="../module.html#picmaker.io.read_image_array" title="picmaker.io.read_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_image_array()</span></code></a> is the multi-file wrapper: it
+delegates to <a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_one_image_array()</span></code></a> per file and
+stacks the resulting arrays along the band axis with
+<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.vstack.html#numpy.vstack" title="(in NumPy v2.4)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.vstack()</span></code></a>. The combined result inherits the
+<code class="docutils literal notranslate"><span class="pre">default_is_up</span></code> and <code class="docutils literal notranslate"><span class="pre">filter_info</span></code> of the first file.</p>
+<p><a class="reference internal" href="../module.html#picmaker.io.read_pds_labeled_image_array" title="picmaker.io.read_pds_labeled_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_pds_labeled_image_array()</span></code></a> handles the PDS3
+label / detached-data case. Pointer resolution lives here:
+<code class="docutils literal notranslate"><span class="pre">^IMAGE</span> <span class="pre">=</span> <span class="pre">2</span></code> (attached integer offset), <code class="docutils literal notranslate"><span class="pre">^IMAGE</span> <span class="pre">=</span> <span class="pre">&quot;data.dat&quot;</span></code>
+(detached, full file), and <code class="docutils literal notranslate"><span class="pre">^IMAGE</span> <span class="pre">=</span> <span class="pre">(&quot;data.dat&quot;,</span> <span class="pre">3)</span></code> (detached
+with record offset) are all distinct branches.</p>
+<p><a class="reference internal" href="../module.html#picmaker.io.read_pil" title="picmaker.io.read_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_pil()</span></code></a> and <a class="reference internal" href="../module.html#picmaker.io.read_array" title="picmaker.io.read_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_array()</span></code></a> are
+the Pillow-side helpers used by PIL-readable inputs and by
+<a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_one_image_array()</span></code></a>’s PIL branch.</p>
+</section>
+<section id="path-planning">
+<h3>Path planning<a class="headerlink" href="#path-planning" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.io.get_outfile" title="picmaker.io.get_outfile"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.get_outfile()</span></code></a> derives the output file path for one
+input. It honors four <code class="docutils literal notranslate"><span class="pre">replace=</span></code> policies (<code class="docutils literal notranslate"><span class="pre">'all'</span></code> — silent
+overwrite; <code class="docutils literal notranslate"><span class="pre">'none'</span></code> — return <code class="docutils literal notranslate"><span class="pre">''</span></code> to signal the loop should
+skip; <code class="docutils literal notranslate"><span class="pre">'warn'</span></code> — overwrite and emit <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#UserWarning" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code></a>;
+<code class="docutils literal notranslate"><span class="pre">'error'</span></code> — raise <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OSError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">OSError</span></code></a>). It creates the parent
+directory tree if it does not already exist.</p>
+<p><a class="reference internal" href="../module.html#picmaker.pipeline.find_common_path" title="picmaker.pipeline.find_common_path"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.find_common_path()</span></code></a> derives the recursive
+output tree’s root by calling <a class="reference external" href="https://docs.python.org/3/library/os.path.html#os.path.commonpath" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.path.commonpath()</span></code></a> over the
+input directories. The legacy hand-rolled version of this function
+used <code class="docutils literal notranslate"><span class="pre">/</span></code> as a literal separator and was wrong on Windows; the
+current implementation handles platform separators correctly and
+returns <code class="docutils literal notranslate"><span class="pre">''</span></code> when the inputs share only the root.</p>
+</section>
+<section id="per-image-pipeline">
+<h3>Per-image pipeline<a class="headerlink" href="#per-image-pipeline" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.images_to_pics()</span></code></a> runs the per-image pipeline
+shown in the flowchart above. The body is now a thin loop that builds
+a <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a>, backfills the legacy
+<code class="docutils literal notranslate"><span class="pre">None</span></code>-means-default kwargs, and delegates each filename to
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline._process_one_image()</span></code>. That helper runs the
+following phases for one input file:</p>
+<ol class="arabic simple">
+<li><p>Build the output path (<a class="reference internal" href="../module.html#picmaker.io.get_outfile" title="picmaker.io.get_outfile"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_outfile()</span></code></a>); skip if
+<code class="docutils literal notranslate"><span class="pre">replace='none'</span></code> returned <code class="docutils literal notranslate"><span class="pre">''</span></code>.</p></li>
+<li><p>Read the array (<a class="reference internal" href="../module.html#picmaker.io.read_image_array" title="picmaker.io.read_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_image_array()</span></code></a>).  Paths
+ending in <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> are auto-parsed inside
+<a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_one_image_array()</span></code></a> and dispatched to the PDS3
+label branch of the reader cascade.  The caller’s <code class="docutils literal notranslate"><span class="pre">reuse</span></code> tuple
+short-circuits the read for the single-file batches that
+<code class="xref py py-func docutils literal notranslate"><span class="pre">process_images()</span></code> builds per <code class="docutils literal notranslate"><span class="pre">option_dict</span></code>.</p></li>
+<li><p>Resolve the colormap: if <code class="docutils literal notranslate"><span class="pre">tint=True</span></code>, ask
+<a class="reference internal" href="../module.html#picmaker.color.tinted_colormap" title="picmaker.color.tinted_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.color.tinted_colormap()</span></code></a> for a filter-specific colormap
+override; otherwise use the user’s <code class="docutils literal notranslate"><span class="pre">colormap</span></code> option.</p></li>
+<li><p>Run the instrument hooks, in priority order:</p>
+<ol class="loweralpha simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">tint=True</span></code> and the instrument module defines
+<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_tint()</span></code>, call it with <code class="docutils literal notranslate"><span class="pre">(array3d,</span> <span class="pre">filter_info,</span>
+<span class="pre">options)</span></code>.  A non-<code class="docutils literal notranslate"><span class="pre">None</span></code> return is the final RGB array.</p></li>
+<li><p>Else if <code class="docutils literal notranslate"><span class="pre">mosaic=True</span></code> and the instrument module defines
+<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code>, call it with <code class="docutils literal notranslate"><span class="pre">(array3d,</span> <span class="pre">filter_info,</span>
+<span class="pre">options,</span> <span class="pre">default_is_up=…,</span> <span class="pre">colormap=…,</span> <span class="pre">imagefile=…)</span></code>.  A
+non-<code class="docutils literal notranslate"><span class="pre">None</span></code> return is the final RGB array and orientation is
+treated as already-baked (<code class="docutils literal notranslate"><span class="pre">this_display_upward</span></code> is set to
+<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p></li>
+<li><p>Otherwise: slice (<a class="reference internal" href="../module.html#picmaker.geometry.slice_array" title="picmaker.geometry.slice_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">slice_array()</span></code></a>),
+optionally fill zebra stripes
+(<a class="reference internal" href="../module.html#picmaker.enhance.fill_zebra_stripes" title="picmaker.enhance.fill_zebra_stripes"><code class="xref py py-func docutils literal notranslate"><span class="pre">fill_zebra_stripes()</span></code></a>), compute limits
+(<a class="reference internal" href="../module.html#picmaker.enhance.get_limits" title="picmaker.enhance.get_limits"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_limits()</span></code></a>), apply the colormap
+(<a class="reference internal" href="../module.html#picmaker.enhance.apply_colormap" title="picmaker.enhance.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_colormap()</span></code></a>).</p></li>
+</ol>
+</li>
+<li><p>Apply the orientation override
+(<a class="reference internal" href="../module.html#picmaker.geometry.rotate_array_rgb" title="picmaker.geometry.rotate_array_rgb"><code class="xref py py-func docutils literal notranslate"><span class="pre">rotate_array_rgb()</span></code></a>) and gamma
+(<a class="reference internal" href="../module.html#picmaker.enhance.apply_gamma" title="picmaker.enhance.apply_gamma"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_gamma()</span></code></a>).</p></li>
+<li><p>Convert to a PIL image (<a class="reference internal" href="../module.html#picmaker.pil_utils.array_to_pil" title="picmaker.pil_utils.array_to_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">array_to_pil()</span></code></a>),
+apply the PIL filter (<a class="reference internal" href="../module.html#picmaker._filters.filter_image" title="picmaker._filters.filter_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">filter_image()</span></code></a>),
+resize (<a class="reference internal" href="../module.html#picmaker.geometry.resize_image" title="picmaker.geometry.resize_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">resize_image()</span></code></a>), optionally wrap
+(<a class="reference internal" href="../module.html#picmaker.geometry.wrap_image" title="picmaker.geometry.wrap_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">wrap_image()</span></code></a>), optionally pad
+(<a class="reference internal" href="../module.html#picmaker.geometry.pad_image" title="picmaker.geometry.pad_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">pad_image()</span></code></a>).</p></li>
+<li><p>Write (<a class="reference internal" href="../module.html#picmaker.pil_utils.write_pil" title="picmaker.pil_utils.write_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">write_pil()</span></code></a>), which dispatches
+16-bit output to <a class="reference internal" href="../module.html#picmaker.tiff16.write_tiff16" title="picmaker.tiff16.write_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.tiff16.write_tiff16()</span></code></a> and
+everything else to <a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image.save" title="(in Pillow (PIL Fork) v12.2.0)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PIL.Image.Image.save()</span></code></a>.</p></li>
+</ol>
+<p>The function returns <code class="docutils literal notranslate"><span class="pre">(low,</span> <span class="pre">high,</span> <span class="pre">reuse)</span></code> so callers (or the
+<code class="docutils literal notranslate"><span class="pre">--movie</span></code> second pass) can either consume the limits or replay the
+read.</p>
+<p>The HST mosaic path (step 4b) delegates the panel-assembly geometry to
+two private helpers in <a class="reference internal" href="../module.html#module-picmaker.instruments.hst" title="picmaker.instruments.hst"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst</span></code></a>:
+<code class="xref py py-func docutils literal notranslate"><span class="pre">_wfpc2_mosaic()</span></code> (four detectors, PC1/WF2/WF3/WF4 in a 2×2
+quadrant) and <code class="xref py py-func docutils literal notranslate"><span class="pre">_acs_panel_mosaic()</span></code> (two detectors, WFC1 above
+and WFC2 below).  Both helpers are unit-tested directly in
+<code class="file docutils literal notranslate"><span class="pre">tests/test_pipeline_helpers.py</span></code>.</p>
+<p><a class="reference internal" href="../module.html#picmaker.pipeline.process_images" title="picmaker.pipeline.process_images"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.process_images()</span></code></a> is the thin loop that drives
+<a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">images_to_pics()</span></code></a> per file; its only real
+job is the movie-mode two-pass dance described above.</p>
+</section>
+<section id="enhancement-helpers">
+<h3>Enhancement helpers<a class="headerlink" href="#enhancement-helpers" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.enhance.get_limits" title="picmaker.enhance.get_limits"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhance.get_limits()</span></code></a> is the most option-heavy function
+in the codebase. It supports four ways of choosing the stretch range
+that can be combined:</p>
+<ul class="simple">
+<li><p>Explicit <code class="docutils literal notranslate"><span class="pre">limits=(lo,</span> <span class="pre">hi)</span></code> — passed through unchanged.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">percentiles=(lo%,</span> <span class="pre">hi%)</span></code> — uses <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.histogram.html#numpy.histogram" title="(in NumPy v2.4)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.histogram()</span></code></a> over the
+valid pixels and linear interpolation to find the corresponding DN
+values.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trim=N</span></code> — drop <code class="docutils literal notranslate"><span class="pre">N</span></code> pixels from each edge before computing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trim_zeros=True</span></code> — peel all-zero exterior rows and columns
+before computing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">footprint=D</span></code> — apply a circular median filter (footprint
+diameter <code class="docutils literal notranslate"><span class="pre">D</span></code>) and tighten the limits to the filter output.</p></li>
+</ul>
+<p><a class="reference internal" href="../module.html#picmaker.enhance.apply_colormap" title="picmaker.enhance.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhance.apply_colormap()</span></code></a> maps a 2-D stretched array to
+a 3-D RGB array using either a named hyphen-separated colormap (e.g.
+<code class="docutils literal notranslate"><span class="pre">'red-blue'</span></code>), a list of <code class="docutils literal notranslate"><span class="pre">(R,</span> <span class="pre">G,</span> <span class="pre">B)</span></code> tuples, or the per-instrument
+tint from <a class="reference internal" href="../module.html#picmaker.color.tinted_colormap" title="picmaker.color.tinted_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.color.tinted_colormap()</span></code></a>. It also handles the
+out-of-range and invalid-pixel highlight colors.</p>
+<p><a class="reference internal" href="../module.html#picmaker.enhance.apply_gamma" title="picmaker.enhance.apply_gamma"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhance.apply_gamma()</span></code></a> is the final power-law correction
+(<code class="docutils literal notranslate"><span class="pre">array</span> <span class="pre">**</span> <span class="pre">gamma</span></code>).</p>
+<p><a class="reference internal" href="../module.html#picmaker.enhance.fill_zebra_stripes" title="picmaker.enhance.fill_zebra_stripes"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhance.fill_zebra_stripes()</span></code></a> cleans up leading- and
+trailing-zero artifacts in compressed spacecraft images. The
+implementation is currently a Python pixel loop; vectorization is
+tracked in <a class="reference external" href="https://github.com/SETI/rms-picmaker/issues/18">issue #18</a>.</p>
+</section>
+<section id="geometry-helpers">
+<h3>Geometry helpers<a class="headerlink" href="#geometry-helpers" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.geometry.slice_array" title="picmaker.geometry.slice_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.slice_array()</span></code></a> takes the raw 3-D
+<code class="docutils literal notranslate"><span class="pre">(bands,</span> <span class="pre">lines,</span> <span class="pre">samples)</span></code> array and returns a 2-D band-averaged
+array plus an optional invalid-pixel mask. It honors <code class="docutils literal notranslate"><span class="pre">samples</span></code>,
+<code class="docutils literal notranslate"><span class="pre">lines</span></code>, <code class="docutils literal notranslate"><span class="pre">bands</span></code>, <code class="docutils literal notranslate"><span class="pre">valid</span></code>, and <code class="docutils literal notranslate"><span class="pre">crop</span></code> slice arguments.</p>
+<p><a class="reference internal" href="../module.html#picmaker.geometry.crop_array" title="picmaker.geometry.crop_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.crop_array()</span></code></a> strips constant-value borders
+(typically <code class="docutils literal notranslate"><span class="pre">crop=0</span></code> for zero-padded fields). It returns the input
+unchanged if the whole array equals the crop value.</p>
+<p><a class="reference internal" href="../module.html#picmaker.geometry.rotate_array_rgb" title="picmaker.geometry.rotate_array_rgb"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.rotate_array_rgb()</span></code></a> applies the
+<code class="docutils literal notranslate"><span class="pre">--rotate</span> <span class="pre">{fliplr,fliptb,rot90,rot180,rot270}</span></code> choice and the
+<code class="docutils literal notranslate"><span class="pre">display_upward</span></code> override.</p>
+<p><a class="reference internal" href="../module.html#picmaker.geometry.get_size" title="picmaker.geometry.get_size"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.get_size()</span></code></a> is the resize planner. It returns
+<code class="docutils literal notranslate"><span class="pre">(unwrapped_size,</span> <span class="pre">wrapped_size,</span> <span class="pre">sections,</span> <span class="pre">wrap_axis)</span></code>; the caller
+uses <code class="docutils literal notranslate"><span class="pre">unwrapped_size</span></code> to resize the image and the remaining three
+fields to wrap it (when <code class="docutils literal notranslate"><span class="pre">sections</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>).</p>
+<p><a class="reference internal" href="../module.html#picmaker.geometry.resize_image" title="picmaker.geometry.resize_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.resize_image()</span></code></a>,
+<a class="reference internal" href="../module.html#picmaker.geometry.wrap_image" title="picmaker.geometry.wrap_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.wrap_image()</span></code></a>, and
+<a class="reference internal" href="../module.html#picmaker.geometry.pad_image" title="picmaker.geometry.pad_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.geometry.pad_image()</span></code></a> execute the plan against a PIL
+image. <a class="reference internal" href="../module.html#picmaker.geometry.resize_image" title="picmaker.geometry.resize_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">resize_image()</span></code></a> upscales with
+<code class="docutils literal notranslate"><span class="pre">NEAREST</span></code> and downscales with <code class="docutils literal notranslate"><span class="pre">LANCZOS</span></code> so the output is
+pixel-art-friendly for small inputs and Lanczos-smoothed for large
+ones.</p>
+</section>
+<section id="color-filter-and-pil-bridges">
+<h3>Color, filter, and PIL bridges<a class="headerlink" href="#color-filter-and-pil-bridges" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../module.html#picmaker.color.tinted_colormap" title="picmaker.color.tinted_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.color.tinted_colormap()</span></code></a> is the entry point for
+per-filter tinting. It normalizes HST’s <code class="docutils literal notranslate"><span class="pre">CL1</span></code> / <code class="docutils literal notranslate"><span class="pre">CL2</span></code> /
+<code class="docutils literal notranslate"><span class="pre">CLEAR*</span></code> / <code class="docutils literal notranslate"><span class="pre">N/A</span></code> filter-tuple quirks, picks the right instrument
+module via <a class="reference internal" href="../module.html#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.lookup()</span></code></a>, and delegates to its
+<code class="docutils literal notranslate"><span class="pre">tint_for</span></code> callable (e.g.
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.cassini.tint_for()</span></code>).</p>
+<p><a class="reference internal" href="../module.html#picmaker._filters.filter_image" title="picmaker._filters.filter_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker._filters.filter_image()</span></code></a> applies one of the
+<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker._filters.FILTER_DICT</span></code> PIL presets to a PIL image,
+or raises <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyError</span></code></a> if the case-folded filter name is not in
+the dict.</p>
+<p><a class="reference internal" href="../module.html#picmaker.pil_utils.array_to_pil" title="picmaker.pil_utils.array_to_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pil_utils.array_to_pil()</span></code></a>,
+<a class="reference internal" href="../module.html#picmaker.pil_utils.pil_to_array" title="picmaker.pil_utils.pil_to_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pil_utils.pil_to_array()</span></code></a>, and
+<a class="reference internal" href="../module.html#picmaker.pil_utils.write_pil" title="picmaker.pil_utils.write_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pil_utils.write_pil()</span></code></a> are the three numpy ↔ PIL
+bridges. <a class="reference internal" href="../module.html#picmaker.pil_utils.write_pil" title="picmaker.pil_utils.write_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">write_pil()</span></code></a> dispatches 16-bit
+output (list-of-three <code class="docutils literal notranslate"><span class="pre">'I'</span></code>-mode images, or a single <code class="docutils literal notranslate"><span class="pre">'I'</span></code>-mode
+image) through <a class="reference internal" href="../module.html#picmaker.tiff16.write_tiff16" title="picmaker.tiff16.write_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.tiff16.write_tiff16()</span></code></a> and the 8-bit
+path through <a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image.save" title="(in Pillow (PIL Fork) v12.2.0)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PIL.Image.Image.save()</span></code></a>.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="module_layout.html" class="btn btn-neutral float-left" title="Module-by-module description" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="running_tests.html" class="btn btn-neutral float-right" title="Running the test suite" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, SETI Institute.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
