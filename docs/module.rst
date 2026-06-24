@@ -186,17 +186,42 @@ Source: `src/picmaker/instruments/
 .. automodule:: picmaker.instruments
    :members:
 
+Cassini ISS
+~~~~~~~~~~~
+Source: `src/picmaker/instruments/cassini_iss.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/cassini_iss.py>`__.
+
 .. automodule:: picmaker.instruments.cassini_iss
    :members:
+
+Voyager ISS
+~~~~~~~~~~~
+Source: `src/picmaker/instruments/voyager_iss.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/voyager_iss.py>`__.
 
 .. automodule:: picmaker.instruments.voyager_iss
    :members:
 
+Galileo SSI
+~~~~~~~~~~~
+Source: `src/picmaker/instruments/galileo_ssi.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/galileo_ssi.py>`__.
+
 .. automodule:: picmaker.instruments.galileo_ssi
    :members:
 
+HST
+~~~
+Source: `src/picmaker/instruments/hst.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/hst.py>`__.
+
 .. automodule:: picmaker.instruments.hst
    :members:
+
+New Horizons LORRI
+~~~~~~~~~~~~~~~~~~~
+Source: `src/picmaker/instruments/nh_lorri.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/nh_lorri.py>`__.
 
 .. automodule:: picmaker.instruments.nh_lorri
    :members:
