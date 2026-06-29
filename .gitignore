@@ -178,3 +178,6 @@ nohup.out
 *.*.bak
 log.txt
 profile.txt
+
+# PDS data-download cart manifests
+pdsrms-*-cart-*.csv
