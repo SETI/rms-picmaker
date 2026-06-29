@@ -21,7 +21,7 @@ PARSER = argparse.ArgumentParser(
     usage='%(prog)s [options] file1 file2 ...',
     prog='picmaker')
 PARSER.add_argument('--version', action='version', version='%(prog)s 1.0')
-PARSER.add_argument('files', nargs='+', help='input files or directories')
+PARSER.add_argument('files', nargs='*', help='input files or directories')
 
 _control = PARSER.add_argument_group('control options')
 _control.add_argument(

@@ -38,7 +38,7 @@ def read_pds3_image_array(label, obj=None):
     ######################################################################################
 
     image_keys = [key for key, value in label.items()
-                  if isinstance(value, dict) and 'IMAGE' in value.get('OBJECT')]
+                  if isinstance(value, dict) and value.get('OBJECT', '').endswith('IMAGE')]
 
     if not image_keys:
         raise ValueError('label does not describe an IMAGE object')
@@ -147,6 +147,11 @@ def read_pds3_image_array(label, obj=None):
         kind = 'c'
     else:
         kind = 'i'
+
+    # 8-bit image samples are stored as unsigned bytes. PDS3 labels routinely give them a
+    # signed type name (e.g. SUN_INTEGER) even though the data are an unsigned VICAR BYTE.
+    if kind == 'i' and sample_bytes == 1:
+        kind = 'u'
 
     # The dtype as stored in the file, carrying the file's byte order.
     vax_float = sample_type.startswith('VAX') and kind in ('f', 'c')

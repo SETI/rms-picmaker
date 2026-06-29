@@ -58,7 +58,7 @@ def get_filepaths(files, directory=None, recursive=False, patterns=[], **kwargs)
 
         elif filepath.is_dir():
             if recursive:
-                for (subdir, _, basenames) in filepath.walk(followlinks=True):
+                for (subdir, _, basenames) in filepath.walk(follow_symlinks=True):
                     basenames.sort()
                     for basename in basenames:
                         if _pattern_match(basename, patterns):

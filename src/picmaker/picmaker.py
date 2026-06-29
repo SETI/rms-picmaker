@@ -38,15 +38,12 @@ def validate_options(options):
     if not isinstance(options, dict):
         options = options.__dict__
 
-    extension = options.get('extension', 'jpg')
+    extension = options.get('extension') or 'jpg'
     if extension.lower() not in PIL_EXTENSIONS:
         raise ValueError(f'unrecognized --extension: {extension!r}')
+    options['extension'] = extension
 
     names_to_delete = []
-
-    files = options.get('files', [])
-    if not files:
-        raise ValueError('no files specified')
 
     # band vs. bands -> bands
     band = options.get('band', None)
@@ -129,13 +126,17 @@ def get_versions(versions=None, **kwargs):
     with open(versions, 'r') as f:  # forward any OSErrors
         lines = f.readlines()
 
+    # Each version line layers its option overrides onto a fresh copy of the base options,
+    # so the versions are independent. Input files are optional in the parser, so a line
+    # specifying only options parses cleanly; the resolved file list comes from the base
+    # options, not from each version.
     options_list = []
-    namespace = argparse.Namespace(**kwargs)
     for line in lines:
         new_args = line.split()
-        if new_args == []:
+        if not new_args:
             continue
 
+        namespace = argparse.Namespace(**kwargs)
         alt_namespace = PARSER.parse_args(new_args, namespace=namespace)
         alt_options = validate_options(alt_namespace)
         options_list.append(alt_options)
@@ -263,7 +264,7 @@ def picmaker1(infile, outfile, options, *, logger=None, image_data=None,
                                                                    **options)
 
     # Convert to PIL
-    image = array_to_pil(array_rgb, **options)
+    image = array_to_pil(array_rgb, twobytes=options.get('twobytes', False))
 
     # Apply filter
     image = filter_pil_image(image, **options)

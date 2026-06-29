@@ -9,7 +9,7 @@ from scipy.stats import rankdata
 from picmaker.colornames import ColorNames
 
 
-def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
+def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
                    histogram=False, colormap=None, tint=False, below_color=None,
                    above_color=None, invalid_color='black', gamma=1., **kwargs):
     """Apply a colormap to up to three grayscale images.
@@ -20,7 +20,7 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
     Parameters:
         array (np.ndarray): A 2-D or 3-D numpy array. If 3-D, the axis order is (bands,
             lines, samples).
-        limits (tuple[float, float]): The values that correspond to the minimum and
+        valid_limits (tuple[float, float]): The values that correspond to the minimum and
             maximum of the mapping.
         invalid_mask (np.ndarray[bool], optional): Boolean mask of invalid pixels.
         default_tint (str, tuple[int, int, int], or list of these, optional): The default
@@ -74,7 +74,7 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
 
     # Interpret colors and masks
     is_color = bands > 1
-    if colormap is not None:
+    if colormap:
         if not isinstance(colormap, list):
             colormap = [colormap]
         colormap = [_to_rgb(c) for c in colormap]
@@ -84,21 +84,21 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
             colormap = [(0, 0, 0), colormap[0], (255, 255, 255)]
 
     full_mask = np.zeros(array.shape, dtype='bool')
-    below_mask = array < limits[0]
+    below_mask = array < valid_limits[0]
     any_below = np.any(below_mask)
     if any_below:
         if below_color is None:
-            below_color = colormap[0] if colormap is not None else (0, 0, 0)
+            below_color = colormap[0] if colormap else (0, 0, 0)
         else:
             below_color = _to_rgb(below_color)
         is_color = is_color or _is_color(below_color)
         full_mask |= below_mask
 
-    above_mask = array > limits[1]
+    above_mask = array > valid_limits[1]
     any_above = np.any(above_mask)
     if any_above:
         if above_color is None:
-            above_color = colormap[-1] if colormap is not None else (255, 255, 255)
+            above_color = colormap[-1] if colormap else (255, 255, 255)
         else:
             above_color = _to_rgb(above_color)
         is_color = is_color or _is_color(above_color)
@@ -142,9 +142,9 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
 
     else:
         if array.dtype.kind in {'u', 'i'}:
-            limits = (limits[0] - 0.5, limits[1] + 0.5)  # expand limits for int arrays
+            valid_limits = (valid_limits[0] - 0.5, valid_limits[1] + 0.5)  # expand valid_limits for int arrays
 
-        scaled = (array - limits[0]) / (limits[1] - limits[0])
+        scaled = (array - valid_limits[0]) / (valid_limits[1] - valid_limits[0])
         scaled = np.clip(scaled, 0., 1., out=scaled)    # clip in place
 
     # Apply gamma
@@ -161,7 +161,7 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
         rgb_array = np.moveaxis(scaled, 0, -1)
 
     # Apply the colormap
-    if colormap is not None:
+    if colormap:
         xbins = np.arange(len(colormap)) / (len(colormap) - 1)
         rgb_maps = [[c[k]/255. for c in colormap] for k in range(3)]
         for b in range(channels):
