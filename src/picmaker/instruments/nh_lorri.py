@@ -53,9 +53,9 @@ class NH_LORRI(ImageData):
         """
 
         try:
-            if hdulist[0]['HOSTNAME'] != 'NEW HORIZONS':
+            if hdulist[0].header['HOSTNAME'] != 'NEW HORIZONS':
                 return None
-            if hdulist[0]['INSTRU'].rstrip() != 'lor':
+            if hdulist[0].header['INSTRU'].rstrip() != 'lor':
                 return None
         except (KeyError, IndexError):
             return None

@@ -10,7 +10,7 @@ from picmaker.pil_utils import array_to_pil, pil_to_array
 
 
 def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap=False,
-             wrap_ratio=None, overlap=(0., 0.), gap_size=1, frame_max=None, **kwargs):
+             wrap_ratio=None, overlaps=(0., 0.), gap_size=1, frame_max=None, **kwargs):
     """The output image size (width, height) and wrap properties based on the shape of the
     array.
 
@@ -31,7 +31,7 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
         wrap (bool, optional): True to consider wrapping the image to reduce distortion.
         wrap_ratio (float, optional): Wrap the sections of the image if the width:height
             or height:width ratio exceeds this value.
-        overlap (tuple[float, float], optional): The ``(min, max)`` percentages of allowed
+        overlaps (tuple[float, float], optional): The ``(min, max)`` percentages of allowed
             overlap between the end of one wrapped section and the beginning of the next.
             For example, (5,10) means that between 5% and 10% of the last pixels in one
             section of a wrapped image.
@@ -91,7 +91,7 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
         if wrap_ratio:
             if unwrapped_size[0] > wrap_ratio * unwrapped_size[1]:
                 for k in range(2, 101):
-                    expand = 1. + overlap[0]/100. * (k-1.)/k
+                    expand = 1. + overlaps[0]/100. * (k-1.)/k
                     wrapped_size = [int(unwrapped_size[0]/k * expand + 0.5),
                                     unwrapped_size[1] * k + gap_size * (k-1)]
                     if wrapped_size[0] <= wrap_ratio * wrapped_size[1]:
@@ -99,7 +99,7 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
 
             if unwrapped_size[1] > wrap_ratio * unwrapped_size[0]:
                 for k in range(2, 101):
-                    expand = 1. + overlap[0]/100. * (k-1.)/k
+                    expand = 1. + overlaps[0]/100. * (k-1.)/k
                     wrapped_size = [unwrapped_size[0] * k + gap_size * (k-1),
                                     int(unwrapped_size[1]/k * expand + 0.5)]
                     if wrapped_size[1] <= wrap_ratio * wrapped_size[0]:
@@ -125,8 +125,8 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
         for k in range(2, 101):
 
             tweak = (k-1.) / k
-            expand_min = 1. + overlap[0]/100. * tweak
-            expand_max = 1. + overlap[1]/100. * tweak
+            expand_min = 1. + overlaps[0]/100. * tweak
+            expand_max = 1. + overlaps[1]/100. * tweak
 
             # Adjust size and frame for axis, sections and gap
             if size is not None:

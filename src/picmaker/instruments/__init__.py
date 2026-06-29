@@ -119,11 +119,15 @@ def _read_one_image_array(filepath, **kwargs):
     except Exception:
         pass
     else:
-        for instrument in _INSTRUMENTS:
-            if hasattr(instrument, 'detect_in_fits'):
-                test = instrument.detect_in_fits(hdulist, **kwargs)
-                if test:
-                    return test
+        with hdulist:
+            for instrument in _INSTRUMENTS:
+                if hasattr(instrument, 'detect_in_fits'):
+                    test = instrument.detect_in_fits(hdulist, **kwargs)
+                    if test:
+                        # Copy the pixels out of the memory-mapped HDU before the
+                        # enclosing 'with' closes the file.
+                        test.array = np.array(test.array)
+                        return test
 
     # Handle another file format
     try:

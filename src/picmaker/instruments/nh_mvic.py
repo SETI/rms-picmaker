@@ -43,7 +43,7 @@ class NH_MVIC(ImageData):
             return None
 
         array = read_pds3_image_array(label)
-        filter_name = label.get('FILTER', '')
+        filter_name = label.get('FILTER_NAME', '')
         return ImageData(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
     @staticmethod
@@ -60,14 +60,14 @@ class NH_MVIC(ImageData):
         """
 
         try:
-            if hdulist[0]['HOSTNAME'] != 'NEW HORIZONS':
+            if hdulist[0].header['HOSTNAME'] != 'NEW HORIZONS':
                 return None
-            if hdulist[0]['INSTRU'].rstrip() != 'mvi':
+            if hdulist[0].header['INSTRU'].rstrip() != 'mvi':
                 return None
         except (KeyError, IndexError):
             return None
 
-        filter_name = hdulist[0].get('FILTER', '')
+        filter_name = hdulist[0].header.get('FILTER', '')
         return ImageData(hdulist[0].data, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
 

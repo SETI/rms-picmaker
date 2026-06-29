@@ -69,16 +69,17 @@ def validate_options(options):
                             hscale if hscale is not None else scale)
     names_to_delete += ['wscale', 'hscale']
 
-    # overlap vs. overlaps -> overlaps
+    # overlap vs. overlaps -> overlaps. A default-filled overlaps of (0., 0.), left by an
+    # earlier validation of a versions base, does not conflict with a per-version
+    # --overlap; the explicit --overlap wins.
     overlap = options.get('overlap', None)
     overlaps = options.get('overlaps', None)
-    if overlap is not None and overlaps is not None:
+    if overlap is not None and overlaps not in (None, (0., 0.)):
         raise ValueError('--overlap and --overlaps options are incompatible')
-    if overlaps is None:
-        if overlap is None:
-            options['overlaps'] = (0., 0.)
-        else:
-            options['overlaps'] = (overlap, overlap)
+    if overlap is not None:
+        options['overlaps'] = (overlap, overlap)
+    elif overlaps is None:
+        options['overlaps'] = (0., 0.)
     names_to_delete.append('overlap')
 
     # display_upward vs. display_downward -> display_upward

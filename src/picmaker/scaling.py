@@ -58,6 +58,9 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
 
         # Apply footprint if any; leave antimask unchanged
         if footprint:
+            # Confine masked (out-of-range or NaN) pixels to the valid data range first,
+            # so the median filter cannot bleed extreme masked values into valid pixels.
+            array = np.clip(array, np.min(array[antimask]), np.max(array[antimask]))
             circle_footprint = _circle_mask(footprint)
             if array.ndim == 3:
                 if array.shape[0] > 3:  # for more than three bands, collapse to 2-D
