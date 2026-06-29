@@ -47,7 +47,7 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
         raise ValueError('sliced image has size zero')
 
     # Eliminate the bands axis if it's one
-    if array.ndim == 3 and bands.shape[0] == 1:
+    if array.ndim == 3 and array.shape[0] == 1:
         array = array[0]
 
     # Define the mask and nan_mask
@@ -58,7 +58,9 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
     if array.dtype.kind == 'f':
         nan_mask = np.isnan(array)
         mask = nan_mask if mask is None else (mask | nan_mask)
-        array[nan_mask] = 0.
+        if nan_mask.any():
+            array = array.copy()        # avoid mutating the caller's array
+            array[nan_mask] = 0.
 
     # Coadd the bands, excluding masked pixels
     if bands and array.ndim == 3:
@@ -69,7 +71,7 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
             sum1 = np.sum(array * weights, axis=0)
             sum0 = np.sum(weights, axis=0)
             mask = sum0 == 0
-            sum0 = sum0.maximum(sum0, 1)
+            sum0 = np.maximum(sum0, 1)
             array = sum1 / sum0
 
     # Apply crop if any
@@ -100,13 +102,14 @@ def _crop_array(array, crop=0., *, mask=None):
         other_value &= np.logical_not(mask)
 
     if array.ndim == 3:
-        other_value = np.any(other_values, axis=0)
+        other_value = np.any(other_value, axis=0)
 
     rows = np.flatnonzero(np.any(other_value, axis=1))
     cols = np.flatnonzero(np.any(other_value, axis=0))
     if len(rows) != 0:  # not all crop values
         array = array[..., rows[0]:rows[-1]+1, cols[0]:cols[-1]+1]
-        mask = mask[..., rows[0]:rows[-1]+1, cols[0]:cols[-1]+1]
+        if mask is not None:
+            mask = mask[..., rows[0]:rows[-1]+1, cols[0]:cols[-1]+1]
 
     return (array, mask)
 

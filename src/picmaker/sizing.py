@@ -9,14 +9,14 @@ from picmaker.colornames import ColorNames
 from picmaker.pil_utils import array_to_pil, pil_to_array
 
 
-def get_size(array_shape, *, size=None, scale=(100., 100.), frame=None, wrap=False,
-              wrap_ratio=None, overlap=(0., 0.), gap_size=1, frame_max=None, **kwargs):
+def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap=False,
+             wrap_ratio=None, overlap=(0., 0.), gap_size=1, frame_max=None, **kwargs):
     """The output image size (width, height) and wrap properties based on the shape of the
     array.
 
     Parameters:
-        array_shape (tuple[int, ...]): Shape of the source numpy array, which could be 2-D
-            or 3-D. Index order is ``(lines, samples)`` or ``(lines, samples, bands)``.
+        array_rgb_shape (tuple[int, ...]): The 2-D or 3-D shape of the source numpy array.
+            The index order is ``(lines, samples)`` or ``(lines, samples, channels)``.
         size (int or tuple[int, int], optional): A tuple of dimensions ``(width,
             height)``. Use a single value for a square image, or None to preserve the
             given array size.
@@ -65,7 +65,7 @@ def get_size(array_shape, *, size=None, scale=(100., 100.), frame=None, wrap=Fal
             frame = (frame, frame)
 
     # Apply scale factor to shape
-    array_size = [array_shape[1], array_shape[0]]   # [width, height]
+    array_size = [array_rgb_shape[1], array_rgb_shape[0]]   # [width, height]
     if scale is not None:
         array_size[0] *= scale[0]/100.
         array_size[1] *= scale[1]/100.

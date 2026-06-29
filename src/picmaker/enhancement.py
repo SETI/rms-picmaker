@@ -87,14 +87,20 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
     below_mask = array < limits[0]
     any_below = np.any(below_mask)
     if any_below:
-        below_color = colormap[0] if below_color is None else _to_rgb(below_color)
+        if below_color is None:
+            below_color = colormap[0] if colormap is not None else (0, 0, 0)
+        else:
+            below_color = _to_rgb(below_color)
         is_color = is_color or _is_color(below_color)
         full_mask |= below_mask
 
     above_mask = array > limits[1]
     any_above = np.any(above_mask)
     if any_above:
-        above_color = colormap[-1] if above_color is None else _to_rgb(above_color)
+        if above_color is None:
+            above_color = colormap[-1] if colormap is not None else (255, 255, 255)
+        else:
+            above_color = _to_rgb(above_color)
         is_color = is_color or _is_color(above_color)
         full_mask |= above_mask
 
@@ -113,7 +119,7 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
     # Apply the histogram scaling if necessary; scale zero to one
     if histogram:
         rankings = []
-        for b in bands:
+        for b in range(bands):
             if full_mask is None:
                 source = array[b]
                 count = source.size
@@ -129,9 +135,10 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
         if bands == 1:
             scaled = rankings[0][np.newaxis]
         else:
-            scaled = np.array(scaled)
+            scaled = np.array(rankings)
 
-        scaled[full_mask] = 0.  # hide the NaNs
+        if full_mask is not None:
+            scaled[full_mask] = 0.  # hide the NaNs
 
     else:
         if array.dtype.kind in {'u', 'i'}:
@@ -149,7 +156,7 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
         moved = np.moveaxis(scaled, 0, -1)
         rgb_array = np.empty(moved.shape[:-1] + (3,))
         rgb_array[..., :bands] = moved
-        rgb_array[..., bands:] = moved[..., -1]
+        rgb_array[..., bands:] = moved[..., -1:]
     else:
         rgb_array = np.moveaxis(scaled, 0, -1)
 
@@ -158,15 +165,16 @@ def apply_colormap(array, limits, invalid_mask=None, *, default_tint=None,
         xbins = np.arange(len(colormap)) / (len(colormap) - 1)
         rgb_maps = [[c[k]/255. for c in colormap] for k in range(3)]
         for b in range(channels):
-            rgb_array[b] = np.interp(rgb_array[b], xbins, rgb_maps[b])
+            rgb_array[..., b] = np.interp(rgb_array[..., b], xbins, rgb_maps[b])
 
-    # Fill in the highlight colors
+    # Fill in the highlight colors. The masks are in (band, line, sample) order; collapse
+    # each to a 2-D spatial mask matching the (line, sample, channel) RGB array.
     for has_any, color, mask in [(any_below, below_color, below_mask),
                                  (any_above, above_color, above_mask),
                                  (any_invalid, invalid_color, invalid_mask)]:
         if has_any:
-            for b in range(channels):
-                rgb_array[mask,b] = color[b]/255.
+            spatial = np.any(mask, axis=0)
+            rgb_array[spatial] = [color[b]/255. for b in range(channels)]
 
     return rgb_array
 

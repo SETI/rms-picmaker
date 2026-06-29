@@ -13,7 +13,7 @@ from picmaker.control     import get_filepaths, get_outfile
 from picmaker.enhancement import apply_colormap
 from picmaker.instruments import read_image_array
 from picmaker.layout      import wrap_pil_image, pad_pil_image
-from picmaker.orientation import rotate_array
+from picmaker.orientation import rotate_rgb_array
 from picmaker.pil_utils   import array_to_pil, write_pil, PIL_EXTENSIONS
 from picmaker.processing  import fill_zebra_stripes, filter_pil_image
 from picmaker.scaling     import get_limits
@@ -57,30 +57,31 @@ def validate_options(options):
         else:
             raise ValueError('--band and --bands options are incompatible')
 
-    # scale vs. (wscale, hscale) -> scale
+    # scale vs. (wscale, hscale) -> scale, a pair of values (wscale, hscale)
     scale = options.get('scale', None)
     wscale = options.get('wscale', None)
     hscale = options.get('hscale', None)
-    if wscale is not None:
-        if scale is None:
-            raise ValueError('--scale and --wscale options are incompatible')
-        hscale = hscale or wscale
-    if hscale is not None:
-        if scale is None:
-            raise ValueError('--scale and --hscale options are incompatible')
-        wscale = wscale or hscale
+    if scale is not None and wscale is not None:
+        raise ValueError('--scale and --wscale options are incompatible')
+    if scale is not None and hscale is not None:
+        raise ValueError('--scale and --hscale options are incompatible')
     if scale is None:
-        options['scale'] = (wscale, hscale)
+        scale = 100.
+    if np.isscalar(scale):
+        options['scale'] = (wscale if wscale is not None else scale,
+                            hscale if hscale is not None else scale)
     names_to_delete += ['wscale', 'hscale']
 
     # overlap vs. overlaps -> overlaps
     overlap = options.get('overlap', None)
     overlaps = options.get('overlaps', None)
-    if overlap is None:
-        if overlaps is None:
-            options['overlaps'] = (overlap, overlap)
+    if overlap is not None and overlaps is not None:
+        raise ValueError('--overlap and --overlaps options are incompatible')
+    if overlaps is None:
+        if overlap is None:
+            options['overlaps'] = (0., 0.)
         else:
-            raise ValueError('--overlap and --overlaps options are incompatible')
+            options['overlaps'] = (overlap, overlap)
     names_to_delete.append('overlap')
 
     # display_upward vs. display_downward -> display_upward
@@ -172,6 +173,7 @@ def picmaker(logger=None, **options):
         for infile, outdir in infiles_and_outdirs:
             (image_data, limits) = picmaker1(infile, '', options, logger=logger,
                                              return_limits=True)
+            imagedata_list.append(image_data)
             min_limit = min(min_limit, limits[0])
             max_limit = max(max_limit, limits[1])
 
@@ -234,9 +236,9 @@ def picmaker1(infile, outfile, options, *, logger=None, image_data=None,
         max_limits = []
         for b in range(array.shape[0]):
             limits = get_limits(array[b], invalid_mask[b], **options)
-            rgb_array = apply_colormap(array, limits,
+            array_rgb = apply_colormap(array, limits,
                                        default_tint=image_data.default_tint, **options)
-            rgb_arrays.append(rgb_array)
+            rgb_arrays.append(array_rgb)
             min_limits.append(limits[0])
             max_limits.append(limits[1])
         limits = (np.min(min_limits), np.max(max_limits))
@@ -253,8 +255,8 @@ def picmaker1(infile, outfile, options, *, logger=None, image_data=None,
                                    default_tint=image_data.default_tint, **options)
 
     # Set the orientation
-    array_rgb = rotate_array(array_rgb, default_upward=image_data.default_upward,
-                             **options)
+    array_rgb = rotate_rgb_array(array_rgb, default_upward=image_data.default_upward,
+                                 **options)
 
     # Determine the size and layout
     (unwrapped_size, wrapped_size, sections, wrap_axis) = get_size(array_rgb.shape,

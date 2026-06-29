@@ -153,4 +153,11 @@ def tint_by_nm(wavelength):
 __all__ = ['ImageData', 'PDS3_METHODS', 'DEFAULT_PDS3_METHOD',
            'read_image_array', 'read_pds3_image_array', 'get_fits_array', 'tint_by_nm']
 
+# Import the instrument modules for their side effects: each calls register_instrument()
+# at module level to add itself to _INSTRUMENTS. These names are not part of the public API.
+from picmaker.instruments import (  # noqa: E402, F401
+    cassini_iss, galileo_ssi, hst_acs, hst_nicmos, hst_wfpc2, nh_lorri, nh_mvic,
+    voyager_iss, zzz_generic,
+)
+
 ##########################################################################################

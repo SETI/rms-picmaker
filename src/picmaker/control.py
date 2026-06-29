@@ -51,7 +51,7 @@ def get_filepaths(files, directory=None, recursive=False, patterns=[], **kwargs)
     for filepath in files:
         filepath = pathlib.Path(filepath)
         if not filepath.exists():
-            raise FileNotFoundError('No such file or directory: "{filepath}"')
+            raise FileNotFoundError(f'No such file or directory: "{filepath}"')
 
         if filepath.is_file():
             info.append((filepath, directory if directory else filepath.parent))
@@ -62,14 +62,14 @@ def get_filepaths(files, directory=None, recursive=False, patterns=[], **kwargs)
                     basenames.sort()
                     for basename in basenames:
                         if _pattern_match(basename, patterns):
-                            info.append(subdir / basename,
-                                        _get_outdir(filepath, subdir, directory))
+                            info.append((subdir / basename,
+                                         _get_outdir(filepath, subdir, directory)))
             else:
                 basenames = [child.name for child in filepath.iterdir()]
                 for basename in basenames:
                     if _pattern_match(basename, patterns):
-                        info.append(filepath / basename,
-                                    _get_outdir(filepath, filepath, directory))
+                        info.append((filepath / basename,
+                                     _get_outdir(filepath, filepath, directory)))
 
         else:
             raise OSError(f'not a file or directory: "{filepath}"')
@@ -106,7 +106,7 @@ def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
         Creates the output directory tree if it does not exist.
     """
 
-    replace = replace or '_all_'
+    replace = replace or 'all'
     replace = replace.lower()
     if replace not in REPLACE_CHOICES:
         raise ValueError(f'unrecognized replace option: {replace!r}')
@@ -137,6 +137,6 @@ def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
     return outpath
 
 
-__all__ = [REPLACE_CHOICES, 'get_filepaths', 'get_outfile']
+__all__ = ['REPLACE_CHOICES', 'get_filepaths', 'get_outfile']
 
 ##########################################################################################

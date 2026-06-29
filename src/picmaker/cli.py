@@ -166,11 +166,11 @@ _enhancement.add_argument(
 
 _orientation = PARSER.add_argument_group('orientation options')
 _orientation.add_argument(
-    '-u', '--up', dest='display_upward', action='store_true', default=False,
+    '-u', '--up', dest='display_upward', action='store_true', default=None,
     help='display the image with line numbers increasing upward, overriding the default '
          'for the instrument.')
 _orientation.add_argument(
-    '-d', '--down', dest='display_downward', action='store_true', default=False,
+    '-d', '--down', dest='display_downward', action='store_true', default=None,
     help='display the image with line numbers increasing downward, overriding the '
          'default for the instrument.')
 _orientation.add_argument(

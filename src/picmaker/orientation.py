@@ -3,14 +3,18 @@
 ##########################################################################################
 """Support for picmaker orientation options."""
 
+import numpy as np
+
 ROTATE_CHOICES = ['none', 'fliplr', 'fliptb', 'rot90', 'rot180', 'rot270']
 
 
-def rotate_array(array, *, default_upward, display_upward=None, rotation=None, **kwargs):
+def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation=None,
+                     **kwargs):
     """Apply an new orientation to an array.
 
     Parameters:
-        array (np.ndarray): A 2-D or 3-D array.
+        array_rgb (np.ndarray): A 2-D or 3-D array. The index order is ``(lines,
+            samples)`` or ``(lines, samples, channels)``.
         default_upward (bool): True to display the image with lines increasing upward;
             False to display with the lines increasing downward. This default is used only
             if it is not overridden by ``display_upward``.
@@ -28,30 +32,34 @@ def rotate_array(array, *, default_upward, display_upward=None, rotation=None, *
         KeyError: If ``rotation_name`` is not one of the recognized choices.
     """
 
-    # Convert to the default orientation
+    # Resolve the desired vertical orientation, falling back to the instrument default.
+    if display_upward is None:
+        display_upward = default_upward
+
+    # Image data is stored top-down; flip vertically to make lines increase upward.
     if display_upward:
-        array = array[..., ::-1, :]
+        array_rgb = np.flipud(array_rgb)
 
     if not rotation:
-        return array
+        return array_rgb
 
     rotation = rotation.upper()
     if rotation == 'NONE':
-        return array
+        return array_rgb
     if rotation == 'FLIPLR':
-        return array[..., ::-1]
+        return np.fliplr(array_rgb)
     if rotation == 'FLIPTB':
-        return array[..., ::-1, :]
-    if rotation == 'ROT180':
-        return array[..., ::-1, ::-1]
+        return np.flipud(array_rgb)
     if rotation == 'ROT90':
-        return array.swapaxes(-2, -1)[..., ::-1, :]
+        return np.rot90(array_rgb, 1)
+    if rotation == 'ROT180':
+        return np.rot90(array_rgb, 2)
     if rotation == 'ROT270':
-        return array.swapaxes(-2, -1)[..., :, ::-1]
+        return np.rot90(array_rgb, 3)
 
     raise KeyError(f'unrecognized rotation method: {rotation}')
 
 
-__all__ = ['ROTATE_CHOICES', rotate_array]
+__all__ = ['ROTATE_CHOICES', 'rotate_rgb_array']
 
 ##########################################################################################

@@ -142,7 +142,7 @@ def _one_pil_to_array(image, rescale):
     # 8-bit grayscale case...
     if image.mode == 'L':
         array = np.array(image.getdata(), dtype='uint8')
-        return array.reshape((image.size[1], image.size[0]))
+        array = array.reshape((image.size[1], image.size[0]))
 
         if rescale:
             array = array.astype('float') / 255.
@@ -164,7 +164,7 @@ def write_pil(image, outfile, quality=75):
 
     # Create the parent directory if necessary
     outfile = pathlib.Path(outfile)
-    outfile.parent(parents=True, exist_ok=True)
+    outfile.parent.mkdir(parents=True, exist_ok=True)
 
     # If it's a list, write a RGB 16-bit Tiff
     if isinstance(image, (list, tuple)):
