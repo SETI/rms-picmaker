@@ -1,721 +1,273 @@
-"""Command-line entry point for picmaker.
-
-The :func:`main` function builds an :mod:`argparse` parser covering
-every option documented in ``picmaker --help`` and dispatches to
-:func:`picmaker.pipeline.process_images`. Each long flag also has an
-underscore alias (``--alt_strip`` for ``--alt-strip``, etc.) so older
-scripts that use the underscore spelling keep working.
-
-Error handling follows three layers:
-
-* :class:`SystemExit` raised by argparse's own usage errors propagates
-  through unchanged.
-* Mutex / value-validity checks raise :class:`ValueError`; the outer
-  ``except Exception`` wrapper prints the traceback via
-  :func:`sys.excepthook` (so any plugin / IDE / profiler hook attached
-  to ``sys.excepthook`` still fires) and exits with code 1.
-* :exc:`KeyboardInterrupt` prints ``*** KeyboardInterrupt ***`` and
-  exits with code 2.
-
-The ``filter`` argparse dest deliberately shadows the builtin so the
-``option_dict`` it builds passes straight through to
-:func:`picmaker.pipeline.images_to_pics`. The per-file ``A002`` ruff
-ignore lives in ``pyproject.toml``.
-"""
-
+##########################################################################################
+# picmaker/cli.py
+##########################################################################################
 
 import argparse
-import fnmatch
-import logging
-import os
-import shlex
 import sys
-from typing import Any
 
-from picmaker.options import DEFAULT_PDS3_LABEL_METHOD, PDS3_LABEL_METHODS, PicmakerOptions
-from picmaker.pipeline import find_common_path, process_images
-
-logger = logging.getLogger(__name__)
-
-_EXTENSION_CHOICES = [
-    'BMP', 'bmp', 'DIB', 'dib',
-    'GIF', 'gif',
-    'JPG', 'jpg', 'JPEG', 'jpeg',
-    'PNG', 'png',
-    'TIF', 'tif', 'TIFF', 'tiff',
-]
-
-_ROTATE_CHOICES = [
-    'NONE', 'none',
-    'FLIPLR', 'fliplr',
-    'FLIPTB', 'fliptb',
-    'ROT90', 'rot90',
-    'ROT180', 'rot180',
-    'ROT270', 'rot270',
-]
-
-_FILTER_CHOICES = [
-    'NONE', 'none',
-    'BLUR', 'blur',
-    'CONTOUR', 'contour',
-    'DETAIL', 'detail',
-    'EDGE_ENHANCE', 'edge_enhance',
-    'EDGE_ENHANCE_MORE', 'edge_enhance_more',
-    'EMBOSS', 'emboss',
-    'FIND_EDGES', 'find_edges',
-    'SMOOTH', 'smooth',
-    'SMOOTH_MORE', 'smooth_more',
-    'SHARPEN', 'sharpen',
-    'MEDIAN_3', 'median_3',
-    'MEDIAN_5', 'median_5',
-    'MEDIAN_7', 'median_7',
-    'MINIMUM_3', 'minimum_3',
-    'MINIMUM_5', 'minimum_5',
-    'MINIMUM_7', 'minimum_7',
-    'MAXIMUM_3', 'maximum_3',
-    'MAXIMUM_5', 'maximum_5',
-    'MAXIMUM_7', 'maximum_7',
-]
+from picmaker.control     import REPLACE_CHOICES
+from picmaker.instruments import PDS3_METHODS, DEFAULT_PDS3_METHOD
+from picmaker.orientation import ROTATE_CHOICES
+from picmaker.pil_utils   import PIL_EXTENSIONS
+from picmaker.processing  import FILTER_CHOICES
 
 
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        usage='%(prog)s [options] file1 file2 ...',
-        prog='picmaker',
-    )
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-    parser.add_argument('files', nargs='*', help='input files or directories')
+PARSER = argparse.ArgumentParser(
+    description='A converter from image data files to "browse" products in JPG, PNG, '
+                'or other formats.',
+    epilog='All color options can be specified by a name (e.g., "blue") or by three '
+           'RGB values in the range 0-255 inside parentheses (e.g., "(255,255,0)" '
+           'for yellow).',
+    usage='%(prog)s [options] file1 file2 ...',
+    prog='picmaker')
+PARSER.add_argument('--version', action='version', version='%(prog)s 1.0')
+PARSER.add_argument('files', nargs='+', help='input files or directories')
 
-    control = parser.add_argument_group('control options')
-    control.add_argument(
-        '--directory', dest='directory', type=str, default=None,
-        help='directory in which to place converted files. If the recursive '
-             'option is selected, this becomes the root of a tree which '
-             'parallels that of the source files.',
-    )
-    control.add_argument(
-        '-r', '--recursive', dest='recursive', action='store_true', default=False,
-        help='search recursively down directory trees.',
-    )
-    control.add_argument(
-        '--pattern', dest='pattern', type=str, default='*',
-        help='pattern describing file names to match, e.g., *.IMG.',
-    )
-    control.add_argument(
-        '--movie', dest='movie', action='store_true', default=False,
-        help='use the same enhancement limits for all images.',
-    )
-    control.add_argument(
-        '--versions', dest='versions', type=str, default=None,
-        help='create multiple versions of the picture using different sets of '
-             'options, specified one per line in the named input file.',
-    )
-    control.add_argument(
-        '--verbose', dest='verbose', type=int, default=0,
-        help='1 to print out the name of each directory in a recursive search; '
-             '2 to print out each file path.',
-    )
-    control.add_argument(
-        '--replace', dest='replace', type=str, default='all',
-        help='what to do when a file already exists ("all", "none", "warn", '
-             '"error").',
-    )
-    control.add_argument(
-        '--proceed', dest='proceed', action='store_true', default=False,
-        help='continue processing subsequent files after an error.',
-    )
+_control = PARSER.add_argument_group('control options')
+_control.add_argument(
+    '--directory', type=str, default=None,
+    help='directory in which to place converted files. If the recursive option is '
+         'selected, this becomes the root of a tree which parallels subdirectory '
+         'structure of the source files.')
+_control.add_argument(
+    '-r', '--recursive', action='store_true', default=False,
+    help='search recursively down each directory trees.')
+_control.add_argument(
+    '--pattern', dest='patterns', type=str, default=[], nargs='+',
+    help='one or more patterns describing file names to match, e.g., *.IMG.')
+_control.add_argument(
+    '--movie', action='store_true', default=False,
+    help='use the same enhancement limits for all images.')
+_control.add_argument(
+    '--versions', type=str, default=None,
+    help='create multiple versions of each picture using different sets of options, '
+         'specified one per line in the named input file.')
+_control.add_argument(
+    '--replace', type=str, default='all', choices=REPLACE_CHOICES,
+    help='what to do when a file already exists, one of "all" (overwrite silently), '
+         '"none" (skip silently), "warn" (issue a warning), "error" (raise an '
+         'exception and abort).')
+_control.add_argument(
+    '--proceed', action='store_true', default=False,
+    help='continue processing subsequent files after an error.')
+_control.add_argument(
+    '--logging', type=str, default='info',
+    choices=['warning', 'info', 'debug', 'error'],
+    help='logging level, one of "warning", "info", "debug", or "error". Default is '
+         '"info".')
 
-    output = parser.add_argument_group('output options')
-    output.add_argument(
-        '-x', '--extension', dest='extension', default=None,
-        choices=_EXTENSION_CHOICES,
-        help='file name extension for image produced.',
-    )
-    output.add_argument(
-        '-s', '--suffix', dest='suffix', type=str, default='',
-        help='a suffix to append to the end of each file name, prior to the '
-             'file extension.',
-    )
-    output.add_argument(
-        '--strip', dest='strip', type=str, default='',
-        help='a string to strip from output filename if it is present.',
-    )
-    output.add_argument(
-        '--alt-strip', '--alt_strip', dest='alt_strip', type=str, default='',
-        help='an additional string to strip from output filename if it is present.',
-    )
-    output.add_argument(
-        '-q', '--quality', dest='quality', type=int, default=75,
-        help='output quality value for JPEG files (1-100).',
-    )
-    output.add_argument(
-        '--16', dest='twobytes', action='store_true', default=False,
-        help='output a 16-bit tiff instead of an 8-bit picture.',
-    )
+_input_ = PARSER.add_argument_group('input options')
+_input_.add_argument(
+    '-o', '--object', dest='obj', type=int, default=None,
+    help='numeric index of the object in the file to display; default is the first valid '
+         'image object in the file.')
+_input_.add_argument(
+    '--pds3-pointer',dest='pds3_pointers', type=str, default=[], nargs='+',
+    help='one or more pointer strings identifying the image object in a PDS3 label.')
+_input_.add_argument(
+    '--pds3-method', dest='pds3_method', type=str, default=DEFAULT_PDS3_METHOD,
+    choices=PDS3_METHODS,
+    help='pdsparser.Pds3Label parsing strictness for PDS3 .LBL inputs: '
+         '"fast" (default), "strict", "loose", or "compound".')
 
-    selection = parser.add_argument_group('selection options')
-    selection.add_argument(
-        '-b', '--band', dest='band', type=int, default=None,
-        help='index of the band to appear in the output image; default 1.',
-    )
-    selection.add_argument(
-        '--bands', dest='bands', type=int, nargs=2, default=None,
-        help='pair of indices indicating a range of bands to be averaged.',
-    )
-    selection.add_argument(
-        '--rectangle', dest='rectangle', type=int, nargs=4, default=None,
-        help='corner coordinates of a rectangular sub-region '
-             '(sample1, line1, sample2, line2).',
-    )
-    selection.add_argument(
-        '-o', '--object', dest='obj', type=int, default=None,
-        help='numeric index of the object in the file to display; default is '
-             'the first valid image object in the file.',
-    )
-    selection.add_argument(
-        '--pointer', dest='pointer', type=str, default='',
-        help='the PDS pointer identifying the image object.',
-    )
-    selection.add_argument(
-        '--alt-pointer', '--alt_pointer', dest='alt_pointer',
-        type=str, default='',
-        help='alternative PDS pointer used when the first pointer is not found.',
-    )
-    selection.add_argument(
-        '--pds3-label-method', '--pds3_label_method',
-        dest='pds3_label_method',
-        type=str, default=DEFAULT_PDS3_LABEL_METHOD,
-        choices=list(PDS3_LABEL_METHODS),
-        help='pdsparser.Pds3Label parsing strictness for PDS3 .LBL inputs: '
-             '"fast" (default), "strict", "loose", or "compound".',
-    )
+_output = PARSER.add_argument_group('output options')
+_output.add_argument(
+    '-x', '--extension', default=None, choices=PIL_EXTENSIONS,
+    help='file name extension for image produced; default is "jpg"')
+_output.add_argument(
+    '-s', '--suffix', type=str, default='',
+    help='a suffix to append to the end of each file name, prior to the file extension.')
+_output.add_argument(
+    '--strip', type=str, nargs='+', default=[],
+    help='one or more strings to strip from output filename if it is present.')
+_output.add_argument(
+    '-q', '--quality', type=int, default=75,
+    help='output quality value for JPEG files (1-100).')
+_output.add_argument(
+    '--16', dest='twobytes', action='store_true', default=False,
+    help='output a 16-bit tiff instead of an 8-bit picture.')
 
-    sizing = parser.add_argument_group('sizing options')
-    sizing.add_argument(
-        '--size', dest='size', type=int, nargs=2, default=None,
-        help='width and height of the output image in pixels.',
-    )
-    sizing.add_argument(
-        '--scale', dest='scale', type=float, default=None,
-        help='percentage by which to scale the size of the image.',
-    )
-    sizing.add_argument(
-        '--wscale', dest='wscale', type=float, default=None,
-        help='percentage by which to scale the width of the image.',
-    )
-    sizing.add_argument(
-        '--hscale', dest='hscale', type=float, default=None,
-        help='percentage by which to scale the height of the image.',
-    )
-    sizing.add_argument(
-        '--crop', dest='crop', type=float, default=None,
-        help='crop boundary regions entirely containing the specified value.',
-    )
-    sizing.add_argument(
-        '--frame', dest='frame', type=int, nargs=2, default=None,
-        help='width and height of the frame within which the image must fit.',
-    )
-    sizing.add_argument(
-        '--pad', dest='pad', action='store_true', default=False,
-        help='pad the image to match the full size of the frame.',
-    )
-    sizing.add_argument(
-        '--pad-color', dest='pad_color', type=str, default='black',
-        help='the color to use when padding an image to fill a frame.',
-    )
-    sizing.add_argument(
-        '--frame_max', dest='frame_max', type=int, default=None,
-        help='maximum percentage by which to scale the image to fit it inside '
-             'the frame.',
-    )
+_slicing = PARSER.add_argument_group('slicing options')
+_slicing.add_argument(
+    '-b', '--band', type=int, default=None,
+    help='index of the band to appear in the output image, with indices starting at 1; '
+         'default is 1.')
+_slicing.add_argument(
+    '--bands', type=int, nargs=2, default=None,
+    help='a pair of indices indicating a range of bands to be coadded. Band indices '
+         'start at 1 and are inclusive of the upper limit specified.')
+_slicing.add_argument(
+    '--lines', type=int, nargs=2, default=None,
+    help='a pair of line indices defining the image sub-region to include. Sample values '
+         'start at 1 and are inclusive of the upper limit specified.')
+_slicing.add_argument(
+    '--samples', type=int, nargs=2, default=None,
+    help='a pair of sample indices defining the image sub-region to include. Sample '
+         'values start at 1 and are inclusive of the upper limit specified.')
+_slicing.add_argument(
+    '--crop', type=float, default=None,
+    help='crop boundary regions entirely containing the specified value.')
 
-    layout = parser.add_argument_group('layout options')
-    layout.add_argument(
-        '--wrap', dest='wrap', action='store_true', default=False,
-        help='wrap the sections of an image if it is extremely elongated.',
-    )
-    layout.add_argument(
-        '--wrap-ratio', dest='wrap_ratio', type=float, default=None,
-        help='wrap if width:height or height:width ratio exceeds this value.',
-    )
-    layout.add_argument(
-        '--overlap', dest='overlap', type=float, default=None,
-        help='percentage of overlap between wrapped sections.',
-    )
-    layout.add_argument(
-        '--overlaps', dest='overlaps', type=float, nargs=2, default=None,
-        help='range of percentages of overlaps between wrapped sections.',
-    )
-    layout.add_argument(
-        '--gap-size', '--gapsize', dest='gap_size', type=int, default=1,
-        help='width of the gap in pixels between sections of a wrapped image.',
-    )
-    layout.add_argument(
-        '--gap-color', '--gapcolor', dest='gap_color', type=str, default='white',
-        help='color of the gap between sections of a wrapped image.',
-    )
-    layout.add_argument(
-        '--mosaic', dest='mosaic', action='store_true', default=False,
-        help='construct a mosaic from all detectors (currently HST ACS/WFC and WFPC2).',
-    )
+_scaling = PARSER.add_argument_group('scaling options')
+_scaling.add_argument(
+    '-v', '--valid', type=float, nargs=2, default=None,
+    help='range of valid pixel values; pixels outside are ignored.')
+_scaling.add_argument(
+    '-l', '--limits', type=float, nargs=2, default=None,
+    help='pair of pixel values that define the limits of the histogram.')
+_scaling.add_argument(
+    '-p', '--percentiles', type=float, nargs=2, default=(0.0, 100.0),
+    help='pair of percentile values that define the limits of the histogram.')
+_scaling.add_argument(
+    '--trim', type=int, default=0,
+    help='number of pixels around the edge of the image to trim before computing a '
+         'histogram.')
+_scaling.add_argument(
+    '--trim-zeros', dest='trim_zeros',
+    action='store_true', default=False,
+    help='ignore exterior rows/columns containing all zeros.')
+_scaling.add_argument(
+    '--footprint', type=int, default=0,
+    help='diameter in pixels of a circular footprint for a median filter to apply to the '
+         'image prior to calculating the extreme values and percentages. This can be '
+         'used to suppress noise spikes prior to determining the optimal scaling.')
 
-    scaling = parser.add_argument_group('scaling options')
-    scaling.add_argument(
-        '-v', '--valid', dest='valid', type=float, nargs=2, default=None,
-        help='range of valid pixel values; pixels outside are ignored.',
-    )
-    scaling.add_argument(
-        '-l', '--limits', dest='limits', type=float, nargs=2, default=None,
-        help='pair of pixel values that define the limits of the histogram.',
-    )
-    scaling.add_argument(
-        '-p', '--percentiles', dest='percentiles', type=float, nargs=2,
-        default=(0.0, 100.0),
-        help='pair of percentile values that define the limits of the histogram.',
-    )
-    scaling.add_argument(
-        '--trim', dest='trim', type=int, default=0,
-        help='number of pixels around the edge of the image to trim before '
-             'computing a histogram.',
-    )
-    scaling.add_argument(
-        '--trim-zeros', '--trimzeros', dest='trim_zeros',
-        action='store_true', default=False,
-        help='ignore exterior rows/columns containing all zeros.',
-    )
-    scaling.add_argument(
-        '--footprint', dest='footprint', type=int, default=0,
-        help='diameter in pixels of a circular footprint for a median filter.',
-    )
-    scaling.add_argument(
-        '--histogram', dest='histogram', action='store_true', default=False,
-        help='use a histogram stretch.',
-    )
+_enhancement = PARSER.add_argument_group('enhancement options')
+_enhancement.add_argument(
+    '-c', '--colormap', type=str, default=[], nargs='+',
+    help='a colormap to apply to the image, defined via one or more colors. For example, '
+         '"black blue white" defines an image in which the darkest pixels are black, the '
+         'brightest pixels are white, and intermediate values contain varying shades of '
+         'blue. If a single color is specified, it is assumed tobe shorthand for the '
+         'colormap "black <color> white".')
+_enhancement.add_argument(
+    '--below', dest='below_color', type=str, default=None,
+    help='color for pixels whose values are less than the lower limit. By default, the '
+         'first color of the colormap is used.')
+_enhancement.add_argument(
+    '--above', dest='above_color', type=str, default=None,
+    help='color for pixels whose values are greater than the upper limit. By default, '
+         'the last color of the colormap is used.')
+_enhancement.add_argument(
+    '--invalid', dest='invalid_color', type=str, default='black',
+    help='color to use for invalid pixels and NaNs. Default is black.')
+_enhancement.add_argument(
+    '-g', '--gamma', type=float, default=1.0,
+    help='gamma value to apply to the image. Values > 1 darken midtones; values < 1 '
+         'brighten midtones. The gamma factor is applied before the colormap.')
+_enhancement.add_argument(
+    '--tint', action='store_true', default=False,
+    help='use a default colormap for the image based on the instrument and the filter '
+         'used.')
+_enhancement.add_argument(
+    '--histogram', action='store_true', default=False,
+    help='use a histogram contrast stretch. This takes advantage of the full dynamic '
+         'range from black to white.')
 
-    enhancement = parser.add_argument_group('enhancement options')
-    enhancement.add_argument(
-        '-c', '--colormap', dest='colormap', type=str, default=None,
-        help='colormap to apply (e.g., "black-white" or "black-blue-white").',
-    )
-    enhancement.add_argument(
-        '--below', dest='below_color', type=str, default=None,
-        help='color for pixel values below the lower limit.',
-    )
-    enhancement.add_argument(
-        '--above', dest='above_color', type=str, default=None,
-        help='color for pixel values above the upper limit.',
-    )
-    enhancement.add_argument(
-        '--invalid', dest='invalid_color', type=str, default='black',
-        help='color for invalid pixel values and NaNs.',
-    )
-    enhancement.add_argument(
-        '-g', '--gamma', dest='gamma', type=float, default=1.0,
-        help='gamma value to apply to grayscale.',
-    )
-    enhancement.add_argument(
-        '--tint', dest='tint', action='store_true', default=False,
-        help="override the colormap based on the image's filter name.",
-    )
+_orientation = PARSER.add_argument_group('orientation options')
+_orientation.add_argument(
+    '-u', '--up', dest='display_upward', action='store_true', default=False,
+    help='display the image with line numbers increasing upward, overriding the default '
+         'for the instrument.')
+_orientation.add_argument(
+    '-d', '--down', dest='display_downward', action='store_true', default=False,
+    help='display the image with line numbers increasing downward, overriding the '
+         'default for the instrument.')
+_orientation.add_argument(
+    '--rotate', default=None, choices=ROTATE_CHOICES,
+    help='rotate or flip the image from its default orientation.')
 
-    orientation = parser.add_argument_group('orientation options')
-    orientation.add_argument(
-        '-u', '--up', dest='display_upward', action='store_true', default=False,
-        help='display the image with line numbers increasing upward.',
-    )
-    orientation.add_argument(
-        '-d', '--down', dest='display_downward', action='store_true', default=False,
-        help='display the image with line numbers increasing downward.',
-    )
-    orientation.add_argument(
-        '--rotate', dest='rotate', default='none', choices=_ROTATE_CHOICES,
-        help='rotate or flip the image from its default orientation.',
-    )
+_sizing = PARSER.add_argument_group('sizing options')
+_sizing.add_argument(
+    '--size', type=int, nargs=2, default=None,
+    help='width and height of the output image in pixels.')
+_sizing.add_argument(
+    '--scale', type=float, default=None,
+    help='percentage by which to scale both the width and height of the image.')
+_sizing.add_argument(
+    '--wscale', type=float, default=None,
+    help='percentage by which to scale the width of the image.')
+_sizing.add_argument(
+    '--hscale', type=float, default=None,
+    help='percentage by which to scale the height of the image.')
+_sizing.add_argument(
+    '--frame', type=int, nargs=2, default=None,
+    help='width and height of the frame within which the image must fit.')
+_sizing.add_argument(
+    '--frame_max', type=int, default=None,
+    help='maximum percentage by which to scale the image to fit it inside the frame.')
 
-    processing = parser.add_argument_group('processing options')
-    processing.add_argument(
-        '-f', '--filter', dest='filter_name', default='none', choices=_FILTER_CHOICES,
-        help='name of image processing filter to apply.',
-    )
-    processing.add_argument(
-        '--zebra', dest='zebra', action='store_true', default=False,
-        help='interpolate across black zebra stripes at the beginnings and '
-             'ends of lines.',
-    )
+_layout = PARSER.add_argument_group('layout options')
+_layout.add_argument(
+    '--wrap', action='store_true', default=False,
+    help='wrap the sections of an image if it is extremely elongated.')
+_layout.add_argument(
+    '--wrap-ratio', type=float, default=None,
+    help='wrap if width:height or height:width ratio exceeds this value.')
+_layout.add_argument(
+    '--overlap', type=float, default=None,
+    help='percentage of required overlap between wrapped sections of an elongated image. '
+         'For example, if the value is 5, then the last 5% of each strip in the image '
+         'will be repeated at the beginning of the next strip.')
+_layout.add_argument(
+    '--overlaps', type=float, nargs=2, default=None,
+    help='minimum and maximum percentages of tolerated overlap between wrapped sections '
+         'of an elongated image when it is wrapped.')
+_layout.add_argument(
+    '--gap-size', dest='gap_size', type=int, default=1,
+    help='width in pixels of the gap between strips of a wrapped image.')
+_layout.add_argument(
+    '--gap-color', dest='gap_color', type=str, default='white',
+    help='color to use for the gap between sections of a wrapped image. Default is '
+         'white.')
+_layout.add_argument(
+    '--pad', action='store_true', default=False,
+    help='pad the image to match the full size of the frame.')
+_layout.add_argument(
+    '--pad-color', dest='pad_color', type=str, default='gray',
+    help='the color to use when padding an image to fill a frame. Default is gray.')
+_layout.add_argument(
+    '--mosaic', action='store_true', default=False,
+    help='invoke the instrument-specific method for constructing a mosaic of images for '
+         'an instrument that has multiple detectors.')
 
-    return parser
+_processing = PARSER.add_argument_group('processing options')
+_processing.add_argument(
+    '-f', '--filter', default=None, choices=FILTER_CHOICES,
+    help='apply an image processing filter to the image. Options are '
+         + f'{", ".join(FILTER_CHOICES[:-1])} and {FILTER_CHOICES[-1]}.')
+_processing.add_argument(
+    '--zebra', action='store_true', default=False,
+    help='interpolate across zero-valued "zebra stripes" at the beginnings and ends of '
+         'lines.')
 
 
-def _separate_files_and_dirs(args: list[str]) -> tuple[list[str], list[str]]:
-    """Split positional arguments into existing files vs. directories.
+def main():
+    """Parse command-line arguments and run picmaker."""
 
-    Trailing slashes on directory paths are stripped; anything that is
-    not an existing file is treated as a directory.  A warning is emitted
-    for paths that are neither an existing file nor an existing directory.
-    """
-    filenames: list[str] = []
-    directories: list[str] = []
-    for f in args:
-        if os.path.isfile(f):
-            filenames.append(f)
-        else:
-            if f.endswith('/'):
-                f = f[:-1]
-            if not os.path.isdir(f):
-                logger.warning('path does not exist or is not a directory: %s', f)
-            directories.append(f)
-    return filenames, directories
+    # Imported here to avoid a circular import: picmaker.picmaker imports PARSER from this
+    # module at load time.
+    from picmaker.picmaker import picmaker, validate_options
 
+    options = PARSER.parse_args()   # could raise SystemExit
+    kwargs = validate_options(options)
 
-def _normalize_and_validate(
-    options: argparse.Namespace, replace: str, proceed: bool
-) -> dict[str, Any]:
-    """Run mutex checks, normalize parameter shapes, and build the option_dict.
+    # Shift the indexing origin to zero for values from the command line
+    for name in ('samples', 'lines', 'bands'):
+        pair = kwargs.get(name, None)
+        if pair is not None:
+            kwargs[name] = (pair[0]-1, pair[1])
 
-    Parameters:
-        options: Parsed argparse Namespace.
-        replace: The validated ``--replace`` value (``'all'`` / ``'none'``
-            / ``'warn'`` / ``'error'``).
-        proceed: The validated ``--proceed`` flag.
-
-    Returns:
-        The ``option_dict`` consumed by ``images_to_pics``. Validation
-        failures raise :class:`ValueError`.
-    """
-    if options.mosaic and (options.band is not None or options.bands is not None):
-        raise ValueError('mosaic and band options are incompatible')
-    if (
-        options.band is not None
-        and options.bands is not None
-        and (
-            options.band != options.bands[0]
-            or options.band != options.bands[1]
-        )
-    ):
-        raise ValueError('band and bands options are incompatible')
-
-    if options.mosaic and options.movie:
-        raise ValueError('mosaic and movie options are incompatible')
-
-    if options.scale is not None and options.wscale is not None:
-        raise ValueError('scale and wscale options are incompatible')
-
-    if options.scale is not None and options.hscale is not None:
-        raise ValueError('scale and hscale options are incompatible')
-
-    if options.overlap is not None and options.overlaps is not None:
-        raise ValueError('overlap and overlaps options are incompatible')
-
-    # The frame/size, up/down, and twobytes-mode checks moved into
-    # PicmakerOptions.validate() (called at the bottom of this function);
-    # keeping them inline here would duplicate the post-normalization
-    # invariants the dataclass owns.
-
-    if not options.mosaic:
-        if options.band is None:
-            options.band = 0
-        if options.bands is None:
-            options.bands = (options.band, options.band + 1)
-
-    if options.rectangle is None:
-        samples: Any = None
-        lines: Any = None
-    else:
-        samples = sorted([options.rectangle[0] - 1, options.rectangle[2]])
-        lines = sorted([options.rectangle[1] - 1, options.rectangle[3]])
-
-    if options.scale is None:
-        options.scale = 100.0
-    if options.wscale is None:
-        options.wscale = options.scale
-    if options.hscale is None:
-        options.hscale = options.scale
-
-    options.scale = (options.wscale, options.hscale)
-
-    if options.valid is not None:
-        options.valid = (min(options.valid), max(options.valid))
-    if options.limits is not None:
-        options.limits = (min(options.limits), max(options.limits))
-    if options.percentiles is not None:
-        options.percentiles = (min(options.percentiles), max(options.percentiles))
-    pointers = [s for s in (options.pointer, options.alt_pointer) if s]
-    strips = [s for s in (options.strip, options.alt_strip) if s]
-
-    if options.overlaps is None:
-        if options.overlap is None:
-            options.overlaps = (0.0, 0.0)
-        else:
-            options.overlaps = (options.overlap, options.overlap)
-
-    option_dict: dict[str, Any] = {
-        # control parameters
-        'replace': replace,
-        'proceed': proceed,
-        # output options
-        'extension': options.extension,
-        'suffix': options.suffix,
-        'strip': strips,
-        'quality': options.quality,
-        'twobytes': options.twobytes,
-        # selection options
-        'bands': options.bands,
-        'lines': lines,
-        'samples': samples,
-        'obj': options.obj,
-        'pointer': pointers,
-        'pds3_label_method': options.pds3_label_method,
-        # sizing options
-        'size': options.size,
-        'scale': options.scale,
-        'crop': options.crop,
-        'frame': options.frame,
-        'pad': options.pad,
-        'pad_color': options.pad_color,
-        'frame_max': options.frame_max,
-        # layout options
-        'wrap': options.wrap,
-        'wrap_ratio': options.wrap_ratio,
-        'overlap': options.overlaps,
-        'gap_size': options.gap_size,
-        'gap_color': options.gap_color,
-        'mosaic': options.mosaic,
-        # scaling options
-        'valid': options.valid,
-        'limits': options.limits,
-        'percentiles': options.percentiles,
-        'trim': options.trim,
-        'trim_zeros': options.trim_zeros,
-        'footprint': options.footprint,
-        'histogram': options.histogram,
-        # enhancement options
-        'colormap': options.colormap,
-        'below_color': options.below_color,
-        'above_color': options.above_color,
-        'invalid_color': options.invalid_color,
-        'gamma': options.gamma,
-        'tint': options.tint,
-        # orientation options
-        'display_upward': options.display_upward,
-        'display_downward': options.display_downward,
-        'rotate': options.rotate.lower(),
-        # special processing options
-        'filter_name': options.filter_name.lower(),
-        'zebra': options.zebra,
-    }
-    # Single source of truth for post-normalization mutex / value-validity
-    # checks. The CLI runs this here so failures surface immediately
-    # (before any I/O); pipeline.images_to_pics runs the same check on
-    # its own so library callers that bypass the CLI get the same guarantee.
-    PicmakerOptions(**option_dict).validate()
-    return option_dict
-
-
-def _collect_option_dicts(
-    parser: argparse.ArgumentParser,
-    options: argparse.Namespace,
-    *,
-    replace: str,
-    proceed: bool,
-) -> list[dict[str, Any]]:
-    """Build the list of normalized ``option_dict`` dicts that drive the pipeline.
-
-    When ``options.versions`` is ``None`` a single-element list is
-    returned containing the normalization of ``options`` itself. When
-    it is a file path, each non-blank line is tokenised with
-    :func:`shlex.split` (so quoted values with embedded whitespace are
-    preserved) and re-parsed as additional CLI args appended to
-    ``sys.argv[1:]``; each merged namespace is normalized via
-    :func:`!_normalize_and_validate`. The main CLI's ``--replace`` and
-    ``--proceed`` always win over per-line values.
-
-    Parameters:
-        parser: The argparse parser, reused so per-line merges share
-            the canonical option defaults.
-        options: Parsed namespace from the main CLI argv.
-        replace: The validated ``--replace`` value, propagated to every
-            versions-line namespace.
-        proceed: The validated ``--proceed`` flag, propagated to every
-            versions-line namespace.
-
-    Returns:
-        One normalized ``option_dict`` per versions-file line (or a
-        single-element list when ``--versions`` was not given). Each
-        dict is the keyword-argument shape consumed by
-        :func:`picmaker.pipeline.images_to_pics`.
-    """
-    if options.versions is None:
-        return [_normalize_and_validate(options, replace, proceed)]
-
-    namespaces: list[argparse.Namespace] = []
-    with open(options.versions, encoding='utf-8') as f:
-        version_lines = f.readlines()
-    for line in version_lines:
-        # ``shlex.split`` (not ``str.split``) so quoted values with
-        # embedded whitespace round-trip through argparse the same way
-        # they would on the shell command line.
-        new_args = shlex.split(line)
-        if len(new_args) == 0:
-            continue
-        merged = parser.parse_args(sys.argv[1:] + new_args)
-        # Versions-file lines do not override the main CLI's --replace
-        # / --proceed values; force the merged namespace back to the
-        # main-CLI values before normalization.
-        merged.replace = replace
-        merged.proceed = proceed
-        namespaces.append(merged)
-
-    return [_normalize_and_validate(ns, replace, proceed) for ns in namespaces]
-
-
-def _process_directory(
-    dirpath: str,
-    *,
-    recursive: bool,
-    pattern: str,
-    directory: str | None,
-    lcommon: int,
-    movie: bool,
-    option_dicts: list[dict[str, Any]],
-    verbose: int,
-) -> None:
-    """Process every file under ``dirpath`` that matches ``pattern``.
-
-    Walks the tree with :func:`os.walk` when ``recursive`` is set,
-    otherwise reads ``dirpath`` non-recursively. When ``directory`` is
-    set, the output tree under it parallels the source tree using the
-    ``lcommon`` prefix length computed by the caller from
-    :func:`picmaker.pipeline.find_common_path`.
-
-    Parameters:
-        dirpath: Source directory.
-        recursive: Recurse into subdirectories.
-        pattern: :mod:`fnmatch`-style filename pattern.
-        directory: Output directory root, or ``None`` to write next to
-            the source files.
-        lcommon: Length of the common source-prefix, or ``-1`` when
-            there is no useful prefix (means: output directly under
-            ``directory``).
-        movie: Run the per-directory dispatch in movie mode.
-        option_dicts: List of normalized option dicts (one per
-            ``--versions`` line).
-        verbose: Per-CLI verbosity level. ``>=1`` logs each visited
-            directory; ``>1`` is propagated as
-            :func:`~picmaker.pipeline.process_images`' ``verbose`` flag.
-    """
-    if recursive:
-        for this_dir, _subdirs, files_in_dir in os.walk(dirpath):
-            f_filtered = fnmatch.filter(files_in_dir, pattern)
-            if len(f_filtered) == 0:
-                continue
-            if verbose:
-                logger.info('%s', this_dir)
-            filepaths = [os.path.join(this_dir, f) for f in f_filtered]
-            out_dir = (
-                None
-                if directory is None
-                else os.path.join(directory, this_dir[lcommon + 1 :])
-            )
-            process_images(
-                filepaths, out_dir, movie, option_dicts,
-                verbose=(verbose > 1),
-            )
-        return
-
-    if verbose:
-        logger.info('%s', dirpath)
-    files_in_dir = os.listdir(dirpath)
-    f_filtered = fnmatch.filter(files_in_dir, pattern)
-    # ``os.listdir`` returns both files and subdirectories; the
-    # recursive branch above relies on ``os.walk`` to separate them, so
-    # this branch must filter out subdirectories whose name happens to
-    # match ``pattern`` (otherwise they'd flow into ``process_images``
-    # as if they were files).
-    filepaths = [
-        os.path.join(dirpath, f)
-        for f in f_filtered
-        if os.path.isfile(os.path.join(dirpath, f))
-    ]
-    if len(filepaths) == 0:
-        return
-    out_dir = (
-        None
-        if directory is None
-        else os.path.join(directory, dirpath[lcommon + 1 :])
-    )
-    process_images(
-        filepaths, out_dir, movie, option_dicts, verbose=(verbose > 1),
-    )
-
-
-def main() -> None:
-    """Picmaker CLI entry point.
-
-    Argparse usage errors raise :class:`SystemExit` (passed through).
-    Validation errors raise :class:`ValueError`; the outer
-    ``except Exception`` wrapper prints them via
-    :func:`sys.excepthook` and exits with code 1.
-    """
     try:
-        parser = _build_parser()
-        options = parser.parse_args()
-
-        if options.movie and options.versions is not None:
-            raise ValueError('movie and versions options are incompatible')
-
-        directory = options.directory
-        if directory is not None and directory.endswith('/'):
-            directory = directory[:-1]
-
-        if options.verbose not in (0, 1, 2):
-            raise ValueError(f'unrecognized verbose option: {options.verbose}')
-
-        if options.replace not in ('all', 'none', 'warn', 'error'):
-            raise ValueError(f'unrecognized replace option: "{options.replace}"')
-
-        replace = options.replace
-        proceed = options.proceed
-        verbose = options.verbose
-        movie = options.movie
-        pattern = options.pattern
-        recursive = options.recursive
-
-        filenames, directories = _separate_files_and_dirs(options.files)
-        option_dicts = _collect_option_dicts(
-            parser, options, replace=replace, proceed=proceed,
-        )
-
-        filtered = fnmatch.filter(filenames, pattern)
-        if filtered:
-            process_images(
-                filtered, directory, movie, option_dicts, verbose=(verbose > 1)
-            )
-
-        common_prefix = find_common_path(directories)
-        if filenames:
-            common_prefix = os.path.split(common_prefix)[0]
-        lcommon = len(common_prefix) if common_prefix else -1
-
-        for dirpath in directories:
-            _process_directory(
-                dirpath,
-                recursive=recursive,
-                pattern=pattern,
-                directory=directory,
-                lcommon=lcommon,
-                movie=movie,
-                option_dicts=option_dicts,
-                verbose=verbose,
-            )
-
+        picmaker(**kwargs)
     except KeyboardInterrupt:
         print('*** KeyboardInterrupt ***')
         sys.exit(2)
-    except SystemExit:
-        raise
     except Exception:
         sys.excepthook(*sys.exc_info())
         sys.exit(1)
 
 
 __all__ = ['main']
+
+##########################################################################################
