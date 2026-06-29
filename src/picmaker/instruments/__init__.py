@@ -3,7 +3,9 @@
 ##########################################################################################
 """Instrument reader modules."""
 
+import importlib
 import pathlib
+import pkgutil
 
 import astropy.io.fits as pyfits
 import numpy as np
@@ -21,6 +23,21 @@ _INSTRUMENTS = []
 def register_instrument(subclass):
     _INSTRUMENTS.append(subclass)
     _INSTRUMENTS.sort(key=lambda k: k.__name__)
+
+
+def _register_all_instruments():
+    """Import every instrument submodule so that each registers itself.
+
+    Any module in this package whose name does not begin with an underscore is imported for
+    its side effects: defining an :class:`ImageData` subclass and calling
+    :func:`register_instrument`. Support modules (``_pds3_support``, ``_fits_support``,
+    ``_hst_support``) are skipped. A new instrument is picked up automatically by dropping a
+    module into this package; this file does not need to be edited.
+    """
+
+    for module_info in pkgutil.iter_modules(__path__):
+        if not module_info.name.startswith('_'):
+            importlib.import_module(f'{__name__}.{module_info.name}')
 
 
 class ImageData:
@@ -153,11 +170,7 @@ def tint_by_nm(wavelength):
 __all__ = ['ImageData', 'PDS3_METHODS', 'DEFAULT_PDS3_METHOD',
            'read_image_array', 'read_pds3_image_array', 'get_fits_array', 'tint_by_nm']
 
-# Import the instrument modules for their side effects: each calls register_instrument()
-# at module level to add itself to _INSTRUMENTS. These names are not part of the public API.
-from picmaker.instruments import (  # noqa: E402, F401
-    cassini_iss, galileo_ssi, hst_acs, hst_nicmos, hst_wfpc2, nh_lorri, nh_mvic,
-    voyager_iss, zzz_generic,
-)
+# Discover and import the instrument modules so each registers itself.
+_register_all_instruments()
 
 ##########################################################################################
