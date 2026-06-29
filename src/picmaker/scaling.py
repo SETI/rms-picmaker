@@ -35,9 +35,9 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
     if limits is None:
 
         if mask is None:
-            mask = array.isnan()
+            mask = np.isnan(array)
         else:
-            mask = mask | array.isnan()
+            mask = mask | np.isnan(array)
 
         # Apply the trim
         if trim:
@@ -89,12 +89,11 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
             else:
                 return (array_min, array_min * 2.)
 
-        # Derive limits
-        limits = (array_min, array_max)
-
-    # Apply percentiles
-    if percentiles is not None:
-        limits = tuple(np.percentile(percentiles[:2]))
+        # Derive limits, narrowing to the requested percentiles of the valid data
+        if percentiles is None:
+            limits = (array_min, array_max)
+        else:
+            limits = tuple(np.percentile(array[antimask], percentiles[:2]))
 
     return limits
 
