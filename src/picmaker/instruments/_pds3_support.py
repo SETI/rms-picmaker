@@ -139,7 +139,7 @@ def read_pds3_image_array(label, obj=None):
     else:
         byteorder = '>'
 
-    if 'UNSIGNED' in sample_type:
+    if 'UNSIGNED' in sample_type or sample_bytes == 1:
         kind = 'u'
     elif 'REAL' in sample_type or 'FLOAT' in sample_type or 'DOUBLE' in sample_type:
         kind = 'f'
@@ -147,11 +147,6 @@ def read_pds3_image_array(label, obj=None):
         kind = 'c'
     else:
         kind = 'i'
-
-    # 8-bit image samples are stored as unsigned bytes. PDS3 labels routinely give them a
-    # signed type name (e.g. SUN_INTEGER) even though the data are an unsigned VICAR BYTE.
-    if kind == 'i' and sample_bytes == 1:
-        kind = 'u'
 
     # The dtype as stored in the file, carrying the file's byte order.
     vax_float = sample_type.startswith('VAX') and kind in ('f', 'c')

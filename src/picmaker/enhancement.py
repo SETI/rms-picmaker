@@ -72,6 +72,11 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
         array = array[:3]   # no more than three bands here
         bands = array.shape[0]
 
+    # When --tint is set and no explicit colormap is given, use the instrument's default
+    # tint color as the colormap; the block below expands it to black -> tint -> white.
+    if tint and not colormap and default_tint is not None:
+        colormap = default_tint
+
     # Interpret colors and masks
     is_color = bands > 1
     if colormap:
