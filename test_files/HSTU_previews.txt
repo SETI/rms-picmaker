@@ -1,0 +1,4 @@
+--suffix _thumb --frame 100 100 --tint
+--suffix _small --frame 256 256 --tint
+--suffix _med   --frame 512 512 --tint
+--suffix _full

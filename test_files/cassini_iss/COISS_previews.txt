@@ -1,0 +1,4 @@
+--suffix=_full  --trim-zeros --footprint 5 -x png
+--suffix=_med   --trim-zeros --footprint 5 --zebra --tint --frame 512 512
+--suffix=_small --trim-zeros --footprint 5 --zebra --tint --frame 256 256
+--suffix=_thumb --trim-zeros --footprint 5 --zebra --tint --size 100 100
