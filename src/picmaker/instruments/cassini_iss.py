@@ -136,16 +136,21 @@ def read_file(
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
-    """Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.
+    """Predicate identifying the Cassini ISS camera, the instrument this module tints.
+
+    Both the host and the instrument id must agree: a Cassini host alone
+    is not enough, since other Cassini instruments (VIMS, CIRS, ...)
+    must not be picked up for ISS tinting. The ``inst_id`` test mirrors
+    the ISS gate in :func:`tint_for`.
 
     Parameters:
         inst_host: Instrument host string (e.g. ``'CASSINI ORBITER'``).
         inst_id: Instrument id (e.g. ``'ISS'``).
 
     Returns:
-        ``True`` for any Cassini host.
+        ``True`` for a Cassini host whose ``inst_id`` names the ISS camera.
     """
-    return inst_host.startswith('CASSINI')
+    return inst_host.startswith('CASSINI') and inst_id.startswith('ISS')
 
 
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:

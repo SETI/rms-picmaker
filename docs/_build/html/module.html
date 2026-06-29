@@ -184,6 +184,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#picmaker.instruments.nh_lorri.tint_for"><code class="docutils literal notranslate"><span class="pre">tint_for()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#new-horizons-mvic">New Horizons MVIC</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#picmaker.instruments.nh_mvic.matches"><code class="docutils literal notranslate"><span class="pre">matches()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#picmaker.instruments.nh_mvic.read_file"><code class="docutils literal notranslate"><span class="pre">read_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#picmaker.instruments.nh_mvic.tint_for"><code class="docutils literal notranslate"><span class="pre">tint_for()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#tiff-16">TIFF 16</a><ul>
@@ -1745,12 +1751,19 @@ Validation errors raise <a class="reference external" href="https://docs.python.
 <p>Each instrument module exposes a uniform protocol:</p>
 <p><strong>Required methods:</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">read_file(filename,</span> <span class="pre">obj,</span> <span class="pre">*,</span> <span class="pre">mosaic,</span> <span class="pre">pds3_label_method)</span> <span class="pre">-&gt;</span> <span class="pre">ReadResult</span> <span class="pre">|</span> <span class="pre">None</span></code>
+<li><p><code class="docutils literal notranslate"><span class="pre">read_file(filename,</span> <span class="pre">obj=None,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">ReadResult</span> <span class="pre">|</span> <span class="pre">None</span></code>
 — tries to detect and read <em>filename</em>; returns a
 <a class="reference internal" href="#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> on success or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the
-file is not owned by this instrument.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">matches(inst_host,</span> <span class="pre">inst_id)</span> <span class="pre">-&gt;</span> <span class="pre">bool</span></code> — host-level predicate used
-by <a class="reference internal" href="#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">lookup()</span></code></a> to find the instrument for tinting.</p></li>
+file is not owned by this instrument. Instrument-specific options
+(the fields named in <code class="xref py py-data docutils literal notranslate"><span class="pre">READ_FILE_KWARGS</span></code>,
+currently <code class="docutils literal notranslate"><span class="pre">mosaic</span></code> and <code class="docutils literal notranslate"><span class="pre">pds3_label_method</span></code>) arrive via
+<code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>; any a given instrument does not use are ignored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matches(inst_host,</span> <span class="pre">inst_id)</span> <span class="pre">-&gt;</span> <span class="pre">bool</span></code> — predicate used by
+<a class="reference internal" href="#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">lookup()</span></code></a> to find the instrument for tinting. It checks both the
+host and the instrument id, so a module is selected only for the
+specific camera(s) it handles (e.g. New Horizons MVIC and LORRI live in
+separate modules). HST is the exception: it serves every Hubble
+detector and so constrains the host only.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">tint_for(inst_id,</span> <span class="pre">filter_name)</span> <span class="pre">-&gt;</span> <span class="pre">list[tuple[int,</span> <span class="pre">int,</span> <span class="pre">int]]</span> <span class="pre">|</span> <span class="pre">None</span></code>
 — returns the full colormap (NOT just the tint), or <code class="docutils literal notranslate"><span class="pre">None</span></code> for the
 HST unknown-wavelength case.</p></li>
@@ -1768,7 +1781,7 @@ to fall through to the standard <code class="docutils literal notranslate"><span
 </ul>
 <dl class="py data">
 <dt class="sig sig-object py" id="picmaker.instruments.ALL_INSTRUMENTS">
-<span class="sig-name descname"><span class="pre">ALL_INSTRUMENTS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/types.html#types.ModuleType" title="(in Python v3.14)"><span class="pre">ModuleType</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[&lt;module</span> <span class="pre">'picmaker.instruments.cassini_iss'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/cassini_iss.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.voyager_iss'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/voyager_iss.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.galileo_ssi'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/galileo_ssi.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.hst'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/hst.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.nh_lorri'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/nh_lorri.py'&gt;]</span></em><a class="headerlink" href="#picmaker.instruments.ALL_INSTRUMENTS" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ALL_INSTRUMENTS</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/types.html#types.ModuleType" title="(in Python v3.14)"><span class="pre">ModuleType</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[&lt;module</span> <span class="pre">'picmaker.instruments.cassini_iss'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/cassini_iss.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.voyager_iss'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/voyager_iss.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.galileo_ssi'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/galileo_ssi.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.hst'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/hst.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.nh_lorri'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/nh_lorri.py'&gt;,</span> <span class="pre">&lt;module</span> <span class="pre">'picmaker.instruments.nh_mvic'</span> <span class="pre">from</span> <span class="pre">'/Users/Shared/GitHub/rms-picmaker/src/picmaker/instruments/nh_mvic.py'&gt;]</span></em><a class="headerlink" href="#picmaker.instruments.ALL_INSTRUMENTS" title="Link to this definition"></a></dt>
 <dd><p>Every registered instrument module, in cascade priority order.
 <a class="reference internal" href="#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_one_image_array</span></code></a> tries
 each instrument’s <code class="docutils literal notranslate"><span class="pre">read_file()</span></code> in this order; the first to return
@@ -1779,6 +1792,10 @@ a non-<code class="docutils literal notranslate"><span class="pre">None</span></
 <dt class="sig sig-object py" id="picmaker.instruments.lookup">
 <span class="sig-name descname"><span class="pre">lookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments.html#lookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.lookup" title="Link to this definition"></a></dt>
 <dd><p>Return the first instrument whose <code class="docutils literal notranslate"><span class="pre">matches()</span></code> returns True, else None.</p>
+<p>Each instrument’s <code class="docutils literal notranslate"><span class="pre">matches()</span></code> weighs both <code class="docutils literal notranslate"><span class="pre">inst_host</span></code> and
+<code class="docutils literal notranslate"><span class="pre">inst_id</span></code>, so a host match alone is not enough: a recognized host
+paired with a sub-instrument the module does not handle (e.g. Cassini
+VIMS) returns <code class="docutils literal notranslate"><span class="pre">None</span></code> here rather than a mismatched module.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1800,7 +1817,11 @@ matches.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.cassini_iss.matches">
 <span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/cassini_iss.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.cassini_iss.matches" title="Link to this definition"></a></dt>
-<dd><p>Host-level predicate; sub-instrument dispatch happens in <a class="reference internal" href="#picmaker.instruments.cassini_iss.tint_for" title="picmaker.instruments.cassini_iss.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
+<dd><p>Predicate identifying the Cassini ISS camera, the instrument this module tints.</p>
+<p>Both the host and the instrument id must agree: a Cassini host alone
+is not enough, since other Cassini instruments (VIMS, CIRS, …)
+must not be picked up for ISS tinting. The <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> test mirrors
+the ISS gate in <a class="reference internal" href="#picmaker.instruments.cassini_iss.tint_for" title="picmaker.instruments.cassini_iss.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1809,7 +1830,7 @@ matches.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for any Cassini host.</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for a Cassini host whose <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> names the ISS camera.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1864,7 +1885,11 @@ the file is not recognized as a Cassini ISS image.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.voyager_iss.matches">
 <span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/voyager_iss.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.voyager_iss.matches" title="Link to this definition"></a></dt>
-<dd><p>Host-level predicate; sub-instrument dispatch happens in <a class="reference internal" href="#picmaker.instruments.voyager_iss.tint_for" title="picmaker.instruments.voyager_iss.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
+<dd><p>Predicate identifying the Voyager ISS camera, the instrument this module tints.</p>
+<p>Both the host and the instrument id must agree: a Voyager host alone
+is not enough, since other Voyager instruments (PPS, …) must not be
+picked up for ISS tinting. The <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> test mirrors the ISS gate
+in <a class="reference internal" href="#picmaker.instruments.voyager_iss.tint_for" title="picmaker.instruments.voyager_iss.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1873,7 +1898,7 @@ the file is not recognized as a Cassini ISS image.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for any host whose name starts with <code class="docutils literal notranslate"><span class="pre">'VOYAGER'</span></code>.</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for a Voyager host whose <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> names the ISS camera.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1936,7 +1961,11 @@ the file is not recognized as a Voyager ISS image.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.galileo_ssi.matches">
 <span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/galileo_ssi.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.galileo_ssi.matches" title="Link to this definition"></a></dt>
-<dd><p>Host-level predicate; sub-instrument dispatch happens in <a class="reference internal" href="#picmaker.instruments.galileo_ssi.tint_for" title="picmaker.instruments.galileo_ssi.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
+<dd><p>Predicate identifying the Galileo SSI camera, the instrument this module tints.</p>
+<p>Both the host and the instrument id must agree: a Galileo host alone
+is not enough, since other Galileo instruments (PPR, …) must not be
+picked up for SSI tinting. The <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> test mirrors the SSI gate
+in <a class="reference internal" href="#picmaker.instruments.galileo_ssi.tint_for" title="picmaker.instruments.galileo_ssi.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1945,7 +1974,8 @@ the file is not recognized as a Voyager ISS image.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for any host whose name starts with <code class="docutils literal notranslate"><span class="pre">'GALILEO'</span></code>.</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for a Galileo host whose <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> names the SSI camera
+(<code class="docutils literal notranslate"><span class="pre">'SSI'</span></code> or a <code class="docutils literal notranslate"><span class="pre">'SOLID'</span></code>-prefixed variant).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2034,13 +2064,18 @@ when the instrument is not an ACS/WFC or WFPC2 mosaic target.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.hst.matches">
 <span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/hst.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.hst.matches" title="Link to this definition"></a></dt>
-<dd><p>Host-level predicate: accept any host that mentions HUBBLE or HST.</p>
+<dd><p>Predicate: accept any host that mentions HUBBLE or HST.</p>
+<p>Unlike the single-camera instrument modules, HST tints <em>every</em> one of
+its detectors (WFC3, ACS, WFPC2, NICMOS, …); <a class="reference internal" href="#picmaker.instruments.hst.tint_for" title="picmaker.instruments.hst.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a> gates
+on the filter name rather than <code class="docutils literal notranslate"><span class="pre">inst_id</span></code>. There is therefore no
+non-tinted HST sub-instrument to exclude, so <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> is not
+constrained here.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inst_host</strong> – Instrument host string (e.g. <code class="docutils literal notranslate"><span class="pre">'HST'</span></code> or <code class="docutils literal notranslate"><span class="pre">'HUBBLE</span>
 <span class="pre">SPACE</span> <span class="pre">TELESCOPE'</span></code>).</p></li>
-<li><p><strong>inst_id</strong> – Instrument id.</p></li>
+<li><p><strong>inst_id</strong> – Instrument id (accepted for protocol uniformity; not used).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2119,20 +2154,27 @@ inferred (a WARNING is logged).</p>
 <section id="new-horizons-lorri">
 <h3>New Horizons LORRI<a class="headerlink" href="#new-horizons-lorri" title="Link to this heading"></a></h3>
 <p>Source: <a class="reference external" href="https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/nh_lorri.py">src/picmaker/instruments/nh_lorri.py</a>.</p>
-<p id="module-picmaker.instruments.nh_lorri">New Horizons LORRI/MVIC detection and tint.</p>
+<p id="module-picmaker.instruments.nh_lorri">New Horizons LORRI detection.</p>
+<p>LORRI is a panchromatic framing camera with no filters, so it requires
+no color tinting: <a class="reference internal" href="#picmaker.instruments.nh_lorri.tint_for" title="picmaker.instruments.nh_lorri.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a> always returns the plain
+<code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">white]</span></code> colormap. LORRI products are read from their PDS3
+labels; the color imager MVIC lives in
+<a class="reference internal" href="#module-picmaker.instruments.nh_mvic" title="picmaker.instruments.nh_mvic"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.nh_mvic</span></code></a>.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.nh_lorri.matches">
 <span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/nh_lorri.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.nh_lorri.matches" title="Link to this definition"></a></dt>
-<dd><p>Host-level predicate; sub-instrument dispatch happens in <a class="reference internal" href="#picmaker.instruments.nh_lorri.tint_for" title="picmaker.instruments.nh_lorri.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
+<dd><p>Predicate identifying the New Horizons LORRI camera.</p>
+<p>Both the host and the instrument id must agree.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inst_host</strong> – Instrument host string.</p></li>
-<li><p><strong>inst_id</strong> – Instrument id.</p></li>
+<li><p><strong>inst_id</strong> – Instrument id (<code class="docutils literal notranslate"><span class="pre">'LORRI'</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if <code class="docutils literal notranslate"><span class="pre">inst_host</span></code> is <code class="docutils literal notranslate"><span class="pre">'NEW</span> <span class="pre">HORIZONS'</span></code> or <code class="docutils literal notranslate"><span class="pre">'NH'</span></code>.</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for a New Horizons host whose <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> names the LORRI
+camera.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2140,22 +2182,20 @@ inferred (a WARNING is logged).</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.nh_lorri.read_file">
 <span class="sig-name descname"><span class="pre">read_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">PathLike</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Pds3Label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><span class="pre">ReadResult</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/nh_lorri.html#read_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.nh_lorri.read_file" title="Link to this definition"></a></dt>
-<dd><p>Try to detect and read a New Horizons FITS image or LORRI PDS3 label.</p>
-<p>Accepts either a file path (FITS format) or a pre-parsed
-<code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> (for LORRI).  Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> if the
-file is not recognized as a New Horizons image.</p>
+<dd><p>Try to detect and read a New Horizons LORRI image from its PDS3 label.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> – Path to the candidate file, or a parsed PDS3 label.</p></li>
-<li><p><strong>obj</strong> – HDU index, name, or list/tuple of indices to stack.</p></li>
-<li><p><strong>**kwargs</strong> – Accepted but ignored; NH files need no
+<li><p><strong>filename</strong> – A parsed <code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code>. A bare file path
+is not a LORRI product here and yields <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>obj</strong> – Object selector forwarded to the PDS3 array reader.</p></li>
+<li><p><strong>**kwargs</strong> – Accepted but ignored; LORRI files need no
 instrument-specific options.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> on success, <code class="docutils literal notranslate"><span class="pre">None</span></code> if
-the file is not recognized as a New Horizons FITS image.</p>
+<dd class="field-even"><p><a class="reference internal" href="#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> on success, <code class="docutils literal notranslate"><span class="pre">None</span></code> if the
+file is not recognized as a New Horizons LORRI image.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2163,25 +2203,82 @@ the file is not recognized as a New Horizons FITS image.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="picmaker.instruments.nh_lorri.tint_for">
 <span class="sig-name descname"><span class="pre">tint_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/nh_lorri.html#tint_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.nh_lorri.tint_for" title="Link to this definition"></a></dt>
-<dd><p>Return the full <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">tint,</span> <span class="pre">white]</span></code> colormap for an NH filter.</p>
-<p>Only the MVIC camera gets a colored tint; every other New Horizons
-instrument falls through to the 2-element <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">white]</span></code> colormap.</p>
+<dd><p>Return the plain <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">white]</span></code> colormap.</p>
+<p>LORRI is panchromatic and carries no filters, so there is nothing to
+tint: the colormap is always <code class="docutils literal notranslate"><span class="pre">[(0,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(255,</span> <span class="pre">255,</span> <span class="pre">255)]</span></code>,
+independent of <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> and <code class="docutils literal notranslate"><span class="pre">filter_name</span></code>.</p>
+</dd></dl>
+
+</section>
+<section id="new-horizons-mvic">
+<h3>New Horizons MVIC<a class="headerlink" href="#new-horizons-mvic" title="Link to this heading"></a></h3>
+<p>Source: <a class="reference external" href="https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/nh_mvic.py">src/picmaker/instruments/nh_mvic.py</a>.</p>
+<p id="module-picmaker.instruments.nh_mvic">New Horizons MVIC detection and tint.</p>
+<p>MVIC is the color imager; its FITS products carry a <code class="docutils literal notranslate"><span class="pre">FILTER</span></code> keyword
+that drives the per-filter tint in <a class="reference internal" href="#picmaker.instruments.nh_mvic.tint_for" title="picmaker.instruments.nh_mvic.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>. LORRI (the
+panchromatic camera) lives in <a class="reference internal" href="#module-picmaker.instruments.nh_lorri" title="picmaker.instruments.nh_lorri"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.nh_lorri</span></code></a>.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="picmaker.instruments.nh_mvic.matches">
+<span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/nh_mvic.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.nh_mvic.matches" title="Link to this definition"></a></dt>
+<dd><p>Predicate identifying the New Horizons MVIC camera, the instrument this module tints.</p>
+<p>Both the host and the instrument id must agree: a New Horizons host
+alone is not enough. The <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> test mirrors the MVIC gate in
+<a class="reference internal" href="#picmaker.instruments.nh_mvic.tint_for" title="picmaker.instruments.nh_mvic.tint_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_for()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>inst_id</strong> – Instrument id (<code class="docutils literal notranslate"><span class="pre">'MVIC'</span></code> / <code class="docutils literal notranslate"><span class="pre">'MVI'</span></code> for the color
-path).</p></li>
-<li><p><strong>filter_name</strong> – A key into <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.nh_lorri.FILTER_DICT</span></code>.</p></li>
+<li><p><strong>inst_host</strong> – Instrument host string.</p></li>
+<li><p><strong>inst_id</strong> – Instrument id (<code class="docutils literal notranslate"><span class="pre">'MVIC'</span></code> / <code class="docutils literal notranslate"><span class="pre">'MVI'</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">[(0,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">tint,</span> <span class="pre">(255,</span> <span class="pre">255,</span> <span class="pre">255)]</span></code> for an MVIC filter or
-<code class="docutils literal notranslate"><span class="pre">[(0,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(255,</span> <span class="pre">255,</span> <span class="pre">255)]</span></code> otherwise.</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> for a New Horizons host whose <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> names the MVIC
+camera.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="picmaker.instruments.nh_mvic.read_file">
+<span class="sig-name descname"><span class="pre">read_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">PathLike</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Pds3Label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><span class="pre">ReadResult</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/nh_mvic.html#read_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.nh_mvic.read_file" title="Link to this definition"></a></dt>
+<dd><p>Try to detect and read a New Horizons MVIC FITS image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – Path to the candidate file. A parsed
+<code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> is not an MVIC product and yields
+<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>obj</strong> – HDU index, name, or list/tuple of indices to stack.</p></li>
+<li><p><strong>**kwargs</strong> – Accepted but ignored; MVIC files need no
+instrument-specific options.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> on success, <code class="docutils literal notranslate"><span class="pre">None</span></code> if the
+file is not recognized as a New Horizons MVIC FITS image.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="picmaker.instruments.nh_mvic.tint_for">
+<span class="sig-name descname"><span class="pre">tint_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inst_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/picmaker/instruments/nh_mvic.html#tint_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#picmaker.instruments.nh_mvic.tint_for" title="Link to this definition"></a></dt>
+<dd><p>Return the full <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">tint,</span> <span class="pre">white]</span></code> colormap for an MVIC filter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inst_id</strong> – Instrument id (<code class="docutils literal notranslate"><span class="pre">'MVIC'</span></code> / <code class="docutils literal notranslate"><span class="pre">'MVI'</span></code>).</p></li>
+<li><p><strong>filter_name</strong> – A key into <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.nh_mvic.FILTER_DICT</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">[(0,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">tint,</span> <span class="pre">(255,</span> <span class="pre">255,</span> <span class="pre">255)]</span></code> for an MVIC filter, or
+<code class="docutils literal notranslate"><span class="pre">[(0,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(255,</span> <span class="pre">255,</span> <span class="pre">255)]</span></code> when <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> is not MVIC.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.14)"><strong>KeyError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">filter_name</span></code> is not in
-    <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.nh_lorri.FILTER_DICT</span></code> and
-    <code class="docutils literal notranslate"><span class="pre">inst_id</span></code> selects the MVIC path.</p>
+    <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.nh_mvic.FILTER_DICT</span></code> and <code class="docutils literal notranslate"><span class="pre">inst_id</span></code>
+    selects the MVIC path.</p>
 </dd>
 </dl>
 </dd></dl>

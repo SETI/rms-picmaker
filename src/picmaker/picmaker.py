@@ -34,7 +34,7 @@ from picmaker.geometry import (
 )
 from picmaker.instruments.galileo_ssi import FILTER_DICT as GALILEO_SSI_DICT
 from picmaker.instruments.galileo_ssi import FILTER_NAMES as GALILEO_SSI_NAMES
-from picmaker.instruments.nh_lorri import FILTER_DICT as NH_MVIC_DICT
+from picmaker.instruments.nh_mvic import FILTER_DICT as NH_MVIC_DICT
 from picmaker.instruments.voyager_iss import FILTER_DICT as VOYAGER_ISS_DICT
 from picmaker.io import (
     get_outfile,

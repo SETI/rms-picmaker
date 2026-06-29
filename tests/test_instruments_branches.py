@@ -11,8 +11,7 @@ import pytest
 from picmaker import instruments
 from picmaker.instruments import cassini_iss as cassini
 from picmaker.instruments import galileo_ssi as galileo
-from picmaker.instruments import hst
-from picmaker.instruments import nh_lorri as nh
+from picmaker.instruments import hst, nh_lorri, nh_mvic
 from picmaker.instruments import voyager_iss as voyager
 
 
@@ -49,9 +48,11 @@ def test_cassini_tint_chain_each_branch(
 
 
 def test_cassini_matches_predicate() -> None:
-    """``matches`` accepts any CASSINI-prefixed host."""
+    """``matches`` requires both a CASSINI host and the ISS instrument id."""
     assert cassini.matches('CASSINI ORBITER', 'ISS') is True
     assert cassini.matches('HUBBLE', 'WFC3') is False
+    # Right host, wrong instrument: a Cassini non-ISS camera must not match.
+    assert cassini.matches('CASSINI ORBITER', 'VIMS') is False
 
 
 def test_cassini_non_iss_returns_plain_bw() -> None:
@@ -78,9 +79,38 @@ def test_voyager_non_iss_returns_plain_bw() -> None:
 
 
 def test_voyager_matches_predicate() -> None:
-    """``matches`` accepts any VOYAGER-prefixed host."""
+    """``matches`` requires both a VOYAGER host and the ISS instrument id."""
     assert voyager.matches('VOYAGER 1', 'ISS') is True
     assert voyager.matches('NEW HORIZONS', 'MVIC') is False
+    # Right host, wrong instrument: a Voyager non-ISS instrument must not match.
+    assert voyager.matches('VOYAGER 1', 'PPS') is False
+
+
+def test_galileo_matches_predicate() -> None:
+    """``matches`` requires both a GALILEO host and the SSI instrument id."""
+    assert galileo.matches('GALILEO ORBITER', 'SSI') is True
+    assert galileo.matches('GALILEO ORBITER', 'SOLID STATE IMAGING') is True
+    # Right host, wrong instrument: a Galileo non-SSI instrument must not match.
+    assert galileo.matches('GALILEO ORBITER', 'PPR') is False
+    assert galileo.matches('CASSINI ORBITER', 'SSI') is False
+
+
+def test_nh_mvic_matches_predicate() -> None:
+    """``nh_mvic.matches`` requires a New Horizons host and the MVIC id."""
+    assert nh_mvic.matches('NEW HORIZONS', 'MVIC') is True
+    assert nh_mvic.matches('NH', 'MVI') is True
+    # Wrong host, or an instrument this module does not handle.
+    assert nh_mvic.matches('VOYAGER 1', 'MVIC') is False
+    assert nh_mvic.matches('NEW HORIZONS', 'LORRI') is False
+
+
+def test_nh_lorri_matches_predicate() -> None:
+    """``nh_lorri.matches`` requires a New Horizons host and the LORRI id."""
+    assert nh_lorri.matches('NEW HORIZONS', 'LORRI') is True
+    assert nh_lorri.matches('NH', 'LORRI') is True
+    # MVIC is handled by the separate nh_mvic module, not here.
+    assert nh_lorri.matches('NEW HORIZONS', 'MVIC') is False
+    assert nh_lorri.matches('VOYAGER 1', 'LORRI') is False
 
 
 def test_voyager_detect_vicar_swallows_keyerror() -> None:
@@ -114,9 +144,15 @@ def test_galileo_detect_vicar_swallows_keyerror() -> None:
     assert galileo._detect_vicar(FakeVic()) is None
 
 
-def test_nh_non_mvic_returns_plain_bw() -> None:
-    """Non-MVIC NH instruments get the plain ``[black, white]`` map."""
-    assert nh.tint_for('LORRI', 'anything') == [(0, 0, 0), (255, 255, 255)]
+def test_nh_lorri_tint_is_always_plain_bw() -> None:
+    """LORRI is panchromatic: ``tint_for`` is always the plain ``[black, white]`` map."""
+    assert nh_lorri.tint_for('LORRI', 'anything') == [(0, 0, 0), (255, 255, 255)]
+    assert nh_lorri.tint_for('LORRI', None) == [(0, 0, 0), (255, 255, 255)]
+
+
+def test_nh_mvic_non_mvic_returns_plain_bw() -> None:
+    """``nh_mvic.tint_for`` falls back to the plain map for a non-MVIC id."""
+    assert nh_mvic.tint_for('LORRI', 'anything') == [(0, 0, 0), (255, 255, 255)]
 
 
 def _make_fake_hdulist(header: dict[str, Any]) -> Any:
@@ -136,19 +172,27 @@ def _make_fake_hdulist(header: dict[str, Any]) -> Any:
     return _List(header)
 
 
-def test_nh_detect_fits_missing_hostname() -> None:
+def test_nh_mvic_detect_fits_missing_hostname() -> None:
     """A FITS file with no ``HOSTNAME`` keyword returns ``None``."""
-    assert nh._detect_fits(_make_fake_hdulist({})) is None
+    assert nh_mvic._detect_fits(_make_fake_hdulist({})) is None
 
 
-def test_nh_detect_fits_missing_instru() -> None:
+def test_nh_mvic_detect_fits_missing_instru() -> None:
     """A FITS file with ``HOSTNAME`` but no ``INSTRU`` returns ``None``."""
-    assert nh._detect_fits(_make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS'})) is None
+    assert nh_mvic._detect_fits(_make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS'})) is None
 
 
-def test_nh_detect_fits_no_filter_returns_none_filter() -> None:
+def test_nh_mvic_detect_fits_rejects_non_mvic() -> None:
+    """A New Horizons FITS file whose ``INSTRU`` is not MVIC returns ``None``."""
+    result = nh_mvic._detect_fits(
+        _make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS', 'INSTRU': 'LORRI'})
+    )
+    assert result is None
+
+
+def test_nh_mvic_detect_fits_no_filter_returns_none_filter() -> None:
     """``FILTER`` missing means the third tuple element is ``None``."""
-    result = nh._detect_fits(
+    result = nh_mvic._detect_fits(
         _make_fake_hdulist({'HOSTNAME': 'NEW HORIZONS', 'INSTRU': 'MVIC'})
     )
     assert result == ('NEW HORIZONS', 'MVIC', None)
@@ -213,6 +257,16 @@ def test_instruments_lookup_returns_none_for_unknown() -> None:
 def test_instruments_lookup_returns_none_for_none_host() -> None:
     """``instruments.lookup(None, ...)`` short-circuits to ``None``."""
     assert instruments.lookup(None, 'ISS') is None
+
+
+def test_instruments_lookup_weighs_inst_id() -> None:
+    """``lookup`` resolves the right module on host+id, and None on a non-tinted id."""
+    assert instruments.lookup('CASSINI ORBITER', 'ISS') is cassini
+    # Recognized host but a sub-instrument this module does not handle.
+    assert instruments.lookup('CASSINI ORBITER', 'VIMS') is None
+    # New Horizons LORRI and MVIC resolve to their own modules.
+    assert instruments.lookup('NEW HORIZONS', 'LORRI') is nh_lorri
+    assert instruments.lookup('NEW HORIZONS', 'MVIC') is nh_mvic
 
 
 class TestGalileoDetectVicarBranches:

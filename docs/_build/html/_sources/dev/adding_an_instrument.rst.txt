@@ -284,9 +284,9 @@ Writing the instrument module
 
    .. code-block:: python
 
-      from picmaker.instruments import cassini_iss, galileo_ssi, hst, mymission, nh_lorri, voyager_iss
+      from picmaker.instruments import cassini_iss, galileo_ssi, hst, mymission, nh_lorri, nh_mvic, voyager_iss
 
-      ALL_INSTRUMENTS: list[ModuleType] = [cassini_iss, voyager_iss, galileo_ssi, hst, nh_lorri, mymission]
+      ALL_INSTRUMENTS: list[ModuleType] = [cassini_iss, voyager_iss, galileo_ssi, hst, nh_lorri, nh_mvic, mymission]
 
    Order matters: the cascade tries each instrument in list order and
    returns on the first match, so put more-specific instruments before

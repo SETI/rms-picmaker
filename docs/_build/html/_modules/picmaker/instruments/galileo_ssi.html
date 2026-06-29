@@ -647,16 +647,24 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="matches">
 <a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.matches">[docs]</a>
 <span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicate identifying the Galileo SSI camera, the instrument this module tints.</span>
+
+<span class="sd">    Both the host and the instrument id must agree: a Galileo host alone</span>
+<span class="sd">    is not enough, since other Galileo instruments (PPR, ...) must not be</span>
+<span class="sd">    picked up for SSI tinting. The ``inst_id`` test mirrors the SSI gate</span>
+<span class="sd">    in :func:`tint_for`.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">        inst_host: Instrument host string.</span>
 <span class="sd">        inst_id: Instrument id (e.g. ``&#39;SSI&#39;``).</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ``True`` for any host whose name starts with ``&#39;GALILEO&#39;``.</span>
+<span class="sd">        ``True`` for a Galileo host whose ``inst_id`` names the SSI camera</span>
+<span class="sd">        (``&#39;SSI&#39;`` or a ``&#39;SOLID&#39;``-prefixed variant).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">inst_host</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;GALILEO&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">inst_host</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;GALILEO&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="n">inst_id</span> <span class="o">==</span> <span class="s1">&#39;SSI&#39;</span> <span class="ow">or</span> <span class="n">inst_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;SOLID&#39;</span><span class="p">)</span>
+    <span class="p">)</span></div>
 
 
 

@@ -517,12 +517,19 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">**Required methods:**</span>
 
-<span class="sd">* ``read_file(filename, obj, *, mosaic, pds3_label_method) -&gt; ReadResult | None``</span>
+<span class="sd">* ``read_file(filename, obj=None, **kwargs) -&gt; ReadResult | None``</span>
 <span class="sd">  — tries to detect and read *filename*; returns a</span>
 <span class="sd">  :class:`~picmaker._types.ReadResult` on success or ``None`` if the</span>
-<span class="sd">  file is not owned by this instrument.</span>
-<span class="sd">* ``matches(inst_host, inst_id) -&gt; bool`` — host-level predicate used</span>
-<span class="sd">  by :func:`lookup` to find the instrument for tinting.</span>
+<span class="sd">  file is not owned by this instrument. Instrument-specific options</span>
+<span class="sd">  (the fields named in :data:`~picmaker.options.READ_FILE_KWARGS`,</span>
+<span class="sd">  currently ``mosaic`` and ``pds3_label_method``) arrive via</span>
+<span class="sd">  ``**kwargs``; any a given instrument does not use are ignored.</span>
+<span class="sd">* ``matches(inst_host, inst_id) -&gt; bool`` — predicate used by</span>
+<span class="sd">  :func:`lookup` to find the instrument for tinting. It checks both the</span>
+<span class="sd">  host and the instrument id, so a module is selected only for the</span>
+<span class="sd">  specific camera(s) it handles (e.g. New Horizons MVIC and LORRI live in</span>
+<span class="sd">  separate modules). HST is the exception: it serves every Hubble</span>
+<span class="sd">  detector and so constrains the host only.</span>
 <span class="sd">* ``tint_for(inst_id, filter_name) -&gt; list[tuple[int, int, int]] | None``</span>
 <span class="sd">  — returns the full colormap (NOT just the tint), or ``None`` for the</span>
 <span class="sd">  HST unknown-wavelength case.</span>
@@ -542,19 +549,26 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">ModuleType</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
 
-<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">cassini_iss</span><span class="p">,</span> <span class="n">galileo_ssi</span><span class="p">,</span> <span class="n">hst</span><span class="p">,</span> <span class="n">nh_lorri</span><span class="p">,</span> <span class="n">voyager_iss</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">cassini_iss</span><span class="p">,</span> <span class="n">galileo_ssi</span><span class="p">,</span> <span class="n">hst</span><span class="p">,</span> <span class="n">nh_lorri</span><span class="p">,</span> <span class="n">nh_mvic</span><span class="p">,</span> <span class="n">voyager_iss</span>
 
 <span class="c1">#: Every registered instrument module, in cascade priority order.</span>
 <span class="c1">#: :func:`read_one_image_array &lt;picmaker.io.read_one_image_array&gt;` tries</span>
 <span class="c1">#: each instrument&#39;s ``read_file()`` in this order; the first to return</span>
 <span class="c1">#: a non-``None`` result wins.</span>
-<span class="n">ALL_INSTRUMENTS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ModuleType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">cassini_iss</span><span class="p">,</span> <span class="n">voyager_iss</span><span class="p">,</span> <span class="n">galileo_ssi</span><span class="p">,</span> <span class="n">hst</span><span class="p">,</span> <span class="n">nh_lorri</span><span class="p">]</span>
+<span class="n">ALL_INSTRUMENTS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ModuleType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">cassini_iss</span><span class="p">,</span> <span class="n">voyager_iss</span><span class="p">,</span> <span class="n">galileo_ssi</span><span class="p">,</span> <span class="n">hst</span><span class="p">,</span> <span class="n">nh_lorri</span><span class="p">,</span> <span class="n">nh_mvic</span>
+<span class="p">]</span>
 
 
 <div class="viewcode-block" id="lookup">
 <a class="viewcode-back" href="../../module.html#picmaker.instruments.lookup">[docs]</a>
 <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the first instrument whose ``matches()`` returns True, else None.</span>
+
+<span class="sd">    Each instrument&#39;s ``matches()`` weighs both ``inst_host`` and</span>
+<span class="sd">    ``inst_id``, so a host match alone is not enough: a recognized host</span>
+<span class="sd">    paired with a sub-instrument the module does not handle (e.g. Cassini</span>
+<span class="sd">    VIMS) returns ``None`` here rather than a mismatched module.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">        inst_host: Instrument host string (e.g. ``&#39;CASSINI ORBITER&#39;``).</span>

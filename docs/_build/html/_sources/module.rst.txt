@@ -219,11 +219,19 @@ Source: `src/picmaker/instruments/hst.py
    :members:
 
 New Horizons LORRI
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 Source: `src/picmaker/instruments/nh_lorri.py
 <https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/nh_lorri.py>`__.
 
 .. automodule:: picmaker.instruments.nh_lorri
+   :members:
+
+New Horizons MVIC
+~~~~~~~~~~~~~~~~~
+Source: `src/picmaker/instruments/nh_mvic.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/nh_mvic.py>`__.
+
+.. automodule:: picmaker.instruments.nh_mvic
    :members:
 
 TIFF 16

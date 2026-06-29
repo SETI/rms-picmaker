@@ -293,12 +293,18 @@ def apply_mosaic(
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
-    """Host-level predicate: accept any host that mentions HUBBLE or HST.
+    """Predicate: accept any host that mentions HUBBLE or HST.
+
+    Unlike the single-camera instrument modules, HST tints *every* one of
+    its detectors (WFC3, ACS, WFPC2, NICMOS, ...); :func:`tint_for` gates
+    on the filter name rather than ``inst_id``. There is therefore no
+    non-tinted HST sub-instrument to exclude, so ``inst_id`` is not
+    constrained here.
 
     Parameters:
         inst_host: Instrument host string (e.g. ``'HST'`` or ``'HUBBLE
             SPACE TELESCOPE'``).
-        inst_id: Instrument id.
+        inst_id: Instrument id (accepted for protocol uniformity; not used).
 
     Returns:
         ``True`` if either substring appears in ``inst_host``.

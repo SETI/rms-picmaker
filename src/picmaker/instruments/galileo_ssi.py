@@ -128,16 +128,24 @@ def read_file(
 
 
 def matches(inst_host: str, inst_id: str) -> bool:
-    """Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.
+    """Predicate identifying the Galileo SSI camera, the instrument this module tints.
+
+    Both the host and the instrument id must agree: a Galileo host alone
+    is not enough, since other Galileo instruments (PPR, ...) must not be
+    picked up for SSI tinting. The ``inst_id`` test mirrors the SSI gate
+    in :func:`tint_for`.
 
     Parameters:
         inst_host: Instrument host string.
         inst_id: Instrument id (e.g. ``'SSI'``).
 
     Returns:
-        ``True`` for any host whose name starts with ``'GALILEO'``.
+        ``True`` for a Galileo host whose ``inst_id`` names the SSI camera
+        (``'SSI'`` or a ``'SOLID'``-prefixed variant).
     """
-    return inst_host.startswith('GALILEO')
+    return inst_host.startswith('GALILEO') and (
+        inst_id == 'SSI' or inst_id.startswith('SOLID')
+    )
 
 
 def tint_for(inst_id: str, filter_name: Any) -> list[tuple[int, int, int]] | None:

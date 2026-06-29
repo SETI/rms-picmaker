@@ -815,12 +815,18 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="matches">
 <a class="viewcode-back" href="../../../module.html#picmaker.instruments.hst.matches">[docs]</a>
 <span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Host-level predicate: accept any host that mentions HUBBLE or HST.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicate: accept any host that mentions HUBBLE or HST.</span>
+
+<span class="sd">    Unlike the single-camera instrument modules, HST tints *every* one of</span>
+<span class="sd">    its detectors (WFC3, ACS, WFPC2, NICMOS, ...); :func:`tint_for` gates</span>
+<span class="sd">    on the filter name rather than ``inst_id``. There is therefore no</span>
+<span class="sd">    non-tinted HST sub-instrument to exclude, so ``inst_id`` is not</span>
+<span class="sd">    constrained here.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">        inst_host: Instrument host string (e.g. ``&#39;HST&#39;`` or ``&#39;HUBBLE</span>
 <span class="sd">            SPACE TELESCOPE&#39;``).</span>
-<span class="sd">        inst_id: Instrument id.</span>
+<span class="sd">        inst_id: Instrument id (accepted for protocol uniformity; not used).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        ``True`` if either substring appears in ``inst_host``.</span>

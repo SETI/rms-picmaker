@@ -136,10 +136,10 @@ def test_instrument_dicts_aliased_for_bc() -> None:
     ``FILTER_DICT`` / ``FILTER_NAMES`` objects in the corresponding
     instrument submodules.
     """
-    from picmaker.instruments import galileo_ssi, nh_lorri, voyager_iss
+    from picmaker.instruments import galileo_ssi, nh_mvic, voyager_iss
 
     assert legacy.VOYAGER_ISS_DICT is voyager_iss.FILTER_DICT
-    assert legacy.NH_MVIC_DICT is nh_lorri.FILTER_DICT
+    assert legacy.NH_MVIC_DICT is nh_mvic.FILTER_DICT
     assert legacy.GALILEO_SSI_DICT is galileo_ssi.FILTER_DICT
     assert legacy.GALILEO_SSI_NAMES is galileo_ssi.FILTER_NAMES
 

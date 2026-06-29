@@ -655,16 +655,21 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="matches">
 <a class="viewcode-back" href="../../../module.html#picmaker.instruments.cassini_iss.matches">[docs]</a>
 <span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Host-level predicate; sub-instrument dispatch happens in :func:`tint_for`.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicate identifying the Cassini ISS camera, the instrument this module tints.</span>
+
+<span class="sd">    Both the host and the instrument id must agree: a Cassini host alone</span>
+<span class="sd">    is not enough, since other Cassini instruments (VIMS, CIRS, ...)</span>
+<span class="sd">    must not be picked up for ISS tinting. The ``inst_id`` test mirrors</span>
+<span class="sd">    the ISS gate in :func:`tint_for`.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">        inst_host: Instrument host string (e.g. ``&#39;CASSINI ORBITER&#39;``).</span>
 <span class="sd">        inst_id: Instrument id (e.g. ``&#39;ISS&#39;``).</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ``True`` for any Cassini host.</span>
+<span class="sd">        ``True`` for a Cassini host whose ``inst_id`` names the ISS camera.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">inst_host</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;CASSINI&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">inst_host</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;CASSINI&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">inst_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ISS&#39;</span><span class="p">)</span></div>
 
 
 
