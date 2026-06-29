@@ -1,0 +1,3 @@
+--suffix=_med   --tint --frame 400 400
+--suffix=_small --tint --frame 200 200
+--suffix=_thumb --tint --size 100 100

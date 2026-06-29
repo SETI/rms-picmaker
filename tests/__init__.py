@@ -21,20 +21,23 @@ from picmaker.picmaker import picmaker
 MAX_MEAN_DIFF = 2.0
 
 
-def generate_previews(input_path: Path, out_dir: Path, versions_path: Path,
-                      *, extra_args: Sequence[str] = ()) -> None:
+def generate_previews(input_path: Path, out_dir: Path,
+                      versions_path: Path | None = None, *,
+                      extra_args: Sequence[str] = ()) -> None:
     """Run ``picmaker`` on one input, writing every version into ``out_dir``.
 
     Parameters:
-        input_path: The source data file (a PDS3 label or a VICAR image).
+        input_path: The source data file (a PDS3 label or a VICAR/FITS image).
         out_dir: Directory to receive the generated previews.
-        versions_path: Versions file listing the per-preview option overrides.
-        extra_args: Base command-line options applied to every version (the
+        versions_path: Versions file listing the per-preview option overrides,
+            or ``None`` for a single conversion driven only by ``extra_args``.
+        extra_args: Base command-line options applied to the conversion (the
             options an instrument's preview script passes outside the versions
             file).
     """
-    args = [str(input_path), '--directory', str(out_dir),
-            '--versions', str(versions_path), '--proceed', *extra_args]
+    args = [str(input_path), '--directory', str(out_dir), '--proceed', *extra_args]
+    if versions_path is not None:
+        args += ['--versions', str(versions_path)]
     options = vars(PARSER.parse_args(args))
     picmaker(**options)  # type: ignore[no-untyped-call]  # untyped public entry point
 

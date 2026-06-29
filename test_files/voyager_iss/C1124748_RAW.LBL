@@ -1,0 +1,105 @@
+PDS_VERSION_ID                  = PDS3
+RECORD_TYPE                     = FIXED_LENGTH
+RECORD_BYTES                    = 1024
+FILE_RECORDS                    = 804
+^VICAR_HEADER                   = ("C1124748_RAW.IMG", 1)
+^ENGINEERING_TABLE              = ("C1124748_RAW.IMG", 2)
+^IMAGE                          = ("C1124748_RAW.IMG", 4)
+^VICAR_EXTENSION_HEADER         = ("C1124748_RAW.IMG", 804)
+
+DATA_SET_ID                     = "VG2-N-ISS-2/3/4/6-PROCESSED-V1.0"
+PRODUCT_ID                      = "C1124748_RAW.IMG"
+PRODUCT_CREATION_TIME           = 2013-10-23T16:00:00
+SOURCE_PRODUCT_ID               = "C1124748.IMQ"
+PRODUCT_TYPE                    = DECOMPRESSED_RAW_IMAGE
+
+/* Image Description  */
+
+INSTRUMENT_HOST_NAME            = "VOYAGER 2"
+INSTRUMENT_HOST_ID              = VG2
+INSTRUMENT_NAME                 = "IMAGING SCIENCE SUBSYSTEM - NARROW ANGLE"
+INSTRUMENT_ID                   = "ISSN"
+MISSION_PHASE_NAME              = "NEPTUNE ENCOUNTER"
+TARGET_NAME                     = "NEPTUNE"
+IMAGE_ID                        = "0444N2-005"
+IMAGE_NUMBER                    = "11247.48"
+IMAGE_TIME                      = 1989-08-20T09:56:45.00
+EARTH_RECEIVED_TIME             = 1989-08-20T14:01:58
+SCAN_MODE_ID                    = "5:1"
+SHUTTER_MODE_ID                 = "BOTSIM"
+GAIN_MODE_ID                    = "LOW"
+EDIT_MODE_ID                    = "1:1"
+FILTER_NAME                     = "ORANGE"
+FILTER_NUMBER                   = "3"
+EXPOSURE_DURATION               = 23.0400 <SECOND>
+
+START_TIME                      = 1989-08-20T09:56:21.96
+STOP_TIME                       = 1989-08-20T09:56:45.00
+SPACECRAFT_CLOCK_START_COUNT    = "11247:47:416"
+SPACECRAFT_CLOCK_STOP_COUNT     = "11247:48:001"
+
+NOTE                            =
+"PLANET CENTERED COLOR PICS FOR ATMOS DYNAMICS."
+
+DESCRIPTION                     = "This image is the result of decompressing
+the corresponding source image C1124748.IMQ as found on one of the Voyager ISS
+CD-ROMs. It was expanded using VICAR routine VGRCDCOPY on a Compaq Alpha
+running OpenVMS. It contains the raw image as an array of 800x800 unsigned
+bytes, with 224 prefix bytes of undocumented engineering information at the
+beginning of each line.
+
+See file DOCUMENT/PROCESSING.TXT for more information about the image
+processing."
+
+OBJECT                          = VICAR_HEADER
+  HEADER_TYPE                   = VICAR
+  BYTES                         = 1024
+  RECORDS                       = 1
+  INTERCHANGE_FORMAT            = ASCII
+  DESCRIPTION                   = "VICAR format label for the image."
+END_OBJECT                      = VICAR_HEADER
+
+OBJECT                          = ENGINEERING_TABLE
+  INTERCHANGE_FORMAT            = BINARY
+  ROWS                          = 2
+  COLUMNS                       = 1
+  ROW_BYTES                     = 1024
+  DESCRIPTION                   = "Engineering information in an undocumented
+binary format."
+
+  OBJECT                        = COLUMN
+    NAME                        = BINARY_HEADER_BYTES
+    START_BYTE                  = 1
+    BYTES                       = 1024
+    DATA_TYPE                   = CHARACTER
+    FORMAT                      = "A1024"
+    DESCRIPTION                 = "Placeholder column for the undocumented
+binary engineering information."
+  END_OBJECT                    = COLUMN
+END_OBJECT                      = ENGINEERING_TABLE
+
+OBJECT                          = IMAGE
+  LINES                         = 800
+  LINE_SAMPLES                  = 800
+  LINE_PREFIX_BYTES             = 224  /* undocumented */
+  SAMPLE_TYPE                   = UNSIGNED_INTEGER
+  SAMPLE_BITS                   = 8
+  SAMPLE_BIT_MASK               = 2#11111111#
+  SAMPLE_DISPLAY_DIRECTION      = RIGHT
+  LINE_DISPLAY_DIRECTION        = DOWN
+  HORIZONTAL_PIXEL_FOV          = 5.2200E-04 <DEGREE> /* approximate */
+  VERTICAL_PIXEL_FOV            = 5.2200E-04 <DEGREE> /* approximate */
+  HORIZONTAL_FOV                = 0.4176     <DEGREE> /* approximate */
+  VERTICAL_FOV                  = 0.4176     <DEGREE> /* approximate */
+  REFLECTANCE_SCALING_FACTOR    = 2.2270E-04          /* approximate */
+END_OBJECT                      = IMAGE
+
+OBJECT                          = VICAR_EXTENSION_HEADER
+  HEADER_TYPE                   = VICAR
+  BYTES                         = 1024
+  RECORDS                       = 1
+  INTERCHANGE_FORMAT            = ASCII
+  DESCRIPTION                   = "Continuation of the VICAR header."
+END_OBJECT                      = VICAR_EXTENSION_HEADER
+
+END
