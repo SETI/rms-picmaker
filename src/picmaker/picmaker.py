@@ -226,8 +226,7 @@ def picmaker1(infile, outfile, options, *, logger=None, image_data=None,
 
     # Fill zebra stripes
     if options.get('zebra', False):
-        array = array.copy()
-        fill_zebra_stripes(array, **options)
+        array = fill_zebra_stripes(array, **options)
 
     # Assemble a mosaic if necessary; convert to RGB or grayscale arrays scaled 0-1
     mosaic = options.get('mosaic', False)

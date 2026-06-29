@@ -80,17 +80,19 @@ def fill_zebra_stripes(array, **kwargs):
     associated with some spacecraft compression procedures.
 
     Parameters:
-        array (np.ndarray): A 2-D or 3-D array (modified in place).
+        array (np.ndarray): A 2-D or 3-D array. It is not modified.
         **kwargs: Additional input options, ignored here.
 
     Returns:
-        (np.ndarray[float]): The same array, modified in place if it is currently
-        floating-point; converted from integers otherwise.
+        (np.ndarray[float]): A new floating-point array with the zebra stripes filled. The
+        input is never modified, so a caller may reuse it (e.g. for a following version in
+        which ``--zebra`` is not set).
     """
 
     # Get the dimensions
     lines, samples = array.shape[-2:]
 
+    # Work on a float copy; the caller's array (shared across versions) is left untouched.
     array = array.astype('float')
     if array.ndim == 2:
         arrays = [array]
