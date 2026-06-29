@@ -47,30 +47,34 @@ class HST_ACS(ImageData):
 
         return ImageData(hdulist[0].data, _DEFAULT_UPWARD, default_tint)
 
-    def apply_mosaic(arrays_rgb, **kwargs):
-        """Construct the ACS/WFC mosaic."""
+    @staticmethod
+    def apply_mosaic(arrays_rgb, *, imagefile=None, **kwargs):
+        """Assemble ACS/WFC's two CCDs (WFC1 above, WFC2 below) into a mosaic.
 
-        # TBD
-        pass
-
-    def _acs_wfc_panel_mosaic(arrays_rgb, imagefile):
-        """Assemble ACS/WFC's two detectors (WFC1 above, WFC2 below).
-
-        When ``imagefile`` is a list of per-detector file paths, the panel order is
-        inferred from substrings (``WFC1``, ``WFC2``) in each filename. When
-        ``imagefile`` is a single string, band 0 is placed below and band 1 above
-        (matching the legacy ``1 - b`` indexing).
+        Only the WFC detector is built from two CCDs; HRC and SBC are single-detector, so a
+        single-element ``arrays_rgb`` is returned unchanged. When ``imagefile`` is a list
+        of per-CCD file paths, the panel order is inferred from substrings (``WFC1``,
+        ``WFC2``) in each file name; otherwise band 0 is placed below and band 1 above.
 
         Parameters:
-            arrays_rgb: Per-band RGB arrays (length 2), each ``(lines, samples, 3)``.
-            imagefile: Either a single string or a list of strings.
+            arrays_rgb (list[np.ndarray]): Per-CCD RGB arrays, each ``(lines, samples,
+                3)``. WFC supplies two; HRC and SBC supply one.
+            imagefile (str, list[str], or None, optional): The source file path, or a list
+                of per-CCD paths used to order the panels by name.
+            **kwargs: Additional input options, ignored here.
 
         Returns:
-            The assembled panel mosaic, shape ``(2 * lines, samples, 3)``.
+            (np.ndarray): The assembled mosaic ``(2 * lines, samples, 3)`` for WFC, or the
+            single RGB array unchanged for HRC and SBC.
         """
-        panels_rgb = np.zeros((2, *arrays_rgb[0].shape))
+
+        # Only WFC has two CCDs to stack; HRC and SBC are single-detector.
+        if len(arrays_rgb) < 2:
+            return arrays_rgb[0]
+
+        panels_rgb = np.zeros((2,) + arrays_rgb[0].shape)
         for b in range(2):
-            if isinstance(imagefile, str):
+            if not isinstance(imagefile, (list, tuple)):
                 panels_rgb[1 - b] = arrays_rgb[b]
             else:
                 testfile = imagefile[b].upper()
@@ -83,11 +87,9 @@ class HST_ACS(ImageData):
 
         (dl, ds, db) = arrays_rgb[0].shape
         mosaic = np.zeros((2 * dl, ds, db))
-        mosaic[:dl] = panels_rgb[0]
-        mosaic[-dl:] = panels_rgb[1]
+        mosaic[:dl] = panels_rgb[0]     # WFC1 on top
+        mosaic[-dl:] = panels_rgb[1]    # WFC2 on bottom
         return mosaic
-
-
 
 
 register_instrument(HST_ACS)

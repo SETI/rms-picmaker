@@ -55,26 +55,22 @@ class HST_WFPC2(ImageData):
 
         return ImageData(hdulist[0].data, _DEFAULT_UPWARD, default_tint)
 
-    def apply_mosaic(arrays_rgb, **kwargs):
-        """Construct the WFPC2 mosaic."""
-
-        # TBD
-        pass
-
-    def _wfpc2_mosaic(arrays_rgb, imagefile):
+    @staticmethod
+    def apply_mosaic(arrays_rgb, *, imagefile=None, **kwargs):
         """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
 
-        When ``imagefile`` is a list of per-detector file paths, the band order is
-        inferred from substrings (``PC1``, ``WF2``, ``WF3``, ``WF4``) in each
-        filename. When ``imagefile`` is a single string (e.g. a multi-extension FITS
-        file), bands are placed in ``b``-order with a ``b``-step ``np.rot90``
-        rotation. Each non-PC1 detector is rotated to share the PC1's pixel
-        orientation.
+        When ``imagefile`` is a list of per-detector file paths, each detector's quadrant
+        is inferred from substrings (``PC1``, ``WF2``, ``WF3``, ``WF4``) in the file name,
+        and every non-PC1 detector is rotated to share PC1's pixel orientation. Otherwise
+        (a single multi-extension file, or no file information), the bands are placed in
+        order with a ``b``-step ``np.rot90`` rotation.
 
         Parameters:
-            arrays_rgb (list[np.ndarray]): Per-band RGB arrays (length 4), each
+            arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (length 4), each
                 ``(lines, samples, 3)``.
-            imagefile (str or list[str]): Either a single string or a list of strings.
+            imagefile (str, list[str], or None, optional): The source file path, or a list
+                of per-detector paths used to order the quadrants by name.
+            **kwargs: Additional input options, ignored here.
 
         Returns:
             (np.ndarray): The assembled 2x2 mosaic, shape ``(2 * lines, 2 * samples, 3)``.
@@ -82,7 +78,7 @@ class HST_WFPC2(ImageData):
 
         quads_rgb = np.zeros((4,) + arrays_rgb[0].shape)
         for b in range(len(arrays_rgb)):
-            if isinstance(imagefile, str):
+            if not isinstance(imagefile, (list, tuple)):
                 quads_rgb[b] = np.rot90(arrays_rgb[b], b)
             else:
                 testfile = imagefile[b].upper()
