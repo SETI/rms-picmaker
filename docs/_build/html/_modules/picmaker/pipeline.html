@@ -618,7 +618,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            :class:`~picmaker.options.PicmakerOptions` (after calling</span>
 <span class="sd">            :meth:`~picmaker.options.PicmakerOptions.normalize` and</span>
 <span class="sd">            :meth:`~picmaker.options.PicmakerOptions.validate`).</span>
-<span class="sd">        reuse: A 4-tuple ``(array3d, default_is_up, filter_info,</span>
+<span class="sd">        reuse: A 4-tuple ``(array3d, default_is_up, image_info,</span>
 <span class="sd">            infile)`` from a previous call, or ``None`` to read from</span>
 <span class="sd">            disk.</span>
 <span class="sd">        directory: Output directory, or ``None`` to write next to the</span>
@@ -644,11 +644,11 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">reuse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">default_is_up</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">,</span> <span class="n">infile</span><span class="p">)</span> <span class="o">=</span> <span class="n">reuse</span>
+        <span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">default_is_up</span><span class="p">,</span> <span class="n">image_info</span><span class="p">,</span> <span class="n">infile</span><span class="p">)</span> <span class="o">=</span> <span class="n">reuse</span>
         <span class="n">imagefile</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">infile</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">imagefile</span> <span class="o">=</span> <span class="n">infile</span>
-        <span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">default_is_up</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_image_array</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">default_is_up</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span> <span class="o">=</span> <span class="n">read_image_array</span><span class="p">(</span>
             <span class="n">infile</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">obj</span><span class="p">,</span>
             <span class="o">**</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">READ_FILE_KWARGS</span><span class="p">},</span>
         <span class="p">)</span>
@@ -665,8 +665,8 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># Resolve colormap; tint override applies to both mosaic and standard paths.</span>
     <span class="n">colormap</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">colormap</span>
-    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">tint</span> <span class="ow">and</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">tint_override</span> <span class="o">=</span> <span class="n">tinted_colormap</span><span class="p">(</span><span class="n">filter_info</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">tint</span> <span class="ow">and</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tint_override</span> <span class="o">=</span> <span class="n">tinted_colormap</span><span class="p">(</span><span class="n">image_info</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tint_override</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">colormap</span> <span class="o">=</span> <span class="n">tint_override</span>
 
@@ -675,14 +675,14 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># apply_tint: custom colorization, gated on --tint.</span>
     <span class="c1"># apply_mosaic: array assembly (e.g. multi-detector panels), gated on --mosaic.</span>
     <span class="n">_custom_rgb</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_inst</span> <span class="o">=</span> <span class="n">instruments</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">filter_info</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">filter_info</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_inst</span> <span class="o">=</span> <span class="n">instruments</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">image_info</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">image_info</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">_inst</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">tint</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_inst</span><span class="p">,</span> <span class="s1">&#39;apply_tint&#39;</span><span class="p">):</span>
-                <span class="n">_custom_rgb</span> <span class="o">=</span> <span class="n">_inst</span><span class="o">.</span><span class="n">apply_tint</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+                <span class="n">_custom_rgb</span> <span class="o">=</span> <span class="n">_inst</span><span class="o">.</span><span class="n">apply_tint</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">image_info</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">_custom_rgb</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">mosaic</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_inst</span><span class="p">,</span> <span class="s1">&#39;apply_mosaic&#39;</span><span class="p">):</span>
                 <span class="n">_custom_rgb</span> <span class="o">=</span> <span class="n">_inst</span><span class="o">.</span><span class="n">apply_mosaic</span><span class="p">(</span>
-                    <span class="n">array3d</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span>
+                    <span class="n">array3d</span><span class="p">,</span> <span class="n">image_info</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span>
                     <span class="n">default_is_up</span><span class="o">=</span><span class="n">default_is_up</span><span class="p">,</span>
                     <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span>
                     <span class="n">imagefile</span><span class="o">=</span><span class="n">imagefile</span><span class="p">,</span>
@@ -722,7 +722,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">write_pil</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">quality</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">limits_pair</span><span class="p">,</span> <span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">default_is_up</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">,</span> <span class="n">infile</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">limits_pair</span><span class="p">,</span> <span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="n">default_is_up</span><span class="p">,</span> <span class="n">image_info</span><span class="p">,</span> <span class="n">infile</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="process_images">

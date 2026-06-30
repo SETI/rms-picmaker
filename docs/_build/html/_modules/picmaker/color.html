@@ -533,11 +533,11 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="tinted_colormap">
 <a class="viewcode-back" href="../../module.html#picmaker.tinted_colormap">[docs]</a>
-<span class="k">def</span> <span class="nf">tinted_colormap</span><span class="p">(</span><span class="n">filter_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">tinted_colormap</span><span class="p">(</span><span class="n">image_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a colormap based on filter info.</span>
 
 <span class="sd">    Parameters:</span>
-<span class="sd">        filter_info: A tuple ``(instrument_host, instrument_id, filter)``,</span>
+<span class="sd">        image_info: A tuple ``(instrument_host, instrument_id, filter)``,</span>
 <span class="sd">            where ``filter`` may be a single name or a 2-tuple of names</span>
 <span class="sd">            (e.g. HST/ACS).</span>
 
@@ -546,10 +546,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        ``[black, tint, white]``), or ``None`` if no colormap can be</span>
 <span class="sd">        derived.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
-    <span class="p">(</span><span class="n">inst_host</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">)</span> <span class="o">=</span> <span class="n">filter_info</span>
+    <span class="p">(</span><span class="n">inst_host</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">)</span> <span class="o">=</span> <span class="n">image_info</span>
     <span class="k">if</span> <span class="n">filter_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 

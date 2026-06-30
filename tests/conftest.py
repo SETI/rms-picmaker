@@ -51,7 +51,7 @@ def basic_option_dict() -> dict[str, Any]:
         'samples': None,
         'obj': None,
         'pointer': ['IMAGE'],
-        'pds3_label_method': 'strict',
+        'pds3_method': 'strict',
         'size': None,
         'scale': (100.0, 100.0),
         'crop': None,

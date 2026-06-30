@@ -4,30 +4,29 @@
 """Image processing options."""
 
 import numpy as np
-
 from PIL import Image, ImageFilter
 
 _FILTER_DICT = {
-    'NONE'             : None,
-    'BLUR'             : ImageFilter.BLUR,
-    'CONTOUR'          : ImageFilter.CONTOUR,
-    'DETAIL'           : ImageFilter.DETAIL,
-    'EDGE_ENHANCE'     : ImageFilter.EDGE_ENHANCE,
-    'EDGE_ENHANCE_MORE': ImageFilter.EDGE_ENHANCE_MORE,
-    'EMBOSS'           : ImageFilter.EMBOSS,
-    'FIND_EDGES'       : ImageFilter.FIND_EDGES,
-    'SMOOTH'           : ImageFilter.SMOOTH,
-    'SMOOTH_MORE'      : ImageFilter.SMOOTH_MORE,
-    'SHARPEN'          : ImageFilter.SHARPEN,
-    'MEDIAN_3'         : ImageFilter.MedianFilter(3),
-    'MEDIAN_5'         : ImageFilter.MedianFilter(5),
-    'MEDIAN_7'         : ImageFilter.MedianFilter(7),
-    'MINIMUM_3'        : ImageFilter.MinFilter(3),
-    'MINIMUM_5'        : ImageFilter.MinFilter(5),
-    'MINIMUM_7'        : ImageFilter.MinFilter(7),
-    'MAXIMUM_3'        : ImageFilter.MaxFilter(3),
-    'MAXIMUM_5'        : ImageFilter.MaxFilter(5),
-    'MAXIMUM_7'        : ImageFilter.MaxFilter(7),
+    'none'             : None,
+    'blur'             : ImageFilter.BLUR,
+    'contour'          : ImageFilter.CONTOUR,
+    'detail'           : ImageFilter.DETAIL,
+    'edge_enhance'     : ImageFilter.EDGE_ENHANCE,
+    'edge_enhance_more': ImageFilter.EDGE_ENHANCE_MORE,
+    'emboss'           : ImageFilter.EMBOSS,
+    'find_edges'       : ImageFilter.FIND_EDGES,
+    'smooth'           : ImageFilter.SMOOTH,
+    'smooth_more'      : ImageFilter.SMOOTH_MORE,
+    'sharpen'          : ImageFilter.SHARPEN,
+    'median_3'         : ImageFilter.MedianFilter(3),
+    'median_5'         : ImageFilter.MedianFilter(5),
+    'median_7'         : ImageFilter.MedianFilter(7),
+    'minimum_3'        : ImageFilter.MinFilter(3),
+    'minimum_5'        : ImageFilter.MinFilter(5),
+    'minimum_7'        : ImageFilter.MinFilter(7),
+    'maximum_3'        : ImageFilter.MaxFilter(3),
+    'maximum_5'        : ImageFilter.MaxFilter(5),
+    'maximum_7'        : ImageFilter.MaxFilter(7),
 }
 
 FILTER_CHOICES = list(_FILTER_DICT.keys())
@@ -41,16 +40,16 @@ def filter_pil_image(image, filter=None, **kwargs):
     Parameters:
         image (PIL.Image): A PIL image as 8-bit RGB or grayscale.
         filter (str, optional): Name of the filter to be applied. Valid choices are:
-            ``"NONE"``, ``"BLUR"``, ``"CONTOUR"``, ``"DETAIL"``, ``"EDGE_ENHANCE"``,
-            ``"EDGE_ENHANCE_MORE"``, ``"EMBOSS"``, ``"FIND_EDGES"``, ``"SMOOTH"``,
-            ``"SMOOTH_MORE"``, ``"SHARPEN"``, ``"MEDIAN_3"``, ``"MEDIAN_5"``,
-            ``"MEDIAN_7"``, ``"MINIMUM_3"``, ``"MINIMUM_5"``, ``"MINIMUM_7"``,
-            ``"MAXIMUM_3"``, ``"MAXIMUM_5"``, or ``"MAXIMUM_7"``. Values are
-            case-insensitive. ``"NONE"`` returns the input image unchanged.
+            ``"none"``, ``"blur"``, ``"contour"``, ``"detail"``, ``"edge_enhance"``,
+            ``"edge_enhance_more"``, ``"emboss"``, ``"find_edges"``, ``"smooth"``,
+            ``"smooth_more"``, ``"sharpen"``, ``"median_3"``, ``"median_5"``,
+            ``"median_7"``, ``"minimum_3"``, ``"minimum_5"``, ``"minimum_7"``,
+            ``"maximum_3"``, ``"maximum_5"``, or ``"maximum_7"``. Values are
+            case-insensitive. ``"none"`` returns the input image unchanged.
         **kwargs: Additional input options ignored here.
 
     Returns:
-        (np.ndarray) The filtered PIL image. For ``filter='NONE'`` the input image is
+        (np.ndarray) The filtered PIL image. For ``filter="none"``, the input image is
             returned unchanged.
 
     Raises:
@@ -58,12 +57,12 @@ def filter_pil_image(image, filter=None, **kwargs):
         KeyError: If ``filter`` (ignoring case) is not recognized.
     """
 
-    filter = (filter or 'NONE').upper()
-    if filter == 'NONE':
+    filter = (filter or 'none').lower()
+    if filter == 'none':
         return image
 
-    if not isinstance(image, Image):
-        raise ValueError('image filters are not supported for of 2-byte images')
+    if not isinstance(image, Image.Image):
+        raise ValueError('image filters are not supported for 2-byte images')
 
     filter_method = _FILTER_DICT[filter]    # forward KeyError
     if filter_method:

@@ -1,0 +1,4 @@
+--pointer X2D_JPEG_DOCUMENT --strip _X2D --alt_pointer RAW_JPEG_DOCUMENT --alt_strip _RAW --suffix _thumb --frame 100 100 -x jpg
+--pointer X2D_JPEG_DOCUMENT --strip _X2D --alt_pointer RAW_JPEG_DOCUMENT --alt_strip _RAW --suffix _small --frame 256 256 -x jpg
+--pointer X2D_JPEG_DOCUMENT --strip _X2D --alt_pointer RAW_JPEG_DOCUMENT --alt_strip _RAW --suffix _med   --frame 512 512 -x jpg
+--pointer X2D_JPEG_DOCUMENT --strip _X2D --alt_pointer RAW_JPEG_DOCUMENT --alt_strip _RAW --suffix _full -x jpg

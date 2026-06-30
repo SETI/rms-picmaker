@@ -31,9 +31,8 @@ Produce a structured analysis and recommendations report. Do not implement chang
 Compare against project rules when present (e.g. `.cursor/rules/python_best_practices.mdc`). Check:
 
 - Naming (builtin shadowing, private `_` prefix, ALL_CAPS for module-level constants).
-- Explicit checks vs exception-based control flow; falsy checks (`is None`, `len(x) == 0`).
 - Imports: top of file, grouped and sorted; no wildcard imports.
-- Function shape: ≤3 positional args, keyword-only for the rest. Return an object rather than a tuple of many results.
+- Function shape: ≤5 positional args, keyword-only for the rest. Return an object rather than a tuple of many results.
 - Constants: no magic numbers/strings; config or env for tunables.
 - Error handling: narrow try/except; no bare except; logging over print in libraries.
 - Public API: clear `__all__`, `py.typed` for typed packages, separation of public vs `_private`.

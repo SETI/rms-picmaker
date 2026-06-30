@@ -1,0 +1,5 @@
+--pointer RAW_TIFF_DOCUMENT --strip _RAW --alt_pointer MOS_JPEG_DOCUMENT --alt_strip _MOS --suffix _thumb --frame 100 100 --tint
+--pointer RAW_TIFF_DOCUMENT --strip _RAW --alt_pointer MOS_JPEG_DOCUMENT --alt_strip _MOS --suffix _small --frame 256 256 --tint
+--pointer RAW_TIFF_DOCUMENT --strip _RAW --alt_pointer MOS_JPEG_DOCUMENT --alt_strip _MOS --suffix _med   --frame 512 512 --tint
+--pointer RAW_TIFF_DOCUMENT --strip _RAW --alt_pointer MOS_JPEG_DOCUMENT --alt_strip _MOS --suffix _full --scale 200
+

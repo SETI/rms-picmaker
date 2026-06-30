@@ -6,6 +6,7 @@
 import astropy.io.fits as pyfits  # noqa
 
 from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments._fits_support import get_fits_array
 from picmaker.instruments._hst_support import get_hst_filter_digits, hst_tint_from_nm
 
 _DEFAULT_UPWARD = True
@@ -37,14 +38,14 @@ class HST_NICMOS(ImageData):
         except (KeyError, IndexError):
             return None
 
-        filter_name = hdulist.get('FILTER', '').rstrip()
+        filter_name = hdulist[0].header.get('FILTER', '').rstrip()
         if filter_name[:3] == 'POL':
             default_tint = None
         else:
             wave = get_hst_filter_digits(filter_name)
             default_tint = hst_tint_from_nm(wave * 3.5)
 
-        return ImageData(hdulist[0].data, _DEFAULT_UPWARD, default_tint)
+        return ImageData(get_fits_array(hdulist, obj), _DEFAULT_UPWARD, default_tint)
 
 
 register_instrument(HST_NICMOS)

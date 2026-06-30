@@ -96,8 +96,8 @@ Control options
 * ``--versions FILE`` — For each non-blank line in ``FILE``, re-parse
   the command line with that line's tokens appended and run the
   resulting pipeline. Produces one output per non-blank line.
-* ``--verbose N`` (default: ``0``) — ``1`` prints each directory in a
-  recursive walk; ``2`` prints every file path.
+* ``--logging LEVEL`` (default: ``info``) — Logging verbosity. One of
+  ``warning``, ``info``, ``debug``, ``error``.
 * ``--replace POLICY`` (default: ``all``) — One of ``all`` (silent
   overwrite), ``none`` (skip silently), ``warn`` (overwrite with a
   warning), ``error`` (abort).
@@ -112,10 +112,8 @@ Output options
   ``jpg``, ``jpeg``, ``png``, ``tif``, ``tiff`` (any-case).
 * ``-s STR``, ``--suffix STR`` (default: ``''``) — Inserted between the
   file stem and ``.<ext>``.
-* ``--strip STR`` (default: ``''``) — Substring to remove from the
-  output filename's stem before appending the suffix.
-* ``--alt-strip STR``, ``--alt_strip STR`` — Additional substring to
-  strip; both ``--strip`` and ``--alt-strip`` apply.
+* ``--strip STR [STR ...]`` (default: none) — One or more substrings to
+  remove from the output filename's stem before appending the suffix.
 * ``-q N``, ``--quality N`` (default: ``75``) — JPEG quality, 1-100.
   Ignored for non-JPEG outputs.
 * ``--16`` — Emit a 16-bit grayscale or 16-bit RGB TIFF. Forces
@@ -130,15 +128,16 @@ Selection options
   ``band == bands[0] == bands[1]``).
 * ``--bands LO HI`` (default: ``(band, band+1)``) — Average bands
   ``LO..HI-1`` (half-open range).
-* ``--rectangle S1 L1 S2 L2`` — Sub-region selection by sample / line
-  corners.
+* ``--lines L1 L2`` — Sub-region selection by line index (1-based,
+  inclusive of the upper limit).
+* ``--samples S1 S2`` — Sub-region selection by sample index (1-based,
+  inclusive of the upper limit).
 * ``-o N``, ``--object N`` (default: first valid) — Index of the PDS
   object to read when a file contains multiple image objects.
-* ``--pointer PTR`` (default: ``IMAGE``) — PDS pointer name (without
-  leading ``^``) identifying the image object in a detached label.
-* ``--alt-pointer PTR``, ``--alt_pointer PTR`` — Fallback pointer tried
-  when ``--pointer`` is not in the label.
-* ``--pds3-label-method METHOD``, ``--pds3_label_method METHOD``
+* ``--pds3-pointer PTR [PTR ...]`` — One or more PDS pointer names
+  (without leading ``^``) identifying the image object in a detached
+  label; tried in order.
+* ``--pds3-method METHOD``
   (default: ``fast``) — Parsing strictness forwarded to
   :class:`pdsparser.Pds3Label` for ``.LBL`` inputs. Choices:
   ``fast`` (minimum-overhead key/value scan), ``strict`` (rigorous
@@ -249,9 +248,8 @@ Processing options
 ``rms-picmaker`` reads the following input formats:
 
 * **PDS3 detached label** — a ``.LBL`` file pointing at one or more
-  ``IMAGE`` objects in a sibling data file. ``--pointer`` and
-  ``--alt-pointer`` choose which pointer to follow when more than one
-  is present.
+  ``IMAGE`` objects in a sibling data file. ``--pds3-pointer`` chooses
+  which pointer(s) to follow when more than one is present.
 * **PDS3 attached label** — the label header precedes the image data
   in the same file.
 * **VICAR** — including per-instrument variants (Cassini ISS, Voyager
@@ -402,8 +400,8 @@ The intensity pipeline runs in this order:
 
 Geometry runs in this order:
 
-1. ``--rectangle`` / ``--crop`` / ``--trim`` shrink the working
-   region.
+1. ``--lines`` / ``--samples`` / ``--crop`` / ``--trim`` shrink the
+   working region.
 2. ``--rotate`` (or the implicit default from the per-instrument
    detector geometry) flips / rotates the working array.
 3. ``--size`` / ``--scale`` / ``--wscale`` / ``--hscale`` resize the

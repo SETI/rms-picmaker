@@ -3,12 +3,12 @@
 ##########################################################################################
 """Complete ``picmaker`` functionality in a single function call."""
 
+# ruff: noqa: I001
 import argparse
-import os
 
 import numpy as np
 
-from picmaker.cli         import PARSER
+from picmaker.colornames  import ColorNames
 from picmaker.control     import get_filepaths, get_outfile
 from picmaker.enhancement import apply_colormap
 from picmaker.instruments import read_image_array
@@ -16,16 +16,19 @@ from picmaker.layout      import wrap_pil_image, pad_pil_image
 from picmaker.orientation import rotate_rgb_array
 from picmaker.pil_utils   import array_to_pil, write_pil, PIL_EXTENSIONS
 from picmaker.processing  import fill_zebra_stripes, filter_pil_image
-from picmaker.scaling     import get_limits
 from picmaker.sizing      import get_size, resize_pil_image
 from picmaker.slicing     import slice_array
+from picmaker.stretch     import get_limits
 
 
-def validate_options(options):
+def validate_options(options, *, logger=None, _versions_validated=None):
     """Convert an argparse Namespace to a dict if necessary and validate values.
 
     Parameters:
         options (argparse.Namespace or dict): Picmaker inputs.
+        logger (:class:`pdslogger.PdsLogger`, optional): Optional PdsLogger.
+        _versions_validated (str, optional): A version file already validated; this is
+            used to prevent recursive version files.
 
     Returns:
         (dict): Dictionary of all input options. These are used as ``**kwargs`` input to
@@ -38,82 +41,106 @@ def validate_options(options):
     if not isinstance(options, dict):
         options = options.__dict__
 
-    extension = options.get('extension') or 'jpg'
-    if extension.lower() not in PIL_EXTENSIONS:
-        raise ValueError(f'unrecognized --extension: {extension!r}')
-    options['extension'] = extension
+    try:
+        extension = options.get('extension') or 'jpg'
+        if extension.lower() not in PIL_EXTENSIONS:
+            raise ValueError(f'unrecognized --extension: {extension!r}')
+        options['extension'] = extension
 
-    names_to_delete = []
+        names_to_delete = []
 
-    # band vs. bands -> bands
-    band = options.get('band', None)
-    bands = options.get('bands', None)
-    if band is not None:
-        if bands is None:
-            options['bands'] = (band, band)
-        else:
-            raise ValueError('--band and --bands options are incompatible')
+        # band vs. bands -> bands
+        band = options.get('band', None)
+        bands = options.get('bands', None)
+        if band is not None:
+            if bands is None:
+                options['bands'] = (band, band)
+            else:
+                raise ValueError('--band and --bands options are incompatible')
 
-    # scale vs. (wscale, hscale) -> scale, a pair of values (wscale, hscale)
-    scale = options.get('scale', None)
-    wscale = options.get('wscale', None)
-    hscale = options.get('hscale', None)
-    if scale is not None and wscale is not None:
-        raise ValueError('--scale and --wscale options are incompatible')
-    if scale is not None and hscale is not None:
-        raise ValueError('--scale and --hscale options are incompatible')
-    if scale is None:
-        scale = 100.
-    if np.isscalar(scale):
-        options['scale'] = (wscale if wscale is not None else scale,
-                            hscale if hscale is not None else scale)
-    names_to_delete += ['wscale', 'hscale']
+        # scale vs. (wscale, hscale) -> scale, a pair of values (wscale, hscale)
+        scale = options.get('scale', None)
+        wscale = options.get('wscale', None)
+        hscale = options.get('hscale', None)
+        if scale is not None and wscale is not None:
+            raise ValueError('--scale and --wscale options are incompatible')
+        if scale is not None and hscale is not None:
+            raise ValueError('--scale and --hscale options are incompatible')
+        if scale is None:
+            scale = 100.
+        if np.isscalar(scale):
+            options['scale'] = (wscale if wscale is not None else scale,
+                                hscale if hscale is not None else scale)
+        names_to_delete += ['wscale', 'hscale']
 
-    # overlap vs. overlaps -> overlaps. A default-filled overlaps of (0., 0.), left by an
-    # earlier validation of a versions base, does not conflict with a per-version
-    # --overlap; the explicit --overlap wins.
-    overlap = options.get('overlap', None)
-    overlaps = options.get('overlaps', None)
-    if overlap is not None and overlaps not in (None, (0., 0.)):
-        raise ValueError('--overlap and --overlaps options are incompatible')
-    if overlap is not None:
-        options['overlaps'] = (overlap, overlap)
-    elif overlaps is None:
-        options['overlaps'] = (0., 0.)
-    names_to_delete.append('overlap')
+        # overlap vs. overlaps -> overlaps. A default-filled overlaps of (0., 0.), left by
+        # an earlier validation of a versions base, does not conflict with a per-version
+        # --overlap; the explicit --overlap wins.
+        overlap = options.get('overlap', None)
+        overlaps = options.get('overlaps', None)
+        if overlap is not None and overlaps not in (None, (0., 0.)):
+            raise ValueError('--overlap and --overlaps options are incompatible')
+        if overlap is not None:
+            options['overlaps'] = (overlap, overlap)
+        elif overlaps is None:
+            options['overlaps'] = (0., 0.)
+        names_to_delete.append('overlap')
 
-    # display_upward vs. display_downward -> display_upward
-    display_upward = options.get('display_upward', None)
-    display_downward = options.get('display_downward', None)
-    if display_downward is not None:
-        if display_upward is None:
-            options['display_upward'] = not display_downward
-        else:
-            raise ValueError('--up and --down options are incompatible')
-    names_to_delete.append('display_downward')
+        # display_upward vs. display_downward -> display_upward
+        display_upward = options.get('display_upward', None)
+        display_downward = options.get('display_downward', None)
+        if display_downward is not None:
+            if display_upward is None:
+                options['display_upward'] = not display_downward
+            else:
+                raise ValueError('--up and --down options are incompatible')
+        names_to_delete.append('display_downward')
 
-    # frame vs. size
-    if options['frame'] is not None and options['size'] is not None:
-        raise ValueError('--frame and --size options are incompatible')
+        # frame vs. size
+        if options['frame'] is not None and options['size'] is not None:
+            raise ValueError('--frame and --size options are incompatible')
 
-    # two-byte vs. extension
-    if options.get('twobytes', False):
-        extension = options.get('extension', '')
-        if extension and extension.lower() not in ('tif', 'tiff', '.tif', '.tiff'):
-            raise ValueError('only tiffs can be written in 16-bit mode')
+        # two-byte vs. extension
+        if options.get('twobytes', False):
+            extension = options.get('extension', '')
+            if extension and extension.lower() not in ('tif', 'tiff', '.tif', '.tiff'):
+                raise ValueError('only tiffs can be written in 16-bit mode')
 
-    # movie vs. versions
-    versions = options.get('versions', None)
-    if versions:
-        if options.get('movie', False):
-            raise ValueError('--movie and --versions options are incompatible')
+        # movie vs. versions
+        versions = options.get('versions', None)
+        if versions:
+            if options.get('movie', False):
+                raise ValueError('--movie and --versions options are incompatible')
 
-        if not os.path.exists(versions):
-            raise FileNotFoundError(f'--versions file not found: "{versions}"')
+        # Validate all colors
+        colormap = options.get('colormap', [])
+        for color in colormap:
+            _ = ColorNames.lookup(color)
 
+        for name in ('below_color', 'above_color', 'invalid_color', 'gap_color',
+                     'pad_color'):
+            color = options.get(name)
+            if color is not None:   # None means "use the colormap default"
+                _ = ColorNames.lookup(color)
+
+    except Exception as err:
+        logger and logger.exception(err)
+        raise
+
+    # Remove alternative names from the dict
     for name in names_to_delete:
         if name in options:
             del options[name]
+
+    # Validate the versions file including recursive call to this function
+    versions = options.get('versions', None)
+    if versions:
+        if _versions_validated and _versions_validated != versions:
+            logger and logger.error('recursive --versions are not supported', versions)
+            raise ValueError('recursive --versions are not supported: {versions}')
+
+        logger and logger.debug('parsing version file', versions)
+        _ = get_versions(**options)
 
     return options
 
@@ -123,6 +150,12 @@ def get_versions(versions=None, **kwargs):
 
     if not versions:
         return [kwargs]
+
+    # Imported lazily to avoid a circular import at package-load time: picmaker.cli
+    # imports nothing from this module at load, but this module is reached via the package
+    # __init__, so a top-level `from picmaker.cli import PARSER` would pull cli in during
+    # `import picmaker` and make `python -m picmaker.cli` emit a runpy double-import warning.
+    from picmaker.cli import PARSER
 
     with open(versions, 'r') as f:  # forward any OSErrors
         lines = f.readlines()
@@ -139,73 +172,89 @@ def get_versions(versions=None, **kwargs):
 
         namespace = argparse.Namespace(**kwargs)
         alt_namespace = PARSER.parse_args(new_args, namespace=namespace)
-        alt_options = validate_options(alt_namespace)
+        alt_options = validate_options(alt_namespace, _versions_validated=versions)
         options_list.append(alt_options)
 
-    return options_list
+    return options_list if options_list else [kwargs]
 
 
 def picmaker(logger=None, **options):
 
-    validate_options(options)
-
     log_level = options.get('logging', 'info')
-    if logger:
-        logger.set_level(log_level)
+    logger and logger.set_level(log_level)
+
+    validate_options(options, logger=logger)
+    options['logger'] = logger  # many functions get the logger out of the options dict
 
     infiles_and_outdirs = get_filepaths(**options)
     if not infiles_and_outdirs:
+        logger and logger.error('no input files identified')
         raise ValueError('no input files identified')
 
     movie = options.get('movie', False)
-    options_list = get_versions(**options)
+    proceed = options.get('proceed', False)
+    versions = options.get('versions', None)
 
-    names_to_delete = ['files', 'directory', 'recursive', 'patterns', 'movie', 'logging',
-                       'versions']
-    for options in options_list:
-        for name in names_to_delete:
-            if name in options:
-                del options[name]
+    # Remove fully-handled options now
+    for name in ('files', 'directory', 'recursive', 'patterns', 'movie', 'logging',
+                 'versions'):
+        if name in options:
+            del options[name]
 
     if movie:
-        options = options_list[0]
-        imagedata_list = []
+        entries = []        # (infile, outdir, image_data) for each readable file
         min_limit = np.inf
         max_limit = -np.inf
         for infile, outdir in infiles_and_outdirs:
-            (image_data, limits) = picmaker1(infile, '', options, logger=logger,
-                                             return_limits=True)
-            imagedata_list.append(image_data)
-            min_limit = min(min_limit, limits[0])
-            max_limit = max(max_limit, limits[1])
+            try:
+                image_data, limits = picmaker1(infile, '', options, return_limits=True)
+            except Exception:
+                if not proceed:
+                    raise
+                logger and logger.info('Proceeding after error')
+            else:
+                entries.append((infile, outdir, image_data))
+                min_limit = min(min_limit, limits[0])
+                max_limit = max(max_limit, limits[1])
 
         options['limits'] = (min_limit, max_limit)
         options['percentiles'] = None
 
-        for k, image_data in enumerate(imagedata_list):
-            infile = infiles_and_outdirs[k][0]
-            outdir = infiles_and_outdirs[k][1]
-            outfile = get_outfile(infile, outdir=outdir, **options)
-            picmaker1(infile, outfile, options, logger=logger, image_data=image_data)
+        for infile, outdir, image_data in entries:
+            try:
+                outfile = get_outfile(infile, outdir=outdir, **options)
+                if not outfile:     # if replace='none' and the output file exists
+                    continue
+                picmaker1(infile, outfile, options, image_data=image_data)
+            except Exception:
+                if not proceed:
+                    raise
+                logger and logger.info('Proceeding after error')
 
     else:
+        options_list = get_versions(versions=versions, **options)
         for infile, outdir in infiles_and_outdirs:
             image_data = None
             for options in options_list:
-                outfile = get_outfile(infile, outdir=outdir, **options)
-                image_data = picmaker1(infile, outfile, options, logger=logger,
-                                       image_data=image_data)
+                try:
+                    outfile = get_outfile(infile, outdir=outdir, **options)
+                    if not outfile:     # replace='none' and the output already exists
+                        continue
+                    image_data = picmaker1(infile, outfile, options,
+                                           image_data=image_data)
+                except Exception:
+                    if not proceed:
+                        raise
+                    logger and logger.info('Proceeding after error')
 
 
-def picmaker1(infile, outfile, options, *, logger=None, image_data=None,
-              return_limits=False):
+def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False):
     """Write one picmaker image.
 
     Parameters:
         infile (str or pathlib.Path): Input data file path.
         outfile (str or pathlib.Path): Output file path.
         options (dict): Dictionary of all input parameters.
-        logger (PdsLogger): Logger to use.
         image_data (:class:`ImageData`): ImageData object if `infile` was already read;
             None otherwise.
         return_limits (bool, optional): Return limits tuple along with image_data
@@ -215,6 +264,8 @@ def picmaker1(infile, outfile, options, *, logger=None, image_data=None,
         object from ``infile``. If ``return_limits`` is True, also include the minimum and
         maximum limits obtained, and do not save a file.
     """
+
+    logger = options.get('logger', None)
 
     # Read the image only if necessary
     if image_data is None:

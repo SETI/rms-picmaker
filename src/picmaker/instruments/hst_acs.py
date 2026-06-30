@@ -33,7 +33,7 @@ class HST_ACS(ImageData):
         try:
             if hdulist[0].header['TELESCOP'] != 'HST':
                 return None
-            if hdulist[0].header['INSTRUME'][:3] != 'NIC':
+            if hdulist[0].header['INSTRUME'][:3] != 'ACS':
                 return None
         except (KeyError, IndexError):
             return None

@@ -147,7 +147,8 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
 
     else:
         if array.dtype.kind in {'u', 'i'}:
-            valid_limits = (valid_limits[0] - 0.5, valid_limits[1] + 0.5)  # expand valid_limits for int arrays
+            # expand valid_limits for int arrays
+            valid_limits = (valid_limits[0] - 0.5, valid_limits[1] + 0.5)
 
         scaled = (array - valid_limits[0]) / (valid_limits[1] - valid_limits[0])
         scaled = np.clip(scaled, 0., 1., out=scaled)    # clip in place

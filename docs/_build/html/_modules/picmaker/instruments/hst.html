@@ -524,7 +524,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">NDArray</span>
 
 <span class="kn">from</span> <span class="nn">picmaker._rgb</span> <span class="kn">import</span> <span class="n">BFUNC</span><span class="p">,</span> <span class="n">GFUNC</span><span class="p">,</span> <span class="n">RFUNC</span><span class="p">,</span> <span class="n">RGB_BY_NM</span>
-<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">FilterInfo</span><span class="p">,</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
+<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">ImageInfo</span><span class="p">,</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
 <span class="kn">from</span> <span class="nn">picmaker.enhance</span> <span class="kn">import</span> <span class="n">_band_to_rgb</span>
 <span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">_shared</span>
 <span class="kn">from</span> <span class="nn">picmaker.options</span> <span class="kn">import</span> <span class="n">PicmakerOptions</span>
@@ -667,12 +667,12 @@ window.runMermaid = runMermaid;</script>
             <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">)</span>
             <span class="k">with</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span> <span class="k">as</span> <span class="n">hdulist</span><span class="p">:</span>
                 <span class="n">_fitsobj</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># IndexError / KeyError if not valid FITS</span>
-                <span class="n">filter_info</span> <span class="o">=</span> <span class="n">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">return</span> <span class="kc">None</span>
-                <span class="n">inst_id</span> <span class="o">=</span> <span class="n">filter_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">inst_id</span> <span class="o">=</span> <span class="n">image_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">array3d</span> <span class="o">=</span> <span class="n">_extract_hst_array</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">use_mosaic</span><span class="p">)</span>
-                <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 
@@ -760,7 +760,7 @@ window.runMermaid = runMermaid;</script>
 <a class="viewcode-back" href="../../../module.html#picmaker.instruments.hst.apply_mosaic">[docs]</a>
 <span class="k">def</span> <span class="nf">apply_mosaic</span><span class="p">(</span>
     <span class="n">array3d</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-    <span class="n">filter_info</span><span class="p">:</span> <span class="n">FilterInfo</span><span class="p">,</span>
+    <span class="n">image_info</span><span class="p">:</span> <span class="n">ImageInfo</span><span class="p">,</span>
     <span class="n">options</span><span class="p">:</span> <span class="n">PicmakerOptions</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">default_is_up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -775,8 +775,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">        array3d: ``(bands, lines, samples)`` stack from :func:`read_file`.</span>
-<span class="sd">        filter_info: ``(host, instrument, filter)`` triple; only</span>
-<span class="sd">            ``filter_info[1]`` (``&#39;ACS/WFC&#39;`` or ``&#39;WFPC2&#39;``) is used.</span>
+<span class="sd">        image_info: ``(host, instrument, filter)`` triple; only</span>
+<span class="sd">            ``image_info[1]`` (``&#39;ACS/WFC&#39;`` or ``&#39;WFPC2&#39;``) is used.</span>
 <span class="sd">        options: Pipeline options dataclass.</span>
 <span class="sd">        default_is_up: When ``True`` the array is flipped vertically before</span>
 <span class="sd">            mosaicking so panels assemble in the correct spatial order.</span>
@@ -788,10 +788,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        Assembled ``(lines, samples, 3)`` uint8-range RGB array, or ``None``</span>
 <span class="sd">        when the instrument is not an ACS/WFC or WFPC2 mosaic target.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">filter_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_MOSAIC_INSTRUMENTS</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">image_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_MOSAIC_INSTRUMENTS</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
-    <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">filter_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">image_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">default_is_up</span><span class="p">:</span>
         <span class="n">array3d</span> <span class="o">=</span> <span class="n">array3d</span><span class="p">[:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>

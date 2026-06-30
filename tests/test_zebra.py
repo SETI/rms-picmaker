@@ -26,14 +26,17 @@ class TestFillZebraStripes:
         out = fill_zebra_stripes(arr.copy())
         np.testing.assert_array_equal(out, arr)
 
-    def test_in_place_modification(self) -> None:
+    def test_returns_filled_copy_leaving_input_unchanged(self) -> None:
         arr = np.zeros((3, 3), dtype=np.int32)
         arr[0, 0] = 100
         arr[2, 0] = 50
         arr[1, 1] = 99
         out = fill_zebra_stripes(arr)
-        # Return is the same object, modified in place.
-        assert out is arr
+        # Return is a new array; the input is left unmodified.
+        assert out is not arr
+        assert arr[1, 0] == 0
+        # row1[0] gets filled with (100 + 50) // 2 = 75.
+        assert out[1, 0] == 75
 
     def test_right_edge_fill(self) -> None:
         # Zero on the right edge between nonzero rows.

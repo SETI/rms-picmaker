@@ -1,0 +1,4 @@
+--pointer RAW_TIFF_DOCUMENT --alt_pointer DRZ_JPEG_DOCUMENT --strip _RAW --alt_strip _DRZ --suffix _thumb --frame 100 100 --tint -x jpg --percentile 0.02 99.98
+--pointer RAW_TIFF_DOCUMENT --alt_pointer DRZ_JPEG_DOCUMENT --strip _RAW --alt_strip _DRZ --suffix _small --frame 256 256 --tint -x jpg --percentile 0.02 99.98
+--pointer RAW_TIFF_DOCUMENT --alt_pointer DRZ_JPEG_DOCUMENT --strip _RAW --alt_strip _DRZ --suffix _med   --frame 512 512 --tint -x jpg --percentile 0.02 99.98
+--pointer RAW_TIFF_DOCUMENT --alt_pointer DRZ_JPEG_DOCUMENT --strip _RAW --alt_strip _DRZ --suffix _full -x jpg --percentile 0.02 99.98

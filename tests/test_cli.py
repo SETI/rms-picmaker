@@ -43,7 +43,7 @@ def test_help_flag_set_matches_baseline() -> None:
     assert proc.returncode == 0
     import re
     # Include digits in the character class so flags like ``--16`` and
-    # ``--pds3-label-method`` are captured whole, not truncated.
+    # ``--pds3-method`` are captured whole, not truncated.
     flags = sorted(set(re.findall(r'--[a-z0-9_-]+', proc.stdout + proc.stderr)))
     baseline_path = Path(__file__).parent / 'fixtures' / '.baseline-flags.txt'
     baseline = sorted(baseline_path.read_text().splitlines())
@@ -75,10 +75,12 @@ def test_user_guide_documents_every_cli_flag() -> None:
     )
 
 
-def test_no_args_succeeds() -> None:
-    """Running ``picmaker`` with no positional arguments exits 0 (no-op)."""
+def test_no_args_errors() -> None:
+    """Running ``picmaker`` with no positional arguments exits non-zero and
+    reports that no input files were identified."""
     proc = _run()
-    assert proc.returncode == 0
+    assert proc.returncode != 0
+    assert 'no input files identified' in proc.stderr
 
 
 def test_nonexistent_file_exits_nonzero() -> None:

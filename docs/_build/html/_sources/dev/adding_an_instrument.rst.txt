@@ -31,13 +31,13 @@ beyond what ``tint_for`` can express:
 
    def apply_tint(
        array3d: NDArray[Any],
-       filter_info: FilterInfo,
+       image_info: ImageInfo,
        options: PicmakerOptions,
    ) -> NDArray[Any] | None: ...
 
    def apply_mosaic(
        array3d: NDArray[Any],
-       filter_info: FilterInfo,
+       image_info: ImageInfo,
        options: PicmakerOptions,
        *,
        default_is_up: bool = False,
@@ -66,7 +66,7 @@ Function descriptions
 
   ``**kwargs`` carries every pipeline option listed in
   :data:`picmaker.options.READ_FILE_KWARGS`; currently that is ``mosaic``
-  and ``pds3_label_method``.  Instruments that do not need any of these
+  and ``pds3_method``.  Instruments that do not need any of these
   values simply accept and ignore them.  An instrument that *does* need
   one extracts it with ``kwargs.get('key', default)`` — see
   :mod:`picmaker.instruments.hst` for the ``mosaic`` example and
@@ -75,7 +75,7 @@ Function descriptions
 
 * ``matches(inst_host, inst_id)`` — quick host-level predicate used
   by :func:`picmaker.instruments.lookup` once the cascade already has a
-  ``filter_info`` triple (e.g. when ``--tint`` is applied to a file
+  ``image_info`` triple (e.g. when ``--tint`` is applied to a file
   whose metadata was read without going through ``read_file``).
 
 * ``tint_for(inst_id, filter_name)`` — given the filter, return the
@@ -84,14 +84,14 @@ Function descriptions
   (the HST wavelength-inference path uses ``None`` to mean "unable to
   infer; keep the user's colormap").
 
-* ``apply_tint(array3d, filter_info, options)`` — checked via
+* ``apply_tint(array3d, image_info, options)`` — checked via
   :func:`hasattr` in :func:`picmaker.pipeline._process_one_image`; called
   only when ``--tint`` is set.  Define it when the tinting algorithm
   cannot be expressed as a fixed colormap list.  Return a
   ``(lines, samples, C)`` RGB array to bypass the standard colormap
   pipeline, or ``None`` to fall through.
 
-* ``apply_mosaic(array3d, filter_info, options, *, default_is_up,
+* ``apply_mosaic(array3d, image_info, options, *, default_is_up,
   colormap, imagefile)`` — checked via :func:`hasattr`; called only
   when ``--mosaic`` is set, and only if ``apply_tint`` did not already
   return a non-``None`` result.  Define it for instruments that assemble
@@ -174,13 +174,13 @@ Writing the instrument module
           vic = _shared.try_open_vicar(filename)
           if vic is None:
               return None
-          filter_info = _detect_vicar(vic)
-          if filter_info is None:
+          image_info = _detect_vicar(vic)
+          if image_info is None:
               return None
           array3d = vic.data_3d
           if array3d.ndim == 2:
               array3d = array3d.reshape((1, *array3d.shape))
-          return ReadResult(array3d, False, filter_info)
+          return ReadResult(array3d, False, image_info)
 
 
       def matches(inst_host: str, inst_id: str) -> bool:
@@ -230,11 +230,11 @@ Writing the instrument module
           try:
               with warnings.catch_warnings(), pyfits.open(str(filename)) as hdulist:
                   warnings.filterwarnings('error')
-                  filter_info = _detect_fits(hdulist)
-                  if filter_info is None:
+                  image_info = _detect_fits(hdulist)
+                  if image_info is None:
                       return None
                   array3d = _shared.extract_fits_array(hdulist, obj)
-                  return ReadResult(array3d, True, filter_info)
+                  return ReadResult(array3d, True, image_info)
           except (UserWarning, OSError):
               return None
 
@@ -266,11 +266,11 @@ Writing the instrument module
       ) -> ReadResult | None:
           """Try to detect and read a My-Mission image."""
           if isinstance(filename, pdsparser.Pds3Label):
-              filter_info = _detect_pds3(filename)
-              if filter_info is None:
+              image_info = _detect_pds3(filename)
+              if image_info is None:
                   return None
               array3d = _shared.read_pds3_image_array(filename, obj)
-              return ReadResult(array3d, False, filter_info)
+              return ReadResult(array3d, False, image_info)
           # ... VICAR or FITS detection below for non-label paths ...
 
    An instrument can combine all three patterns: check
@@ -329,9 +329,9 @@ Writing the unit tests
    :func:`!tests.test_io.test_instrument_detection` parametrizes over
    this list, exercising both :func:`picmaker.io.read_one_image_array`
    (the full reader cascade) and :func:`picmaker.instruments.lookup`
-   (the ``filter_info`` triple).  Add a second entry for any PDS3 label
+   (the ``image_info`` triple).  Add a second entry for any PDS3 label
    fixture, pointing to the ``.LBL`` filename with the same expected
-   ``filter_info``.
+   ``image_info``.
 
 5. **Add per-instrument unit tests.** Open
    :file:`tests/test_instruments_branches.py` and add:
@@ -392,7 +392,7 @@ forwards to every ``read_file`` call as keyword arguments:
 .. code-block:: python
 
    # options.py
-   READ_FILE_KWARGS: tuple[str, ...] = ('mosaic', 'pds3_label_method')
+   READ_FILE_KWARGS: tuple[str, ...] = ('mosaic', 'pds3_method')
 
 In :func:`picmaker.pipeline._process_one_image` the kwargs dict is
 assembled generically from those names:
@@ -453,7 +453,7 @@ Suppose you want to add ``--cassini-encoding`` (a Cassini-only flag):
       .. code-block:: python
 
          READ_FILE_KWARGS: tuple[str, ...] = (
-             'cassini_encoding', 'mosaic', 'pds3_label_method'
+             'cassini_encoding', 'mosaic', 'pds3_method'
          )
 
 3. **Expose the option through the pipeline entry point.** In

@@ -532,12 +532,12 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">ObjectSelector</span>
 
-<span class="n">PDS3_LABEL_METHODS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;strict&#39;</span><span class="p">,</span> <span class="s1">&#39;loose&#39;</span><span class="p">,</span> <span class="s1">&#39;compound&#39;</span><span class="p">,</span> <span class="s1">&#39;fast&#39;</span><span class="p">)</span>
-<span class="n">DEFAULT_PDS3_LABEL_METHOD</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;fast&#39;</span>
+<span class="n">PDS3_METHODS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;strict&#39;</span><span class="p">,</span> <span class="s1">&#39;loose&#39;</span><span class="p">,</span> <span class="s1">&#39;compound&#39;</span><span class="p">,</span> <span class="s1">&#39;fast&#39;</span><span class="p">)</span>
+<span class="n">DEFAULT_PDS3_METHOD</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;fast&#39;</span>
 
 <span class="c1"># Names of PicmakerOptions fields forwarded to instrument read_file() as **kwargs.</span>
 <span class="c1"># Add the name of any new instrument-specific option here alongside its field definition above.</span>
-<span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_label_method&#39;</span><span class="p">)</span>
+<span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_method&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="PicmakerOptions">
@@ -570,7 +570,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">samples</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">pointer</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
-    <span class="n">pds3_label_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_PDS3_LABEL_METHOD</span>
+    <span class="n">pds3_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_PDS3_METHOD</span>
     <span class="c1"># sizing</span>
     <span class="n">size</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">scale</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">)</span>
@@ -660,10 +660,10 @@ window.runMermaid = runMermaid;</script>
             <span class="c1"># so we only need to compare the value directly.</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;16-bit filter options are not supported&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pds3_label_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PDS3_LABEL_METHODS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pds3_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PDS3_METHODS</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s1">&#39;invalid pds3_label_method </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pds3_label_method</span><span class="si">!r}</span><span class="s1">; &#39;</span>
-                <span class="sa">f</span><span class="s1">&#39;must be one of </span><span class="si">{</span><span class="n">PDS3_LABEL_METHODS</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;invalid pds3_method </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pds3_method</span><span class="si">!r}</span><span class="s1">; &#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;must be one of </span><span class="si">{</span><span class="n">PDS3_METHODS</span><span class="si">}</span><span class="s1">&#39;</span>
             <span class="p">)</span></div>
 
 
@@ -689,7 +689,7 @@ window.runMermaid = runMermaid;</script>
 
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DEFAULT_PDS3_LABEL_METHOD&#39;</span><span class="p">,</span> <span class="s1">&#39;PDS3_LABEL_METHODS&#39;</span><span class="p">,</span> <span class="s1">&#39;READ_FILE_KWARGS&#39;</span><span class="p">,</span> <span class="s1">&#39;PicmakerOptions&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DEFAULT_PDS3_METHOD&#39;</span><span class="p">,</span> <span class="s1">&#39;PDS3_METHODS&#39;</span><span class="p">,</span> <span class="s1">&#39;READ_FILE_KWARGS&#39;</span><span class="p">,</span> <span class="s1">&#39;PicmakerOptions&#39;</span><span class="p">]</span>
 </pre></div>
 
            </div>

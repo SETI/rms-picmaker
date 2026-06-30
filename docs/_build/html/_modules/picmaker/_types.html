@@ -522,11 +522,11 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span> <span class="nn">numpy.typing</span> <span class="kn">import</span> <span class="n">NDArray</span>
 
-<span class="c1"># Reader-cascade ``filter_info`` element: ``(inst_host, inst_id, filter_name)``</span>
+<span class="c1"># Reader-cascade ``image_info`` element: ``(inst_host, inst_id, filter_name)``</span>
 <span class="c1"># or ``None``. The inner ``filter_name`` may be a 2-tuple for HST (see</span>
 <span class="c1"># :mod:`picmaker.instruments.hst`), which keeps the static type as</span>
 <span class="c1"># ``tuple[str, str, Any] | None`` rather than ``tuple[str, str, str] | None``.</span>
-<span class="n">FilterInfo</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">ImageInfo</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
 
 <span class="c1"># Selector for multi-image files. FITS and PDS3 both accept an integer index</span>
 <span class="c1"># or a pointer/HDU name; FITS additionally accepts a list/tuple of such</span>
@@ -555,11 +555,11 @@ window.runMermaid = runMermaid;</script>
     <span class="c1">#: ``(inst_host, inst_id, filter_name)`` or ``None`` if no registered</span>
     <span class="c1">#: instrument matched. ``filter_name`` is usually a string but is a</span>
     <span class="c1">#: 2-tuple for some HST conventions.</span>
-    <span class="n">filter_info</span><span class="p">:</span> <span class="n">FilterInfo</span></div>
+    <span class="n">image_info</span><span class="p">:</span> <span class="n">ImageInfo</span></div>
 
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;FilterInfo&#39;</span><span class="p">,</span> <span class="s1">&#39;ObjectSelector&#39;</span><span class="p">,</span> <span class="s1">&#39;ReadResult&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ImageInfo&#39;</span><span class="p">,</span> <span class="s1">&#39;ObjectSelector&#39;</span><span class="p">,</span> <span class="s1">&#39;ReadResult&#39;</span><span class="p">]</span>
 </pre></div>
 
            </div>

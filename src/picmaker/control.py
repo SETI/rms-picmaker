@@ -6,11 +6,13 @@
 import pathlib
 import warnings
 from fnmatch import fnmatch
+from pdslogger import PdsLogger
 
 REPLACE_CHOICES = ['all', 'none', 'warn', 'error']
 
 
-def get_filepaths(files, directory=None, recursive=False, patterns=[], **kwargs):
+def get_filepaths(files, directory=None, recursive=False, patterns=[], logger=None,
+                  **kwargs):
     """Get a complete list of all filepaths to process.
 
     Parameters:
@@ -21,12 +23,17 @@ def get_filepaths(files, directory=None, recursive=False, patterns=[], **kwargs)
         recursive (bool, optional): True to traverse subdirectories.
         patterns (str or list[str], optional): One or more glob patterns. Files found
             inside directories are only included if they match one of these patterns. By
-            default, all files are included
+            default, all files are included.
+        logger (PdsLogger, optional): Optional PdsLogger for error messages.
         **kwargs: Other input parameters, ignored here.
 
     Returns:
         (list[pathlib.Path, pathlib.Path]): A list of tuples (input filepath, output
             directory path).
+
+    Raises:
+        FileNotFoundError: If an input file/directory does not exist.
+        OSError: If an input file cannot be read.
     """
 
     def _pattern_match(basename, patterns):
@@ -44,41 +51,46 @@ def get_filepaths(files, directory=None, recursive=False, patterns=[], **kwargs)
         remainder = str(subdir)[lpath+1:]
         return directory / remainder
 
-    directory = directory and pathlib.Path(directory)   # convert to pathlib if not None
-    patterns = patterns or ['*']
+    try:
+        directory = directory and pathlib.Path(directory)   # convert to Path if not None
+        patterns = patterns or ['*']
 
-    info = []
-    for filepath in files:
-        filepath = pathlib.Path(filepath)
-        if not filepath.exists():
-            raise FileNotFoundError(f'No such file or directory: "{filepath}"')
+        info = []
+        for filepath in files:
+            filepath = pathlib.Path(filepath)
+            if not filepath.exists():
+                raise FileNotFoundError(f'No such file or directory: "{filepath}"')
 
-        if filepath.is_file():
-            info.append((filepath, directory if directory else filepath.parent))
+            if filepath.is_file():
+                info.append((filepath, directory if directory else filepath.parent))
 
-        elif filepath.is_dir():
-            if recursive:
-                for (subdir, _, basenames) in filepath.walk(follow_symlinks=True):
-                    basenames.sort()
+            elif filepath.is_dir():
+                if recursive:
+                    for (subdir, _, basenames) in filepath.walk(follow_symlinks=True):
+                        basenames.sort()
+                        for basename in basenames:
+                            if _pattern_match(basename, patterns):
+                                info.append((subdir / basename,
+                                             _get_outdir(filepath, subdir, directory)))
+                else:
+                    basenames = [child.name for child in filepath.iterdir()]
                     for basename in basenames:
                         if _pattern_match(basename, patterns):
-                            info.append((subdir / basename,
-                                         _get_outdir(filepath, subdir, directory)))
-            else:
-                basenames = [child.name for child in filepath.iterdir()]
-                for basename in basenames:
-                    if _pattern_match(basename, patterns):
-                        info.append((filepath / basename,
-                                     _get_outdir(filepath, filepath, directory)))
+                            info.append((filepath / basename,
+                                         _get_outdir(filepath, filepath, directory)))
 
-        else:
-            raise OSError(f'not a file or directory: "{filepath}"')
+            else:
+                raise OSError(f'not a file or directory: "{filepath}"')
+
+    except Exception as err:
+        logger and logger.exception(err)
+        raise
 
     return info
 
 
 def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
-                replace='all', **kwargs):
+                replace='all', logger=None, **kwargs):
     """Derive the output filepath for one input path.
 
     Parameters:
@@ -93,6 +105,7 @@ def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
         replace (str, optional): Replacement policy when the output file already exists:
             ``'all'`` (silent overwrite), ``'none'`` (skip silently), ``'warn'`` (warn and
             overwrite), or ``'error'`` (raise OSError).
+        logger (PdsLogger, optional): Optional PdsLogger for error messages and warnings.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
@@ -100,7 +113,9 @@ def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
             already exists.
 
     Raises:
+        ValueError: If ``replace`` option is invalid.
         OSError: If ``replace='error'`` and the file already exists.
+        PermissionError: If a file or directory cannot be created.
 
     Side Effects:
         Creates the output directory tree if it does not exist.
@@ -111,28 +126,34 @@ def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
     if replace not in REPLACE_CHOICES:
         raise ValueError(f'unrecognized replace option: {replace!r}')
 
-    inpath = pathlib.Path(inpath)
-    outdir = inpath.parent if outdir is None else pathlib.Path(outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
+    try:
+        inpath = pathlib.Path(inpath)
+        outdir = inpath.parent if outdir is None else pathlib.Path(outdir)
+        outdir.mkdir(parents=True, exist_ok=True)  # forward any PermissionError
 
-    stem = inpath.stem
-    if strip:
-        if isinstance(strip, str):
-            strip = [strip]
-        for substring in strip:
-            stem = stem.replace(substring, '')
+        stem = inpath.stem
+        if strip:
+            if isinstance(strip, str):
+                strip = [strip]
+            for substring in strip:
+                stem = stem.replace(substring, '')
 
-    if suffix:
-        stem += suffix
+        if suffix:
+            stem += suffix
 
-    outpath = outdir / (stem + '.' + extension.lstrip('.'))
-    if outpath.exists():
-        if replace == 'none':
-            return ''
-        elif replace == 'warn':
-            warnings.warn(f'File overwritten: {outpath}', UserWarning, stacklevel=2)
-        elif replace == 'error':
-            raise OSError(f'File already exists: {outpath}')
+        outpath = outdir / (stem + '.' + extension.lstrip('.'))
+        if outpath.exists():
+            if replace == 'none':
+                return ''
+            elif replace == 'warn':
+                logger and logger.warn(f'File overwritten: {outpath}')
+                warnings.warn(f'File overwritten: {outpath}', UserWarning, stacklevel=2)
+            elif replace == 'error':
+                raise OSError(f'File already exists: {outpath}')
+
+    except Exception as err:
+        logger and logger.exception(err)
+        raise
 
     return outpath
 

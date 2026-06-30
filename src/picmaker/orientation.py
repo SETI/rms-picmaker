@@ -43,18 +43,18 @@ def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation
     if not rotation:
         return array_rgb
 
-    rotation = rotation.upper()
-    if rotation == 'NONE':
+    rotation = rotation.lower()
+    if rotation == 'none':
         return array_rgb
-    if rotation == 'FLIPLR':
+    if rotation == 'fliplr':
         return np.fliplr(array_rgb)
-    if rotation == 'FLIPTB':
+    if rotation == 'fliptb':
         return np.flipud(array_rgb)
-    if rotation == 'ROT90':
+    if rotation == 'rot90':
         return np.rot90(array_rgb, 1)
-    if rotation == 'ROT180':
+    if rotation == 'rot180':
         return np.rot90(array_rgb, 2)
-    if rotation == 'ROT270':
+    if rotation == 'rot270':
         return np.rot90(array_rgb, 3)
 
     raise KeyError(f'unrecognized rotation method: {rotation}')

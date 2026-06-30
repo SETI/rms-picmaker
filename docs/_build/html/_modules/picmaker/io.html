@@ -535,14 +535,14 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span> <span class="nn">vicar</span> <span class="kn">import</span> <span class="n">VicarError</span><span class="p">,</span> <span class="n">VicarImage</span>
 
 <span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="n">instruments</span>
-<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">FilterInfo</span><span class="p">,</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
+<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">ImageInfo</span><span class="p">,</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
 <span class="kn">from</span> <span class="nn">picmaker.instruments._shared</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">_extract_pds3_filter_info</span><span class="p">,</span>
+    <span class="n">_extract_pds3_image_info</span><span class="p">,</span>
     <span class="n">extract_fits_array</span><span class="p">,</span>
     <span class="n">is_fits_file</span><span class="p">,</span>
     <span class="n">read_pds3_image_array</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">picmaker.options</span> <span class="kn">import</span> <span class="n">DEFAULT_PDS3_LABEL_METHOD</span>
+<span class="kn">from</span> <span class="nn">picmaker.options</span> <span class="kn">import</span> <span class="n">DEFAULT_PDS3_METHOD</span>
 <span class="kn">from</span> <span class="nn">picmaker.pil_utils</span> <span class="kn">import</span> <span class="n">array_to_pil</span><span class="p">,</span> <span class="n">pil_to_array</span>
 <span class="kn">from</span> <span class="nn">picmaker.tiff16</span> <span class="kn">import</span> <span class="n">read_tiff16</span>
 
@@ -575,12 +575,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            options passed from the pipeline.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ``(array3d, display_upward, filter_info)``:</span>
+<span class="sd">        ``(array3d, display_upward, image_info)``:</span>
 
 <span class="sd">        * ``array3d`` — 3-D numpy array.</span>
 <span class="sd">        * ``display_upward`` — True if the default display orientation</span>
 <span class="sd">          is upward.</span>
-<span class="sd">        * ``filter_info`` — Optional ``(inst_host, inst_id, filter)``</span>
+<span class="sd">        * ``image_info`` — Optional ``(inst_host, inst_id, filter)``</span>
 <span class="sd">          tuple.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">,</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">)):</span>
@@ -595,7 +595,7 @@ window.runMermaid = runMermaid;</script>
     <span class="p">]</span>
 
     <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">default_is_up</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">filter_info</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">default_is_up</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">image_info</span><span class="p">)</span></div>
 
 
 
@@ -630,7 +630,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            set.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ``(array3d, display_upward, filter_info)``. ``filter_info`` is</span>
+<span class="sd">        ``(array3d, display_upward, image_info)``. ``image_info`` is</span>
 <span class="sd">        ``None`` if no instrument is detected.</span>
 
 <span class="sd">    Raises:</span>
@@ -644,7 +644,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">path_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">path_str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.LBL&#39;</span><span class="p">):</span>
             <span class="n">filename</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span>
-                <span class="n">path_str</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pds3_label_method&#39;</span><span class="p">,</span> <span class="n">DEFAULT_PDS3_LABEL_METHOD</span><span class="p">)</span>
+                <span class="n">path_str</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pds3_method&#39;</span><span class="p">,</span> <span class="n">DEFAULT_PDS3_METHOD</span><span class="p">)</span>
             <span class="p">)</span>
 
     <span class="c1"># ---- PDS3 label branch ----</span>
@@ -740,7 +740,7 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># checks for a sibling .lbl / .LBL file next to the data file.</span>
     <span class="n">pds3_result</span> <span class="o">=</span> <span class="n">read_pds_labeled_image_array</span><span class="p">(</span>
         <span class="n">filename_str</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span>
-        <span class="n">pds3_label_method</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pds3_label_method&#39;</span><span class="p">,</span> <span class="n">DEFAULT_PDS3_LABEL_METHOD</span><span class="p">),</span>
+        <span class="n">pds3_method</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pds3_method&#39;</span><span class="p">,</span> <span class="n">DEFAULT_PDS3_METHOD</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">pds3_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">pds3_result</span>
@@ -762,14 +762,14 @@ window.runMermaid = runMermaid;</script>
     <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">pds3_label_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_PDS3_LABEL_METHOD</span><span class="p">,</span>
+    <span class="n">pds3_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_PDS3_METHOD</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a PDS3-labeled image and return the same triple as :func:`read_one_image_array`.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">        filename: Path to a ``.LBL`` (or matching) PDS3 label file.</span>
 <span class="sd">        obj: Optional pointer name or index.</span>
-<span class="sd">        pds3_label_method: Forwarded to :class:`pdsparser.Pds3Label` as</span>
+<span class="sd">        pds3_method: Forwarded to :class:`pdsparser.Pds3Label` as</span>
 <span class="sd">            its ``method=`` argument (``&#39;strict&#39;``, ``&#39;loose&#39;``,</span>
 <span class="sd">            ``&#39;compound&#39;``, or ``&#39;fast&#39;``).</span>
 
@@ -780,18 +780,18 @@ window.runMermaid = runMermaid;</script>
     <span class="n">filename_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="n">label</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">label</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span><span class="n">filename_str</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">pds3_label_method</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span><span class="n">filename_str</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">pds3_method</span><span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">pdsparser</span><span class="o">.</span><span class="n">ParseException</span><span class="p">,</span> <span class="ne">SyntaxError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
         <span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename_str</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;.lbl&#39;</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">head</span> <span class="o">+</span> <span class="s1">&#39;.lbl&#39;</span><span class="p">):</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">label</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span><span class="n">head</span> <span class="o">+</span> <span class="s1">&#39;.lbl&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">pds3_label_method</span><span class="p">)</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span><span class="n">head</span> <span class="o">+</span> <span class="s1">&#39;.lbl&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">pds3_method</span><span class="p">)</span>
                 <span class="k">except</span> <span class="p">(</span><span class="n">pdsparser</span><span class="o">.</span><span class="n">ParseException</span><span class="p">,</span> <span class="ne">SyntaxError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
                     <span class="k">pass</span>
             <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">head</span> <span class="o">+</span> <span class="s1">&#39;.LBL&#39;</span><span class="p">):</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">label</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span><span class="n">head</span> <span class="o">+</span> <span class="s1">&#39;.LBL&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">pds3_label_method</span><span class="p">)</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">(</span><span class="n">head</span> <span class="o">+</span> <span class="s1">&#39;.LBL&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">pds3_method</span><span class="p">)</span>
                 <span class="k">except</span> <span class="p">(</span><span class="n">pdsparser</span><span class="o">.</span><span class="n">ParseException</span><span class="p">,</span> <span class="ne">SyntaxError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
                     <span class="k">pass</span>
 
@@ -906,7 +906,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">array3d</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">lines</span><span class="p">,</span> <span class="n">row_samples</span><span class="p">)</span>
     <span class="n">array3d</span> <span class="o">=</span> <span class="n">array3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">prefix_samples</span> <span class="p">:</span> <span class="n">prefix_samples</span> <span class="o">+</span> <span class="n">samples</span><span class="p">]</span>
 
-    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_extract_pds3_filter_info</span><span class="p">(</span><span class="n">label_dict</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_extract_pds3_image_info</span><span class="p">(</span><span class="n">label_dict</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span></div>
 
 
 
@@ -1057,7 +1057,7 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;FilterInfo&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ImageInfo&#39;</span><span class="p">,</span>
     <span class="s1">&#39;ReadResult&#39;</span><span class="p">,</span>
     <span class="s1">&#39;get_outfile&#39;</span><span class="p">,</span>
     <span class="s1">&#39;read_array&#39;</span><span class="p">,</span>

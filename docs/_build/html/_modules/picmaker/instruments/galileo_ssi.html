@@ -628,19 +628,19 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        the file is not recognized as a Galileo SSI image.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">):</span>
-        <span class="n">filter_info</span> <span class="o">=</span> <span class="n">_detect_pds3</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_pds3</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
         <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
 
     <span class="n">vic</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">try_open_vicar</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">vic</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">filter_info</span> <span class="o">=</span> <span class="n">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">_shared</span><span class="o">.</span><span class="n">ensure_3d</span><span class="p">(</span><span class="n">vic</span><span class="o">.</span><span class="n">data_3d</span><span class="p">),</span> <span class="kc">False</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">_shared</span><span class="o">.</span><span class="n">ensure_3d</span><span class="p">(</span><span class="n">vic</span><span class="o">.</span><span class="n">data_3d</span><span class="p">),</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span></div>
 
 
 

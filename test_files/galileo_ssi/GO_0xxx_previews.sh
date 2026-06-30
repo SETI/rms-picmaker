@@ -15,8 +15,7 @@ do
 
     /usr/local/bin/python3 /Users/Shared/bin/picmaker $volpath \
         --directory=$outpath \
-        --recursive --down --verbose=2 --proceed --extension=jpg \
-        --pattern=\*.IMG \
+        --recursive --down --proceed --extension=jpg --pattern=\*.IMG \
         --footprint=5 --trim-zeros --versions=$versionpath
 done
 

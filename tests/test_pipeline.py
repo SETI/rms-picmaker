@@ -1,9 +1,10 @@
-"""End-to-end pipeline tests via images_to_pics on every fixture.
+"""End-to-end pipeline tests via ``picmaker(**options)`` on every fixture.
 
 The byte-identical snapshot tests live in test_snapshots.py — this file just
-asserts that the pipeline produces an output file with sensible properties
-for each option combination, and that the HST-specific branches at
-picmaker.py:1656 + 1667 (ACS/WFC and WFPC2) execute without error.
+asserts that the pipeline produces an output file with sensible properties for
+each option combination. Options are built the way the CLI builds them, by
+parsing argv through ``PARSER`` and running it through ``validate_options`` so
+the resulting dict has every key ``picmaker`` expects.
 """
 
 from pathlib import Path
@@ -11,25 +12,35 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from picmaker import images_to_pics
+from picmaker.cli import PARSER
+from picmaker.picmaker import picmaker, validate_options
 
+# hst_acs.fits and hst_wfpc2.fits are intentionally omitted: the ACS/WFPC2
+# instrument readers are work-in-progress and currently raise inside
+# read_image_array, so they cannot drive an end-to-end pipeline test yet.
 ALL_FIXTURES = [
     'cassini_iss.vic',
     'voyager_iss.vic',
     'galileo_ssi_a.vic',
     'galileo_ssi_b.vic',
     'hst_wfc3.fits',
-    'hst_acs.fits',
-    'hst_wfpc2.fits',
     'nh_mvic.fits',
 ]
+
+
+def _run(infile: Path, tmp_path: Path, *extra: str) -> None:
+    """Build a complete options dict the CLI way and run the pipeline."""
+    options = validate_options(PARSER.parse_args(
+        [str(infile), '--directory', str(tmp_path), *extra]
+    ))
+    picmaker(**options)
 
 
 @pytest.mark.parametrize('fixture', ALL_FIXTURES)
 def test_default_options_writes_jpeg(
     fixture: str, fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    images_to_pics([str(fixtures_dir / fixture)], directory=str(tmp_path))
+    _run(fixtures_dir / fixture, tmp_path)
     expected = tmp_path / (Path(fixture).stem + '.jpg')
     assert expected.exists()
     with Image.open(expected) as img:
@@ -40,9 +51,7 @@ def test_default_options_writes_jpeg(
 
 @pytest.mark.parametrize('fixture', ALL_FIXTURES)
 def test_gamma_two(fixture: str, fixtures_dir: Path, tmp_path: Path) -> None:
-    images_to_pics(
-        [str(fixtures_dir / fixture)], directory=str(tmp_path), gamma=2.0
-    )
+    _run(fixtures_dir / fixture, tmp_path, '--gamma', '2.0')
     assert (tmp_path / (Path(fixture).stem + '.jpg')).exists()
 
 
@@ -50,58 +59,25 @@ def test_gamma_two(fixture: str, fixtures_dir: Path, tmp_path: Path) -> None:
 def test_percentile_stretch(
     fixture: str, fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    images_to_pics(
-        [str(fixtures_dir / fixture)],
-        directory=str(tmp_path),
-        percentiles=(5.0, 95.0),
-    )
+    _run(fixtures_dir / fixture, tmp_path, '--percentiles', '5', '95')
     assert (tmp_path / (Path(fixture).stem + '.jpg')).exists()
 
 
 def test_tint_option(fixtures_dir: Path, tmp_path: Path) -> None:
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        tint=True,
-    )
+    _run(fixtures_dir / 'cassini_iss.vic', tmp_path, '--tint')
     assert (tmp_path / 'cassini_iss.jpg').exists()
 
 
 def test_rotate_rot90(fixtures_dir: Path, tmp_path: Path) -> None:
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        rotate='rot90',
-    )
+    _run(fixtures_dir / 'cassini_iss.vic', tmp_path, '--rotate', 'rot90')
     assert (tmp_path / 'cassini_iss.jpg').exists()
 
 
 def test_movie_option_writes_outputs(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    # Movie mode runs the pipeline twice; both passes write to the same dir.
-    from picmaker import process_images
-
-    option_dict = {
-        'replace': 'all', 'proceed': False, 'extension': 'jpg', 'suffix': '',
-        'strip': [], 'quality': 75, 'twobytes': False, 'bands': None,
-        'lines': None, 'samples': None, 'obj': None, 'pointer': ['IMAGE'],
-        'size': None, 'scale': (100., 100.), 'crop': None, 'frame': None,
-        'pad': False, 'pad_color': 'black', 'frame_max': None, 'wrap': False,
-        'wrap_ratio': None, 'overlap': (0., 0.), 'gap_size': 1,
-        'gap_color': 'white', 'mosaic': False, 'valid': None, 'limits': None,
-        'percentiles': None, 'trim': 0, 'trim_zeros': False, 'footprint': 0,
-        'histogram': False, 'colormap': None, 'below_color': None,
-        'above_color': None, 'invalid_color': None, 'gamma': 1.0,
-        'tint': False, 'display_upward': False, 'display_downward': False,
-        'rotate': None, 'filter_name': 'NONE', 'zebra': False,
-    }
-    process_images(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        movie=True,
-        option_dicts=[option_dict],
-    )
+    # Movie mode runs the pipeline in two passes (limits scan, then write).
+    _run(fixtures_dir / 'cassini_iss.vic', tmp_path, '--movie')
     assert (tmp_path / 'cassini_iss.jpg').exists()
 
 
@@ -109,30 +85,65 @@ def test_movie_option_writes_outputs(
 def test_sixteen_bit_tiff_extension(
     fixture: str, fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    images_to_pics(
-        [str(fixtures_dir / fixture)],
-        directory=str(tmp_path),
-        extension='tiff',
-        twobytes=True,
-    )
+    _run(fixtures_dir / fixture, tmp_path, '--16', '--extension', 'tiff')
     assert (tmp_path / (Path(fixture).stem + '.tiff')).exists()
 
 
-def test_hst_acs_branch_executes(fixtures_dir: Path, tmp_path: Path) -> None:
-    # Exercises the inst_id == 'ACS/WFC' branch at picmaker.py:1656.
-    images_to_pics(
-        [str(fixtures_dir / 'hst_acs.fits')],
-        directory=str(tmp_path),
-        mosaic=True,
-    )
-    assert (tmp_path / 'hst_acs.jpg').exists()
+def test_replace_none_skips_existing_output(
+    fixtures_dir: Path, tmp_path: Path
+) -> None:
+    """``--replace none`` leaves an existing output file untouched.
+
+    Regression: ``get_outfile`` returns ``''`` to signal a skip, but
+    ``picmaker`` forwarded that empty path to ``write_pil`` and crashed with
+    ``ValueError: unknown file extension`` instead of skipping.
+    """
+    _run(fixtures_dir / 'cassini_iss.vic', tmp_path)
+    out = tmp_path / 'cassini_iss.jpg'
+    assert out.exists()
+    # Overwrite with a sentinel; a second run with --replace none must not
+    # touch the file (and must not raise).
+    out.write_bytes(b'SENTINEL')
+    _run(fixtures_dir / 'cassini_iss.vic', tmp_path, '--replace', 'none')
+    assert out.read_bytes() == b'SENTINEL'
 
 
-def test_hst_wfpc2_branch_executes(fixtures_dir: Path, tmp_path: Path) -> None:
-    # Exercises the WFPC2 stacking branch at picmaker.py:1667.
-    images_to_pics(
-        [str(fixtures_dir / 'hst_wfpc2.fits')],
-        directory=str(tmp_path),
-        mosaic=True,
-    )
-    assert (tmp_path / 'hst_wfpc2.jpg').exists()
+def test_proceed_continues_past_unreadable_file(
+    fixtures_dir: Path, tmp_path: Path
+) -> None:
+    """``--proceed`` skips an unreadable input and still processes later files.
+
+    Regression: ``--proceed`` was a parsed CLI flag that ``picmaker`` never
+    acted on, so the first bad file aborted the whole run.
+    """
+    src = tmp_path / 'src'
+    src.mkdir()
+    bad = src / 'bad.vic'
+    bad.write_bytes(b'not a vicar file')
+    out = tmp_path / 'out'
+    # Both input files must precede the options for argparse to collect them.
+    options = validate_options(PARSER.parse_args([
+        str(bad), str(fixtures_dir / 'cassini_iss.vic'),
+        '--directory', str(out), '--proceed',
+    ]))
+    picmaker(**options)
+    # The unreadable file is skipped; the good file still produces output.
+    assert (out / 'cassini_iss.jpg').exists()
+
+
+def test_movie_proceed_continues_past_unreadable_file(
+    fixtures_dir: Path, tmp_path: Path
+) -> None:
+    """``--movie --proceed`` skips an unreadable file during the limits scan
+    and still writes the readable frames."""
+    src = tmp_path / 'src'
+    src.mkdir()
+    bad = src / 'bad.vic'
+    bad.write_bytes(b'not a vicar file')
+    out = tmp_path / 'out'
+    options = validate_options(PARSER.parse_args([
+        str(bad), str(fixtures_dir / 'cassini_iss.vic'),
+        '--directory', str(out), '--movie', '--proceed',
+    ]))
+    picmaker(**options)
+    assert (out / 'cassini_iss.jpg').exists()

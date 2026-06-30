@@ -3,6 +3,8 @@
 ##########################################################################################
 """Instrument reader modules."""
 
+# The wrapped import below uses a hand-formatted hanging indent; skip isort reformatting.
+# ruff: noqa: I001
 import importlib
 import pathlib
 import pkgutil
@@ -28,11 +30,11 @@ def register_instrument(subclass):
 def _register_all_instruments():
     """Import every instrument submodule so that each registers itself.
 
-    Any module in this package whose name does not begin with an underscore is imported for
-    its side effects: defining an :class:`ImageData` subclass and calling
+    Any module in this package whose name does not begin with an underscore is imported
+    for its side effects: defining an :class:`ImageData` subclass and calling
     :func:`register_instrument`. Support modules (``_pds3_support``, ``_fits_support``,
-    ``_hst_support``) are skipped. A new instrument is picked up automatically by dropping a
-    module into this package; this file does not need to be edited.
+    ``_hst_support``) are skipped. A new instrument is picked up automatically by dropping
+    a module into this package; this file does not need to be edited.
     """
 
     for module_info in pkgutil.iter_modules(__path__):
@@ -93,7 +95,7 @@ def _read_one_image_array(filepath, **kwargs):
 
     # Handle a PDS3 label
     if filepath.suffix.lower() == '.lbl':
-        method = kwargs.get('pds3_label_method', DEFAULT_PDS3_METHOD)
+        method = kwargs.get('pds3_method', DEFAULT_PDS3_METHOD)
         label = pdsparser.Pds3Label(filepath, method=method)  # forward parsing error
         for instrument in _INSTRUMENTS:
             if hasattr(instrument, 'detect_in_pds3'):

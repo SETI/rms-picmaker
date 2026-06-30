@@ -48,7 +48,7 @@ Layout
    │   ├── pipeline.py           # process_images + images_to_pics (the pipeline).
    │   ├── options.py            # PicmakerOptions dataclass + validate().
    │   ├── io.py                 # Reader cascade + output-path helpers.
-   │   ├── _types.py             # Shared types: ReadResult, FilterInfo, ObjectSelector.
+   │   ├── _types.py             # Shared types: ReadResult, ImageInfo, ObjectSelector.
    │   ├── enhance.py            # Intensity stretch / gamma / colormap.
    │   ├── geometry.py           # Slice / crop / rotate / size / wrap / pad.
    │   ├── color.py              # Per-filter tint dispatch (mission-agnostic).

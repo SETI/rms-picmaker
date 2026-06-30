@@ -70,7 +70,7 @@ to break the import cycle that would arise if instrument modules
 imported from :mod:`picmaker.io` while :mod:`picmaker.io` imports from
 :mod:`picmaker.instruments`. Defines :class:`~picmaker._types.ReadResult`
 (a :class:`typing.NamedTuple` of ``(array3d, default_is_up,
-filter_info)``), :data:`~picmaker._types.FilterInfo` (the
+image_info)``), :data:`~picmaker._types.ImageInfo` (the
 ``(inst_host, inst_id, filter_name)`` triple or ``None``), and
 :data:`~picmaker._types.ObjectSelector` (the ``obj=`` parameter type
 accepted by file readers).
@@ -132,7 +132,7 @@ by the median-filter footprint option in :mod:`~picmaker.enhance`.
 -------------------------------------------------
 
 Mission-agnostic tint dispatch. :func:`~picmaker.color.tinted_colormap`
-takes the ``filter_info`` triple from the reader cascade, normalizes
+takes the ``image_info`` triple from the reader cascade, normalizes
 the HST ``CL1`` / ``CL2`` / ``CLEAR*`` / ``N/A`` quirks, then
 delegates to the per-instrument modules in
 :mod:`picmaker.instruments`. The wavelength-to-RGB lookup tables

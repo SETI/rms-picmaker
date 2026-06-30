@@ -18,30 +18,30 @@ from picmaker.instruments.hst import (
     _wfpc2_mosaic,
     apply_mosaic,
 )
-from picmaker.options import PDS3_LABEL_METHODS, PicmakerOptions
+from picmaker.options import PDS3_METHODS, PicmakerOptions
 from picmaker.pipeline import _process_one_image
 
 # ---------------------------------------------------------------------------
-# PicmakerOptions.validate — pds3_label_method
+# PicmakerOptions.validate — pds3_method
 # ---------------------------------------------------------------------------
 
 
-def test_pds3_label_methods_constant_is_canonical_set() -> None:
+def test_pds3_methods_constant_is_canonical_set() -> None:
     """The exported tuple lists every supported value once, in CLI order."""
-    assert PDS3_LABEL_METHODS == ('strict', 'loose', 'compound', 'fast')
+    assert PDS3_METHODS == ('strict', 'loose', 'compound', 'fast')
 
 
-@pytest.mark.parametrize('method', list(PDS3_LABEL_METHODS))
-def test_picmaker_options_accepts_each_pds3_label_method(method: str) -> None:
+@pytest.mark.parametrize('method', list(PDS3_METHODS))
+def test_picmaker_options_accepts_each_pds3_method(method: str) -> None:
     """Every documented value is accepted by ``PicmakerOptions.validate``."""
-    PicmakerOptions(pds3_label_method=method).validate()
+    PicmakerOptions(pds3_method=method).validate()
 
 
-def test_picmaker_options_rejects_unknown_pds3_label_method() -> None:
-    """An unknown ``pds3_label_method`` value raises with a message that
+def test_picmaker_options_rejects_unknown_pds3_method() -> None:
+    """An unknown ``pds3_method`` value raises with a message that
     names the offending value and the accepted set."""
-    with pytest.raises(ValueError, match=r"invalid pds3_label_method 'turbo'"):
-        PicmakerOptions(pds3_label_method='turbo').validate()
+    with pytest.raises(ValueError, match=r"invalid pds3_method 'turbo'"):
+        PicmakerOptions(pds3_method='turbo').validate()
 
 
 
@@ -191,10 +191,10 @@ def test_apply_mosaic_wfpc2_produces_2x2_mosaic(
         np.linspace(0.0, 3.0, 16, dtype=np.float32).reshape(1, 4, 4),
         (4, 1, 1),
     )
-    filter_info = ('HST', 'WFPC2', 'F555W')
+    image_info = ('HST', 'WFPC2', 'F555W')
 
     mosaic = apply_mosaic(
-        array3d, filter_info, _hst_options(),
+        array3d, image_info, _hst_options(),
         default_is_up=False, colormap=colormap, imagefile='single.fits',
     )
 
@@ -209,10 +209,10 @@ def test_apply_mosaic_acs_two_panel() -> None:
         np.linspace(0.0, 3.0, 16, dtype=np.float32).reshape(1, 4, 4),
         (2, 1, 1),
     )
-    filter_info = ('HST', 'ACS/WFC', 'F606W')
+    image_info = ('HST', 'ACS/WFC', 'F606W')
 
     mosaic = apply_mosaic(
-        array3d, filter_info, _hst_options(),
+        array3d, image_info, _hst_options(),
         default_is_up=False, colormap='red-blue', imagefile='single.fits',
     )
 
@@ -224,10 +224,10 @@ def test_apply_mosaic_acs_single_band_no_mosaic() -> None:
     """A single-band ACS/WFC input returns the per-band RGB unchanged
     (no stacking, original per-band spatial shape preserved)."""
     array3d = np.linspace(0.0, 3.0, 16, dtype=np.float32).reshape(1, 4, 4)
-    filter_info = ('HST', 'ACS/WFC', 'F606W')
+    image_info = ('HST', 'ACS/WFC', 'F606W')
 
     mosaic = apply_mosaic(
-        array3d, filter_info, _hst_options(),
+        array3d, image_info, _hst_options(),
         default_is_up=False, colormap='red-blue', imagefile='single.fits',
     )
 
@@ -240,14 +240,14 @@ def test_apply_mosaic_flips_when_default_is_up() -> None:
     assembled mosaic differs from the ``default_is_up=False`` result."""
     array3d = np.arange(16, dtype=np.float32).reshape(1, 4, 4)
     array3d = np.tile(array3d, (4, 1, 1))
-    filter_info = ('HST', 'WFPC2', 'F555W')
+    image_info = ('HST', 'WFPC2', 'F555W')
 
     mosaic_no_flip = apply_mosaic(
-        array3d, filter_info, _hst_options(),
+        array3d, image_info, _hst_options(),
         default_is_up=False, colormap=None, imagefile='single.fits',
     )
     mosaic_flipped = apply_mosaic(
-        array3d, filter_info, _hst_options(),
+        array3d, image_info, _hst_options(),
         default_is_up=True, colormap=None, imagefile='single.fits',
     )
 
@@ -261,8 +261,8 @@ def test_apply_mosaic_returns_none_for_non_mosaic_instrument() -> None:
     ACS/WFC and WFPC2 (e.g. NICMOS), falling through to the standard
     single-band pipeline."""
     array3d = np.zeros((1, 4, 4), dtype=np.float32)
-    filter_info = ('HST', 'NICMOS/NIC1', 'F110W')
-    result = apply_mosaic(array3d, filter_info, _hst_options())
+    image_info = ('HST', 'NICMOS/NIC1', 'F110W')
+    result = apply_mosaic(array3d, image_info, _hst_options())
     assert result is None
 
 

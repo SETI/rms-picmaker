@@ -42,7 +42,7 @@ arranged by topic.
    :no-members:
    :no-index:
 
-The :data:`~picmaker.FilterInfo` type alias is documented in the I/O
+The :data:`~picmaker.ImageInfo` type alias is documented in the I/O
 section below.
 
 **Enhancement**

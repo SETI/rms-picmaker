@@ -128,13 +128,13 @@ functions:</p>
 beyond what <code class="docutils literal notranslate"><span class="pre">tint_for</span></code> can express:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">apply_tint</span><span class="p">(</span>
     <span class="n">array3d</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-    <span class="n">filter_info</span><span class="p">:</span> <span class="n">FilterInfo</span><span class="p">,</span>
+    <span class="n">image_info</span><span class="p">:</span> <span class="n">ImageInfo</span><span class="p">,</span>
     <span class="n">options</span><span class="p">:</span> <span class="n">PicmakerOptions</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 
 <span class="k">def</span> <span class="nf">apply_mosaic</span><span class="p">(</span>
     <span class="n">array3d</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-    <span class="n">filter_info</span><span class="p">:</span> <span class="n">FilterInfo</span><span class="p">,</span>
+    <span class="n">image_info</span><span class="p">:</span> <span class="n">ImageInfo</span><span class="p">,</span>
     <span class="n">options</span><span class="p">:</span> <span class="n">PicmakerOptions</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">default_is_up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -163,7 +163,7 @@ label argument gracefully.  Shared format utilities are available in
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._shared</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> carries every pipeline option listed in
 <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.options.READ_FILE_KWARGS</span></code>; currently that is <code class="docutils literal notranslate"><span class="pre">mosaic</span></code>
-and <code class="docutils literal notranslate"><span class="pre">pds3_label_method</span></code>.  Instruments that do not need any of these
+and <code class="docutils literal notranslate"><span class="pre">pds3_method</span></code>.  Instruments that do not need any of these
 values simply accept and ignore them.  An instrument that <em>does</em> need
 one extracts it with <code class="docutils literal notranslate"><span class="pre">kwargs.get('key',</span> <span class="pre">default)</span></code> — see
 <a class="reference internal" href="../module.html#module-picmaker.instruments.hst" title="picmaker.instruments.hst"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst</span></code></a> for the <code class="docutils literal notranslate"><span class="pre">mosaic</span></code> example and
@@ -172,20 +172,20 @@ instrument-specific option.</p>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">matches(inst_host,</span> <span class="pre">inst_id)</span></code> — quick host-level predicate used
 by <a class="reference internal" href="../module.html#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.lookup()</span></code></a> once the cascade already has a
-<code class="docutils literal notranslate"><span class="pre">filter_info</span></code> triple (e.g. when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is applied to a file
+<code class="docutils literal notranslate"><span class="pre">image_info</span></code> triple (e.g. when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is applied to a file
 whose metadata was read without going through <code class="docutils literal notranslate"><span class="pre">read_file</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">tint_for(inst_id,</span> <span class="pre">filter_name)</span></code> — given the filter, return the
 three-stop colormap <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">tint,</span> <span class="pre">white]</span></code>, the two-stop fallback
 <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">white]</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the filter is genuinely unknown
 (the HST wavelength-inference path uses <code class="docutils literal notranslate"><span class="pre">None</span></code> to mean “unable to
 infer; keep the user’s colormap”).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apply_tint(array3d,</span> <span class="pre">filter_info,</span> <span class="pre">options)</span></code> — checked via
+<li><p><code class="docutils literal notranslate"><span class="pre">apply_tint(array3d,</span> <span class="pre">image_info,</span> <span class="pre">options)</span></code> — checked via
 <a class="reference external" href="https://docs.python.org/3/library/functions.html#hasattr" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hasattr()</span></code></a> in <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline._process_one_image()</span></code>; called
 only when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is set.  Define it when the tinting algorithm
 cannot be expressed as a fixed colormap list.  Return a
 <code class="docutils literal notranslate"><span class="pre">(lines,</span> <span class="pre">samples,</span> <span class="pre">C)</span></code> RGB array to bypass the standard colormap
 pipeline, or <code class="docutils literal notranslate"><span class="pre">None</span></code> to fall through.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apply_mosaic(array3d,</span> <span class="pre">filter_info,</span> <span class="pre">options,</span> <span class="pre">*,</span> <span class="pre">default_is_up,</span>
+<li><p><code class="docutils literal notranslate"><span class="pre">apply_mosaic(array3d,</span> <span class="pre">image_info,</span> <span class="pre">options,</span> <span class="pre">*,</span> <span class="pre">default_is_up,</span>
 <span class="pre">colormap,</span> <span class="pre">imagefile)</span></code> — checked via <a class="reference external" href="https://docs.python.org/3/library/functions.html#hasattr" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hasattr()</span></code></a>; called only
 when <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> is set, and only if <code class="docutils literal notranslate"><span class="pre">apply_tint</span></code> did not already
 return a non-<code class="docutils literal notranslate"><span class="pre">None</span></code> result.  Define it for instruments that assemble
@@ -266,13 +266,13 @@ the file format(s) your instrument produces.</p>
     <span class="n">vic</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">try_open_vicar</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">vic</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">filter_info</span> <span class="o">=</span> <span class="n">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">array3d</span> <span class="o">=</span> <span class="n">vic</span><span class="o">.</span><span class="n">data_3d</span>
     <span class="k">if</span> <span class="n">array3d</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">array3d</span> <span class="o">=</span> <span class="n">array3d</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">array3d</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -320,11 +320,11 @@ the file format(s) your instrument produces.</p>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(),</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span> <span class="k">as</span> <span class="n">hdulist</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">)</span>
-            <span class="n">filter_info</span> <span class="o">=</span> <span class="n">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
             <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">extract_fits_array</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span>
 </pre></div>
@@ -354,11 +354,11 @@ in any format supported by
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to detect and read a My-Mission image.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">):</span>
-        <span class="n">filter_info</span> <span class="o">=</span> <span class="n">_detect_pds3</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">filter_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_pds3</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
         <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">filter_info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
     <span class="c1"># ... VICAR or FITS detection below for non-label paths ...</span>
 </pre></div>
 </div>
@@ -413,9 +413,9 @@ add an entry to <code class="docutils literal notranslate"><span class="pre">INS
 <p><code class="xref py py-func docutils literal notranslate"><span class="pre">tests.test_io.test_instrument_detection()</span></code> parametrizes over
 this list, exercising both <a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a>
 (the full reader cascade) and <a class="reference internal" href="../module.html#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.lookup()</span></code></a>
-(the <code class="docutils literal notranslate"><span class="pre">filter_info</span></code> triple).  Add a second entry for any PDS3 label
+(the <code class="docutils literal notranslate"><span class="pre">image_info</span></code> triple).  Add a second entry for any PDS3 label
 fixture, pointing to the <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> filename with the same expected
-<code class="docutils literal notranslate"><span class="pre">filter_info</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">image_info</span></code>.</p>
 </li>
 <li><p><strong>Add per-instrument unit tests.</strong> Open
 <code class="file docutils literal notranslate"><span class="pre">tests/test_instruments_branches.py</span></code> and add:</p>
@@ -468,7 +468,7 @@ Adding such an option touches four files: <code class="file docutils literal not
 <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a> field names that the pipeline
 forwards to every <code class="docutils literal notranslate"><span class="pre">read_file</span></code> call as keyword arguments:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># options.py</span>
-<span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_label_method&#39;</span><span class="p">)</span>
+<span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_method&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>In <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline._process_one_image()</span></code> the kwargs dict is
@@ -523,7 +523,7 @@ two additions in the same edit:</p>
 comment above that constant reminds you to do this whenever you add
 a new field:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s1">&#39;cassini_encoding&#39;</span><span class="p">,</span> <span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_label_method&#39;</span>
+    <span class="s1">&#39;cassini_encoding&#39;</span><span class="p">,</span> <span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_method&#39;</span>
 <span class="p">)</span>
 </pre></div>
 </div>

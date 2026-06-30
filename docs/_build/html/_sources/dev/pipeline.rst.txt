@@ -42,7 +42,7 @@ zoom controls to read the labels at any size.
        PI --> PF[generic VICAR fallback]
        PF --> PG[generic FITS fallback]
        PG --> PH[PIL / 16-bit TIFF<br/>PDS3 auto-detect]
-       PH --> Q[ReadResult<br/>array3d, default_is_up, filter_info]
+       PH --> Q[ReadResult<br/>array3d, default_is_up, image_info]
        NPI --> Q
        NPF --> Q
        PI --> Q
@@ -139,8 +139,8 @@ on raw argparse fields:
 * ``display_upward`` + ``display_downward`` is rejected.
 * ``twobytes`` requires a TIFF extension and rejects any
   ``filter_name`` other than ``'NONE'``.
-* ``pds3_label_method`` must be one of the values in
-  :data:`~picmaker.options.PDS3_LABEL_METHODS`
+* ``pds3_method`` must be one of the values in
+  :data:`~picmaker.options.PDS3_METHODS`
   (``'strict'``, ``'loose'``, ``'compound'``, ``'fast'``); the value is
   forwarded as :class:`pdsparser.Pds3Label`'s ``method=`` argument when
   a PDS3 ``.LBL`` is parsed.
@@ -174,7 +174,7 @@ cascade within this branch is:
 2. **Generic PDS3 fallback** —
    :func:`~picmaker.instruments._shared.read_pds3_image_array`, for
    labels not matched by any instrument.  Resolves the ``^IMAGE``
-   pointer and reads via VICAR or FITS.  Returns ``filter_info=None``.
+   pointer and reads via VICAR or FITS.  Returns ``image_info=None``.
 
 **Non-label cascade** — taken for all other paths.  Stages are tried in
 order; each catches its specific exception type so an unrecognized file
@@ -190,7 +190,7 @@ falls through to the next:
    dict is assembled in :func:`picmaker.pipeline._process_one_image`
    from the :class:`~picmaker.options.PicmakerOptions` fields named in
    :data:`picmaker.options.READ_FILE_KWARGS` (currently ``mosaic`` and
-   ``pds3_label_method``).  Each instrument handles its own format
+   ``pds3_method``).  Each instrument handles its own format
    detection (VICAR magic, FITS magic, file-extension heuristic, etc.)
    and returns :class:`~picmaker._types.ReadResult` on success or
    ``None`` to pass to the next instrument.  Shared format utilities
@@ -198,13 +198,13 @@ falls through to the next:
 4. **generic VICAR fallback** — :meth:`vicar.VicarImage.from_file` with
    ``strict=False``, for VICAR files from instruments not yet in
    :data:`~picmaker.instruments.ALL_INSTRUMENTS`.  Returns
-   ``filter_info=None``.
+   ``image_info=None``.
 5. **generic FITS fallback** — sniffs the first 9 bytes for
    ``b'SIMPLE  ='`` before calling :func:`astropy.io.fits.open`, for
    FITS files from unrecognized instruments.  Warnings from astropy are
    promoted to exceptions by :class:`warnings.catch_warnings` +
    ``filterwarnings('error')`` and swallowed at the branch boundary.
-   Returns ``filter_info=None``.
+   Returns ``image_info=None``.
 6. **PIL / 16-bit TIFF** — :func:`~picmaker.io.read_array`.
 7. **PDS3 auto-detection** —
    :func:`~picmaker.io.read_pds_labeled_image_array` tries to parse the
@@ -221,7 +221,7 @@ diagnostic purposes.
 delegates to :func:`~picmaker.io.read_one_image_array` per file and
 stacks the resulting arrays along the band axis with
 :func:`numpy.vstack`. The combined result inherits the
-``default_is_up`` and ``filter_info`` of the first file.
+``default_is_up`` and ``image_info`` of the first file.
 
 :func:`picmaker.io.read_pds_labeled_image_array` handles the PDS3
 label / detached-data case. Pointer resolution lives here:
@@ -274,10 +274,10 @@ following phases for one input file:
 4. Run the instrument hooks, in priority order:
 
    a. If ``tint=True`` and the instrument module defines
-      :func:`!apply_tint`, call it with ``(array3d, filter_info,
+      :func:`!apply_tint`, call it with ``(array3d, image_info,
       options)``.  A non-``None`` return is the final RGB array.
    b. Else if ``mosaic=True`` and the instrument module defines
-      :func:`!apply_mosaic`, call it with ``(array3d, filter_info,
+      :func:`!apply_mosaic`, call it with ``(array3d, image_info,
       options, default_is_up=…, colormap=…, imagefile=…)``.  A
       non-``None`` return is the final RGB array and orientation is
       treated as already-baked (``this_display_upward`` is set to

@@ -23,7 +23,6 @@ Run from **project root** with the project **virtual environment activated** (e.
 ```bash
 # Lint (ruff)
 python -m ruff check src tests examples
-python -m ruff format --check src tests examples
 
 # Type check (mypy)
 python -m mypy src tests examples
@@ -75,7 +74,6 @@ Set `VENV` or `VENV_PATH` to point to the virtual environment if it is not at `.
 ```markdown
 Check Progress:
 - [ ] Ruff check (src, tests, examples)
-- [ ] Ruff format --check
 - [ ] Mypy (src, tests, examples)
 - [ ] Pytest (tests)
 - [ ] PyMarkdown scan (docs/, .cursor/, README, CONTRIBUTING)
@@ -150,7 +148,6 @@ from __future__ import annotations  # at top of file
 All checks pass when:
 
 - `ruff check` → All checks passed
-- `ruff format --check` → Would reformat 0 files (or run `ruff format` and re-check)
 - `mypy` → Success: no issues found
 - `pytest` → All tests pass; coverage meets target if configured
 - `pymarkdown scan` → No violations

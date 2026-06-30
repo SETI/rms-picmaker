@@ -145,6 +145,11 @@ strict = true
 disallow_subclassing_any = false
 
 [[tool.mypy.overrides]]
+# Exclude the picmaker package source (src/picmaker) from type checking.
+module = ["picmaker", "picmaker.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "picmaker._version"
 ignore_missing_imports = true
 

@@ -522,7 +522,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">  :class:`~picmaker._types.ReadResult` on success or ``None`` if the</span>
 <span class="sd">  file is not owned by this instrument. Instrument-specific options</span>
 <span class="sd">  (the fields named in :data:`~picmaker.options.READ_FILE_KWARGS`,</span>
-<span class="sd">  currently ``mosaic`` and ``pds3_label_method``) arrive via</span>
+<span class="sd">  currently ``mosaic`` and ``pds3_method``) arrive via</span>
 <span class="sd">  ``**kwargs``; any a given instrument does not use are ignored.</span>
 <span class="sd">* ``matches(inst_host, inst_id) -&gt; bool`` — predicate used by</span>
 <span class="sd">  :func:`lookup` to find the instrument for tinting. It checks both the</span>
@@ -536,11 +536,11 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">**Optional methods (checked via** ``hasattr`` **):**</span>
 
-<span class="sd">* ``apply_tint(array3d, filter_info, options) -&gt; NDArray | None`` —</span>
+<span class="sd">* ``apply_tint(array3d, image_info, options) -&gt; NDArray | None`` —</span>
 <span class="sd">  custom colorization; called only under ``--tint``; return a</span>
 <span class="sd">  ``(H, W, C)`` RGB array to replace the standard colormap pipeline,</span>
 <span class="sd">  or ``None`` to fall through.</span>
-<span class="sd">* ``apply_mosaic(array3d, filter_info, options, *, default_is_up, colormap,</span>
+<span class="sd">* ``apply_mosaic(array3d, image_info, options, *, default_is_up, colormap,</span>
 <span class="sd">  imagefile) -&gt; NDArray | None`` — multi-detector array assembly; called only</span>
 <span class="sd">  under ``--mosaic``; return the assembled ``(H, W, C)`` array, or ``None``</span>
 <span class="sd">  to fall through to the standard ``_band_to_rgb`` path.</span>

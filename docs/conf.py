@@ -5,6 +5,7 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import datetime
 import importlib.metadata
 import os
 import sys
@@ -18,7 +19,7 @@ if not os.path.exists(os.path.abspath('../src')):
 # -- Project information -----------------------------------------------------
 
 project = 'rms-picmaker'
-copyright = '2025, SETI Institute'
+copyright = f'{datetime.date.today().year}, SETI Institute'
 author = 'SETI Institute'
 
 # The full version, including alpha/beta/rc tags
@@ -119,7 +120,7 @@ nitpick_ignore = [
     ('py:data', 'picmaker._rgb.RFUNC'),
     ('py:data', 'picmaker._rgb.GFUNC'),
     ('py:data', 'picmaker._rgb.BFUNC'),
-    ('py:data', 'picmaker.io.FilterInfo'),
+    ('py:data', 'picmaker.io.ImageInfo'),
     ('py:data', 'picmaker.instruments.galileo_ssi.FILTER_DICT'),
     ('py:data', 'picmaker.instruments.galileo_ssi.FILTER_NAMES'),
     ('py:data', 'picmaker.instruments.nh_mvic.FILTER_DICT'),

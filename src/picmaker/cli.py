@@ -2,8 +2,11 @@
 # picmaker/cli.py
 ##########################################################################################
 
+# ruff: noqa: I001
 import argparse
 import sys
+
+from pdslogger import PdsLogger
 
 from picmaker.control     import REPLACE_CHOICES
 from picmaker.instruments import PDS3_METHODS, DEFAULT_PDS3_METHOD
@@ -27,7 +30,7 @@ _control = PARSER.add_argument_group('control options')
 _control.add_argument(
     '--directory', type=str, default=None,
     help='directory in which to place converted files. If the recursive option is '
-         'selected, this becomes the root of a tree which parallels subdirectory '
+         'selected, this becomes the root of a tree that parallels the subdirectory '
          'structure of the source files.')
 _control.add_argument(
     '-r', '--recursive', action='store_true', default=False,
@@ -49,7 +52,7 @@ _control.add_argument(
          'exception and abort).')
 _control.add_argument(
     '--proceed', action='store_true', default=False,
-    help='continue processing subsequent files after an error.')
+    help='continue processing subsequent files after an error. Ignored in --movie mode.')
 _control.add_argument(
     '--logging', type=str, default='info',
     choices=['warning', 'info', 'debug', 'error'],
@@ -67,8 +70,7 @@ _input_.add_argument(
 _input_.add_argument(
     '--pds3-method', dest='pds3_method', type=str, default=DEFAULT_PDS3_METHOD,
     choices=PDS3_METHODS,
-    help='pdsparser.Pds3Label parsing strictness for PDS3 .LBL inputs: '
-         '"fast" (default), "strict", "loose", or "compound".')
+    help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is "fast".')
 
 _output = PARSER.add_argument_group('output options')
 _output.add_argument(
@@ -106,31 +108,32 @@ _slicing.add_argument(
          'values start at 1 and are inclusive of the upper limit specified.')
 _slicing.add_argument(
     '--crop', type=float, default=None,
-    help='crop boundary regions entirely containing the specified value.')
+    help='crop boundary regions that entirely contain the specified value.')
 
-_scaling = PARSER.add_argument_group('scaling options')
-_scaling.add_argument(
+_stretch = PARSER.add_argument_group('stretch options')
+_stretch.add_argument(
     '-v', '--valid', type=float, nargs=2, default=None,
     help='range of valid pixel values; pixels outside are ignored.')
-_scaling.add_argument(
+_stretch.add_argument(
     '-l', '--limits', type=float, nargs=2, default=None,
-    help='pair of pixel values that define the limits of the histogram.')
-_scaling.add_argument(
+    help='pair of pixel values that define the limits of the stretch.')
+_stretch.add_argument(
     '-p', '--percentiles', type=float, nargs=2, default=(0.0, 100.0),
-    help='pair of percentile values that define the limits of the histogram.')
-_scaling.add_argument(
+    help='pair of percentile values that operate within the image limits; default is '
+         '"0 100".')
+_stretch.add_argument(
     '--trim', type=int, default=0,
-    help='number of pixels around the edge of the image to trim before computing a '
-         'histogram.')
-_scaling.add_argument(
+    help='number of pixels around the edge of the image to trim before computing the '
+         'limits and percentiles.')
+_stretch.add_argument(
     '--trim-zeros', dest='trim_zeros',
     action='store_true', default=False,
     help='ignore exterior rows/columns containing all zeros.')
-_scaling.add_argument(
+_stretch.add_argument(
     '--footprint', type=int, default=0,
     help='diameter in pixels of a circular footprint for a median filter to apply to the '
-         'image prior to calculating the extreme values and percentages. This can be '
-         'used to suppress noise spikes prior to determining the optimal scaling.')
+         'image prior to calculating the limits and percentiles. This can be used to '
+         'suppress noise spikes prior to determining the optimal scaling.')
 
 _enhancement = PARSER.add_argument_group('enhancement options')
 _enhancement.add_argument(
@@ -138,16 +141,16 @@ _enhancement.add_argument(
     help='a colormap to apply to the image, defined via one or more colors. For example, '
          '"black blue white" defines an image in which the darkest pixels are black, the '
          'brightest pixels are white, and intermediate values contain varying shades of '
-         'blue. If a single color is specified, it is assumed tobe shorthand for the '
+         'blue. If a single color is specified, it is assumed to be shorthand for the '
          'colormap "black <color> white".')
 _enhancement.add_argument(
     '--below', dest='below_color', type=str, default=None,
-    help='color for pixels whose values are less than the lower limit. By default, the '
-         'first color of the colormap is used.')
+    help='color for pixels whose values are less than the lower limit of the stretch. By '
+         'default, this is the first color of the colormap.')
 _enhancement.add_argument(
     '--above', dest='above_color', type=str, default=None,
     help='color for pixels whose values are greater than the upper limit. By default, '
-         'the last color of the colormap is used.')
+         'this is the last color of the colormap.')
 _enhancement.add_argument(
     '--invalid', dest='invalid_color', type=str, default='black',
     help='color to use for invalid pixels and NaNs. Default is black.')
@@ -162,7 +165,7 @@ _enhancement.add_argument(
 _enhancement.add_argument(
     '--histogram', action='store_true', default=False,
     help='use a histogram contrast stretch. This takes advantage of the full dynamic '
-         'range from black to white.')
+         'range within the limits of the stretch.')
 
 _orientation = PARSER.add_argument_group('orientation options')
 _orientation.add_argument(
@@ -203,11 +206,11 @@ _layout.add_argument(
     help='wrap the sections of an image if it is extremely elongated.')
 _layout.add_argument(
     '--wrap-ratio', type=float, default=None,
-    help='wrap if width:height or height:width ratio exceeds this value.')
+    help='wrap if one of the ratios width/height or height/width exceeds this value.')
 _layout.add_argument(
     '--overlap', type=float, default=None,
     help='percentage of required overlap between wrapped sections of an elongated image. '
-         'For example, if the value is 5, then the last 5% of each strip in the image '
+         'For example, if the value is 5, then the last 5%% of each strip in the image '
          'will be repeated at the beginning of the next strip.')
 _layout.add_argument(
     '--overlaps', type=float, nargs=2, default=None,
@@ -233,7 +236,7 @@ _layout.add_argument(
 
 _processing = PARSER.add_argument_group('processing options')
 _processing.add_argument(
-    '-f', '--filter', default=None, choices=FILTER_CHOICES,
+    '--filter', default=None, choices=FILTER_CHOICES,
     help='apply an image processing filter to the image. Options are '
          + f'{", ".join(FILTER_CHOICES[:-1])} and {FILTER_CHOICES[-1]}.')
 _processing.add_argument(
@@ -250,7 +253,11 @@ def main():
     from picmaker.picmaker import picmaker, validate_options
 
     options = PARSER.parse_args()   # could raise SystemExit
-    kwargs = validate_options(options)
+
+    logger = PdsLogger.get_logger('pds.picmaker', digits=3, lognames=False, indent=True,
+                                  blanklines=False, level='debug')
+    kwargs = validate_options(options, logger=logger)
+    kwargs['logger'] = logger
 
     # Shift the indexing origin to zero for values from the command line
     for name in ('samples', 'lines', 'bands'):
@@ -269,5 +276,9 @@ def main():
 
 
 __all__ = ['main']
+
+
+if __name__ == '__main__':
+    main()
 
 ##########################################################################################

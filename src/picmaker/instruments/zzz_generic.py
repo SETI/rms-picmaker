@@ -4,15 +4,22 @@
 """Generic image reader."""
 
 import pickle
+import re
 
 import numpy as np
+import pdsparser
 from PIL import Image
 
 from picmaker.instruments import ImageData, register_instrument
 from picmaker.instruments._fits_support import get_fits_array
-from picmaker.instruments._pds3_support import read_pds3_image_array
+from picmaker.instruments._pds3_support import DEFAULT_PDS3_METHOD, read_pds3_image_array
 from picmaker.pil_utils import pil_to_array
 from picmaker.tiff16 import read_tiff16
+
+# A PDS3 label - attached or detached - begins with the PDS_VERSION_ID keyword set to
+# PDS3. We scan a head block rather than anchoring at the first byte so that an optional
+# SFDU wrapper or leading comment does not defeat the match.
+_PDS3_LABEL_SIGNATURE = re.compile(rb'PDS_VERSION_ID\s*=\s*"?PDS3')
 
 
 class ZZZ_Generic(ImageData):
@@ -80,6 +87,18 @@ class ZZZ_Generic(ImageData):
             (:class:`ImageData` or ``None``): The :class:`ImageData` object if the format
             of ``file`` is recognized; otherwise, ``None``.
         """
+
+        # Handle a PDS3 file with an attached label. A ".lbl" file is recognized earlier in
+        # the reader cascade; a data file that is not named ".lbl" but carries a PDS3 label
+        # at its head, with the image attached in the same file, is recognized here from
+        # that label's signature.
+        with open(filepath, 'rb') as f:
+            head = f.read(512)
+        if _PDS3_LABEL_SIGNATURE.search(head):
+            method = kwargs.get('pds3_method', DEFAULT_PDS3_METHOD)
+            label = pdsparser.Pds3Label(filepath, method=method)
+            array = read_pds3_image_array(label, kwargs.get('obj'))
+            return ImageData(array, False, None)
 
         # Handle pickle file
         try:

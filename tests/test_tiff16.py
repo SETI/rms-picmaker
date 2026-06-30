@@ -103,7 +103,7 @@ def test_invalid_file_raises(tmp_path: Path) -> None:
     bad.write_bytes(b'\x00' * 64)
     with pytest.raises(IOError) as excinfo:
         read_tiff16(str(bad))
-    assert 'File format is not TIFF' in str(excinfo.value)
+    assert 'not a recognized TIFF16 file' in str(excinfo.value)
 
 
 def test_wrong_tiff_version_raises(tmp_path: Path) -> None:
@@ -115,5 +115,5 @@ def test_wrong_tiff_version_raises(tmp_path: Path) -> None:
     bad = tmp_path / 'bad_version.tiff'
     # Little-endian 'II' magic, version=43 (not 42), IFD offset=8.
     bad.write_bytes(b'II' + (43).to_bytes(2, 'little') + (8).to_bytes(4, 'little'))
-    with pytest.raises(OSError, match='File format is not TIFF'):
+    with pytest.raises(OSError, match='not a recognized TIFF16 file'):
         read_tiff16(str(bad))
