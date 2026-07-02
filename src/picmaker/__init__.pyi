@@ -8,7 +8,7 @@ are re-exported with the types defined in their source modules.
 """
 
 # ruff: noqa: I001
-from picmaker.cli         import main
+from picmaker.main        import main
 from picmaker.colornames  import ColorNames
 from picmaker.control     import get_filepaths, get_outfile
 from picmaker.enhancement import apply_colormap

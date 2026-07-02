@@ -129,7 +129,7 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
                 source = array[b]
                 count = source.size
             else:
-                source = array[b].copy()
+                source = array[b].astype('float')
                 source[full_mask[b]] = np.nan
                 count = source.size - np.sum(full_mask[b])
             ranked = rankdata(source, nan_policy='omit').reshape(source.shape)

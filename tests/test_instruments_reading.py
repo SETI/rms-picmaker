@@ -15,32 +15,20 @@ import pytest
 from picmaker.instruments import read_image_array
 
 # (fixture_name, expected_shape, default_upward, default_tint)
-# VICAR fixtures come back 3-D (band axis preserved by vicar); the FITS
-# fixtures come back 2-D. Synthetic fixtures carry no FILTER_NAME, so the
-# default tint is None. hst_acs.fits / hst_wfpc2.fits are xfailed: their
-# instrument modules (hst_acs, hst_wfpc2) are work-in-progress and raise
-# AttributeError inside detect_in_fits.
+# Single-band reads come back 2-D for both VICAR and FITS fixtures.
+# Synthetic fixtures carry no science FILTER (hst_wfpc2.fits is not a _c0f
+# science file), so the default tint is None. The WFPC2 fixture stores its four
+# detectors as a data cube in the PRIMARY HDU with a DETECTOR table, mirroring
+# real WFPC2 layout; a plain single-detector read returns 2-D.
 INSTRUMENT_FIXTURES = [
-    ('cassini_iss.vic', (1, 16, 16), False, None),
-    ('voyager_iss.vic', (1, 16, 16), False, None),
-    ('galileo_ssi_a.vic', (1, 16, 16), False, None),
-    ('galileo_ssi_b.vic', (1, 16, 16), False, None),
+    ('cassini_iss.vic', (16, 16), False, None),
+    ('voyager_iss.vic', (16, 16), False, None),
+    ('galileo_ssi_a.vic', (16, 16), False, None),
+    ('galileo_ssi_b.vic', (16, 16), False, None),
     ('hst_wfc3.fits', (16, 16), True, None),
     ('nh_mvic.fits', (16, 16), True, None),
-    pytest.param(
-        'hst_acs.fits', (16, 16), True, None,
-        marks=pytest.mark.xfail(
-            reason='hst_acs instrument module is WIP and raises in detect_in_fits',
-            strict=False,
-        ),
-    ),
-    pytest.param(
-        'hst_wfpc2.fits', (16, 16), True, None,
-        marks=pytest.mark.xfail(
-            reason='hst_wfpc2 instrument module is WIP and raises in detect_in_fits',
-            strict=False,
-        ),
-    ),
+    ('hst_acs.fits', (16, 16), True, None),
+    ('hst_wfpc2.fits', (16, 16), True, None),
 ]
 
 

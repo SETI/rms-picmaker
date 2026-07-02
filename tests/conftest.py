@@ -32,9 +32,9 @@ def tiny_array() -> NDArray[np.uint16]:
 @pytest.fixture
 def basic_option_dict() -> dict[str, Any]:
     """A minimal ``option_dict`` shaped like the one
-    :func:`picmaker.cli._normalize_and_validate` produces — every field
-    that :func:`picmaker.pipeline.images_to_pics` and
-    :func:`picmaker.pipeline.process_images` consume, with safe
+    :func:`picmaker.picmaker.validate_options` produces — every field
+    that :func:`picmaker.picmaker.picmaker` and
+    :func:`picmaker.picmaker.picmaker1` consume, with safe
     defaults. Returns a fresh dict on each call so tests can mutate
     without leaking state across the suite.
     """

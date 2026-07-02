@@ -122,7 +122,7 @@ docs = [
 ]
 
 [project.scripts]
-picmaker = "picmaker.cli:main"
+picmaker = "picmaker.main:main"
 
 # Tool configuration
 

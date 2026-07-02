@@ -25,11 +25,12 @@ _PDS3_LABEL_SIGNATURE = re.compile(rb'PDS_VERSION_ID\s*=\s*"?PDS3')
 class ZZZ_Generic(ImageData):
 
     @staticmethod
-    def detect_in_pds3(label, obj=0, **kwargs):
+    def detect_in_pds3(label, filepath, obj=0, **kwargs):
         """Extract image data from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+            filepath (str or pathlib.Path): The path to this PDS3 label.
             obj (int, optional): Index of the IMAGE object if the label describes more
                 than one.
             **kwargs: Instrument-specific keywords.
@@ -43,11 +44,12 @@ class ZZZ_Generic(ImageData):
         return ImageData(array, False, None)
 
     @staticmethod
-    def detect_in_vicar(vic, **kwargs):
+    def detect_in_vicar(vic, filepath, **kwargs):
         """Extract image data from an open :class:`vicar.VicarImage`.
 
         Parameters:
             vic (:class:`vicar.VicarImage`): A VicarImage object.
+            filepath (str or pathlib.Path): The path to this Vicar file.
             **kwargs: Instrument-specific keywords; ignored here.
 
         Returns:
@@ -55,14 +57,19 @@ class ZZZ_Generic(ImageData):
             recognized; otherwise, ``None``.
         """
 
-        return ImageData(vic.array, False, None)
+        array = vic.array
+        if array.ndim > 2 and array.shape[0] == 1:
+            array = array[0]
+        return ImageData(array, False, None)
 
     @staticmethod
-    def detect_in_fits(hdulist, obj=None, **kwargs):
+    def detect_in_fits(hdulist, filepath, obj=None, **kwargs):
         """Extract image data from a FITS HDUlist.
 
         Parameters:
-            hdulist (:class:`astropy.io.fits.HDUList`): The HDUList of an opened FITS file.
+            hdulist (:class:`astropy.io.fits.HDUList`): The HDUList of an opened FITS
+                file.
+            filepath (str or pathlib.Path): The path to this FITS file.
             obj (int, optional): The index of the HDUList describing the image. If not
                 specified, the first HDU containing data is used.
             **kwargs: Instrument-specific keywords; ignored here.
@@ -88,10 +95,10 @@ class ZZZ_Generic(ImageData):
             of ``file`` is recognized; otherwise, ``None``.
         """
 
-        # Handle a PDS3 file with an attached label. A ".lbl" file is recognized earlier in
-        # the reader cascade; a data file that is not named ".lbl" but carries a PDS3 label
-        # at its head, with the image attached in the same file, is recognized here from
-        # that label's signature.
+        # Handle a PDS3 file with an attached label. A ".lbl" file is recognized earlier
+        # in the reader cascade; a data file that is not named ".lbl" but carries a PDS3
+        # label at its head, with the image attached in the same file, is recognized here
+        # from that label's signature.
         with open(filepath, 'rb') as f:
             head = f.read(512)
         if _PDS3_LABEL_SIGNATURE.search(head):

@@ -1,10 +1,11 @@
-"""In-process unit tests for ``picmaker.cli`` internals.
+"""In-process unit tests for the picmaker CLI internals.
 
 The subprocess-based tests in :mod:`tests.test_cli` cover the
 end-to-end CLI contract (exit codes, ``--help`` baseline, ``--versions``).
-These tests exercise the module-level ``PARSER`` and the option-validation
-and file-discovery helpers directly so the coverage tool counts them and so
-each validation rule has a focused assertion that fails with a clear locator.
+These tests exercise the ``get_parser()`` factory (:mod:`picmaker.parser`) and
+the option-validation and file-discovery helpers directly so the coverage tool
+counts them and so each validation rule has a focused assertion that fails with
+a clear locator.
 """
 
 import argparse
@@ -14,24 +15,25 @@ from typing import Any
 
 import pytest
 
-from picmaker.cli import PARSER, main
 from picmaker.control import get_filepaths
 from picmaker.instruments import DEFAULT_PDS3_METHOD, PDS3_METHODS
+from picmaker.main import main
+from picmaker.parser import get_parser
 from picmaker.picmaker import validate_options
 
 # ---------------------------------------------------------------------------
-# PARSER
+# get_parser
 # ---------------------------------------------------------------------------
 
 
 def test_parser_is_argument_parser() -> None:
-    """``PARSER`` is an :class:`argparse.ArgumentParser`."""
-    assert isinstance(PARSER, argparse.ArgumentParser)
+    """``get_parser()`` returns an :class:`argparse.ArgumentParser`."""
+    assert isinstance(get_parser(), argparse.ArgumentParser)
 
 
 def test_parser_parses_empty_args() -> None:
     """The parser succeeds on an empty argv (no positionals required)."""
-    ns = PARSER.parse_args([])
+    ns = get_parser().parse_args([])
     assert ns.files == []
     assert ns.directory is None
     assert ns.recursive is False
@@ -45,7 +47,7 @@ def test_parser_parses_empty_args() -> None:
 
 def test_parser_parses_typical_args() -> None:
     """A typical invocation binds every documented dest."""
-    ns = PARSER.parse_args([
+    ns = get_parser().parse_args([
         '--directory', '/tmp/out',
         '--pattern', '*.IMG',
         '--quality', '90',
@@ -65,15 +67,15 @@ def test_parser_parses_typical_args() -> None:
     assert ns.files == ['in.vic']
 
 
-def test_parser_pds3_pointer_is_list() -> None:
-    """``--pds3-pointer`` accepts one or more values into a list."""
-    ns = PARSER.parse_args(['--pds3-pointer', 'IMAGE', 'IMAGE_2'])
-    assert ns.pds3_pointers == ['IMAGE', 'IMAGE_2']
+def test_parser_pointer_is_list() -> None:
+    """``--pointer`` accepts one or more values into a list."""
+    ns = get_parser().parse_args(['--pointer', 'IMAGE', 'IMAGE_2'])
+    assert ns.pointers == ['IMAGE', 'IMAGE_2']
 
 
 def test_parser_lines_and_samples() -> None:
     """``--lines`` / ``--samples`` each take a pair of ints."""
-    ns = PARSER.parse_args(['--lines', '10', '20', '--samples', '5', '25'])
+    ns = get_parser().parse_args(['--lines', '10', '20', '--samples', '5', '25'])
     assert ns.lines == [10, 20]
     assert ns.samples == [5, 25]
 
@@ -81,7 +83,7 @@ def test_parser_lines_and_samples() -> None:
 def test_parser_rejects_bad_choice() -> None:
     """An unknown ``--rotate`` value triggers argparse's ``SystemExit``."""
     with pytest.raises(SystemExit):
-        PARSER.parse_args(['--rotate', 'tumble'])
+        get_parser().parse_args(['--rotate', 'tumble'])
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +123,7 @@ def test_get_filepaths_empty() -> None:
 
 
 def _vo(*args: str) -> dict[str, Any]:
-    return validate_options(PARSER.parse_args(list(args)))
+    return validate_options(get_parser().parse_args(list(args)))
 
 
 def test_validate_band_bands_incompatible() -> None:

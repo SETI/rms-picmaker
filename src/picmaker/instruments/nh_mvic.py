@@ -22,11 +22,12 @@ class NH_MVIC(ImageData):
     """New Horizons MVIC detector and reader."""
 
     @staticmethod
-    def detect_in_pds3(label, **kwargs):
+    def detect_in_pds3(label, filepath, **kwargs):
         """Extract New Horizons MVIC data from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+            filepath (str or pathlib.Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -44,14 +45,15 @@ class NH_MVIC(ImageData):
 
         array = read_pds3_image_array(label)
         filter_name = label.get('FILTER_NAME', '')
-        return ImageData(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
+        return NH_MVIC(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
     @staticmethod
-    def detect_in_fits(hdulist, **kwargs):
+    def detect_in_fits(hdulist, filepath, **kwargs):
         """Extract New Horizons MVIC data from an open :class:`pyfits.HDUList`.
 
         Parameters:
             hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
+            filepath (str or pathlib.Path): The path to this FITS file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -68,7 +70,7 @@ class NH_MVIC(ImageData):
             return None
 
         filter_name = hdulist[0].header.get('FILTER', '')
-        return ImageData(hdulist[0].data, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
+        return NH_MVIC(hdulist[0].data, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
 
 register_instrument(NH_MVIC)

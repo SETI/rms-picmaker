@@ -5,47 +5,62 @@
 
 import astropy.io.fits as pyfits  # noqa
 
-from picmaker.instruments import ImageData, register_instrument
-from picmaker.instruments._fits_support import get_fits_array
-from picmaker.instruments._hst_support import get_hst_filter_digits, hst_tint_from_nm
+from picmaker.instruments import ImageData, tint_by_nm, register_instrument
+from picmaker.instruments._fits_support import get_fits_image_hdu
+from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
 
 _DEFAULT_UPWARD = True
+_DEFAULT_RETINT = 0.4
 
 
 class HST_NICMOS(ImageData):
     """HST NICMOS detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, obj=None, **kwargs):
+    def detect_in_fits(hdulist, filepath, obj=None, pointers=[], retint=None, **kwargs):
         """Extract HST NICMOS data from an open :class:`pyfits.HDUList`.
 
         Parameters:
             hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
-            obj (int, optional): An object index within the file; ignored for HST NICMOS
-                images.
+            filepath (str or pathlib.Path): The path to this FITS file.
+            obj (int, optional): The HDU index (starting at 0) of the image array. If not
+                specified, the first image array in the file is used.
+            pointers (str or list[str], optional): Name or alternative list of names of
+                the IMAGE object within the HDU.
+            retint (float, optional): Factor by which to scale wavelengths for purposes of
+                tinting.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (HST_NICMOS or None): Instrument subclass if ``label`` describes a HST NICMOS
+            (HST_NICMOS or None): Instrument subclass if `the file describes an HST NICMOS
             product; ``None`` otherwise.
         """
 
         try:
             if hdulist[0].header['TELESCOP'] != 'HST':
                 return None
-            if hdulist[0].header['INSTRUME'][:3] != 'NIC':
+            if hdulist[0].header['INSTRUME'] != 'NICMOS':
                 return None
         except (KeyError, IndexError):
             return None
 
-        filter_name = hdulist[0].header.get('FILTER', '').rstrip()
-        if filter_name[:3] == 'POL':
-            default_tint = None
+        hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers, **kwargs)
+        if is_science_hdu(hdu):
+            filter_name = hdulist[0].header['FILTER']
+            if filter_name[:3] == 'POL':
+                default_tint = None
+            else:
+                lambda_div_10 = get_hst_filter_digits(filter_name)
+                if lambda_div_10 is None:
+                    default_tint = None
+                else:
+                    lambda_nm = lambda_div_10 * 10.
+                    retint = retint or _DEFAULT_RETINT
+                    default_tint = tint_by_nm(lambda_nm * retint)
         else:
-            wave = get_hst_filter_digits(filter_name)
-            default_tint = hst_tint_from_nm(wave * 3.5)
+            default_tint = None
 
-        return ImageData(get_fits_array(hdulist, obj), _DEFAULT_UPWARD, default_tint)
+        return HST_NICMOS(hdu.data, _DEFAULT_UPWARD, default_tint)
 
 
 register_instrument(HST_NICMOS)

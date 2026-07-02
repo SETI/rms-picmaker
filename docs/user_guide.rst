@@ -134,9 +134,9 @@ Selection options
   inclusive of the upper limit).
 * ``-o N``, ``--object N`` (default: first valid) — Index of the PDS
   object to read when a file contains multiple image objects.
-* ``--pds3-pointer PTR [PTR ...]`` — One or more PDS pointer names
-  (without leading ``^``) identifying the image object in a detached
-  label; tried in order.
+* ``--pointer PTR [PTR ...]`` — One or more pointer strings identifying
+  the image object in a PDS3 label (without leading ``^``) or the HDU in
+  a FITS file; tried in order.
 * ``--pds3-method METHOD``
   (default: ``fast``) — Parsing strictness forwarded to
   :class:`pdsparser.Pds3Label` for ``.LBL`` inputs. Choices:
@@ -218,6 +218,9 @@ Enhancement options
   applied to the grayscale axis.
 * ``--tint`` — Override the colormap with the per-instrument tint
   inferred from the filter name. See section 6.
+* ``--retint FACTOR`` — Factor applied to the filter wavelength before
+  the tint color is chosen; use it to map IR or UV instruments into the
+  visual range.
 
 Orientation options
 ~~~~~~~~~~~~~~~~~~~
@@ -248,7 +251,7 @@ Processing options
 ``rms-picmaker`` reads the following input formats:
 
 * **PDS3 detached label** — a ``.LBL`` file pointing at one or more
-  ``IMAGE`` objects in a sibling data file. ``--pds3-pointer`` chooses
+  ``IMAGE`` objects in a sibling data file. ``--pointer`` chooses
   which pointer(s) to follow when more than one is present.
 * **PDS3 attached label** — the label header precedes the image data
   in the same file.

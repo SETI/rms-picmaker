@@ -1,22 +1,20 @@
 """Unit tests for :func:`picmaker.picmaker.get_versions`.
 
 ``get_versions`` reads a ``--versions`` file and expands it into a list of
-fully-normalized option dicts (one per non-blank line). It replaces the old
-``picmaker.cli._collect_option_dicts`` helper. Note the behavioral changes
-versus that helper: lines are tokenized with ``str.split`` (not ``shlex``), and
-per-line ``--replace`` / ``--proceed`` values are preserved rather than
-overridden by a top-level value.
+fully-normalized option dicts (one per non-blank line). Note: lines are
+tokenized with ``str.split`` (not ``shlex``), and per-line ``--replace`` /
+``--proceed`` values are preserved rather than overridden by a top-level value.
 """
 
 from pathlib import Path
 from typing import Any
 
-from picmaker.cli import PARSER
+from picmaker.parser import get_parser
 from picmaker.picmaker import get_versions, validate_options
 
 
 def _base(*args: str) -> dict[str, Any]:
-    return validate_options(PARSER.parse_args(list(args)))
+    return validate_options(get_parser().parse_args(list(args)))
 
 
 def test_no_versions_returns_single_options_dict() -> None:

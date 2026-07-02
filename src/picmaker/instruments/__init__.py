@@ -1,9 +1,8 @@
 ##########################################################################################
 # picmaker/instruments/__init__.py
 ##########################################################################################
-"""Instrument reader modules."""
+"""Instrument modules for file reading and special processing."""
 
-# The wrapped import below uses a hand-formatted hanging indent; skip isort reformatting.
 # ruff: noqa: I001
 import importlib
 import pathlib
@@ -15,6 +14,7 @@ import pdsparser
 import vicar
 from tabulation import Tabulation
 
+from picmaker.enhancement import apply_colormap as default_apply_colormap
 from picmaker.instruments._fits_support import get_fits_array
 from picmaker.instruments._pds3_support import (DEFAULT_PDS3_METHOD, PDS3_METHODS,
                                                 read_pds3_image_array)
@@ -33,8 +33,8 @@ def _register_all_instruments():
     Any module in this package whose name does not begin with an underscore is imported
     for its side effects: defining an :class:`ImageData` subclass and calling
     :func:`register_instrument`. Support modules (``_pds3_support``, ``_fits_support``,
-    ``_hst_support``) are skipped. A new instrument is picked up automatically by dropping
-    a module into this package; this file does not need to be edited.
+    etc.) are skipped. A new instrument is picked up automatically by dropping
+    a module into this package.
     """
 
     for module_info in pkgutil.iter_modules(__path__):
@@ -47,6 +47,31 @@ class ImageData:
         self.array = array
         self.default_upward = default_upward
         self.default_tint = default_tint
+
+    def apply_colormap(self, array, valid_limits, invalid_mask=None, **kwargs):
+        """Apply a colormap to up to three grayscale images.
+
+        Produces a 3-D array with one band (grayscale) or three bands (RGB), in axis order
+        ``(band, line, sample)``. Values are scaled zero to one.
+
+        This is overridden instruments that require a special method for applying a
+        colormap. Here, the default procedure is called.
+
+        Parameters:
+            array (np.ndarray): The image array, after slicing and "zebra" operations.
+            valid_limits (tuple[float, float]): The values that correspond to the minimum
+                and maximum of the mapping.
+            invalid_mask (np.ndarray[bool], optional): Boolean mask of invalid pixels.
+            **kwargs: Additional input options, forwarded to the default procedure.
+
+        Returns:
+            (np.ndarray[float]): A 3-D array in axis order ``(line, sample, channel)``
+            scaled zero to one. For a grayscale image, the last axis has length 1;
+            otherwise, it has length 3.
+        """
+
+        return default_apply_colormap(array, valid_limits, invalid_mask,
+                                      default_tint=self.default_tint, **kwargs)
 
 
 def read_image_array(filepath, **kwargs):
@@ -99,7 +124,7 @@ def _read_one_image_array(filepath, **kwargs):
         label = pdsparser.Pds3Label(filepath, method=method)  # forward parsing error
         for instrument in _INSTRUMENTS:
             if hasattr(instrument, 'detect_in_pds3'):
-                test = instrument.detect_in_pds3(label, **kwargs)
+                test = instrument.detect_in_pds3(label, filepath, **kwargs)
                 if test:
                     return test
 
@@ -111,7 +136,7 @@ def _read_one_image_array(filepath, **kwargs):
     else:
         for instrument in _INSTRUMENTS:
             if hasattr(instrument, 'detect_in_vicar'):
-                test = instrument.detect_in_vicar(vic, **kwargs)
+                test = instrument.detect_in_vicar(vic, filepath, **kwargs)
                 if test:
                     return test
 
@@ -124,7 +149,7 @@ def _read_one_image_array(filepath, **kwargs):
         with hdulist:
             for instrument in _INSTRUMENTS:
                 if hasattr(instrument, 'detect_in_fits'):
-                    test = instrument.detect_in_fits(hdulist, **kwargs)
+                    test = instrument.detect_in_fits(hdulist, filepath, **kwargs)
                     if test:
                         # Copy the pixels out of the memory-mapped HDU before the
                         # enclosing 'with' closes the file.
@@ -155,7 +180,6 @@ _RGB_BY_NM = np.array([
     [650.0, 255.999, 110.500, 110.500],  # red
     [750.0, 255.999,  60.500,  60.500],  # ir
 ])
-
 _RFUNC = Tabulation(_RGB_BY_NM[:, 0], _RGB_BY_NM[:, 1])
 _GFUNC = Tabulation(_RGB_BY_NM[:, 0], _RGB_BY_NM[:, 2])
 _BFUNC = Tabulation(_RGB_BY_NM[:, 0], _RGB_BY_NM[:, 3])

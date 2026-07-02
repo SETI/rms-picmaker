@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from picmaker.cli import PARSER
+from picmaker.parser import get_parser
 from picmaker.picmaker import picmaker
 
 # Maximum tolerated mean absolute difference per pixel between a generated
@@ -38,7 +38,7 @@ def generate_previews(input_path: Path, out_dir: Path,
     args = [str(input_path), '--directory', str(out_dir), '--proceed', *extra_args]
     if versions_path is not None:
         args += ['--versions', str(versions_path)]
-    options = vars(PARSER.parse_args(args))
+    options = vars(get_parser().parse_args(args))
     picmaker(**options)  # type: ignore[no-untyped-call]  # untyped public entry point
 
 

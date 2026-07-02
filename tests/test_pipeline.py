@@ -3,8 +3,8 @@
 The byte-identical snapshot tests live in test_snapshots.py — this file just
 asserts that the pipeline produces an output file with sensible properties for
 each option combination. Options are built the way the CLI builds them, by
-parsing argv through ``PARSER`` and running it through ``validate_options`` so
-the resulting dict has every key ``picmaker`` expects.
+parsing argv through ``get_parser()`` and running it through
+``validate_options`` so the resulting dict has every key ``picmaker`` expects.
 """
 
 from pathlib import Path
@@ -12,12 +12,11 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from picmaker.cli import PARSER
+from picmaker.parser import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
-# hst_acs.fits and hst_wfpc2.fits are intentionally omitted: the ACS/WFPC2
-# instrument readers are work-in-progress and currently raise inside
-# read_image_array, so they cannot drive an end-to-end pipeline test yet.
+# hst_acs.fits and hst_wfpc2.fits are omitted from the end-to-end pipeline
+# fixtures here; their readers are covered by the instrument reading tests.
 ALL_FIXTURES = [
     'cassini_iss.vic',
     'voyager_iss.vic',
@@ -30,7 +29,7 @@ ALL_FIXTURES = [
 
 def _run(infile: Path, tmp_path: Path, *extra: str) -> None:
     """Build a complete options dict the CLI way and run the pipeline."""
-    options = validate_options(PARSER.parse_args(
+    options = validate_options(get_parser().parse_args(
         [str(infile), '--directory', str(tmp_path), *extra]
     ))
     picmaker(**options)
@@ -122,7 +121,7 @@ def test_proceed_continues_past_unreadable_file(
     bad.write_bytes(b'not a vicar file')
     out = tmp_path / 'out'
     # Both input files must precede the options for argparse to collect them.
-    options = validate_options(PARSER.parse_args([
+    options = validate_options(get_parser().parse_args([
         str(bad), str(fixtures_dir / 'cassini_iss.vic'),
         '--directory', str(out), '--proceed',
     ]))
@@ -141,7 +140,7 @@ def test_movie_proceed_continues_past_unreadable_file(
     bad = src / 'bad.vic'
     bad.write_bytes(b'not a vicar file')
     out = tmp_path / 'out'
-    options = validate_options(PARSER.parse_args([
+    options = validate_options(get_parser().parse_args([
         str(bad), str(fixtures_dir / 'cassini_iss.vic'),
         '--directory', str(out), '--movie', '--proceed',
     ]))

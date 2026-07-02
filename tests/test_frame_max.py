@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from picmaker.cli import PARSER
+from picmaker.parser import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 
@@ -12,7 +12,7 @@ def test_frame_max_caps_at_half_frame(fixtures_dir: Path, tmp_path: Path) -> Non
     # 16x16 input + frame 512x512 + frame_max=50: `get_size` interprets frame_max
     # as "max % of the input dimensions that the output may use," so the 16x16
     # input scales to 50% = 8x8 instead of filling the 512x512 frame.
-    options = validate_options(PARSER.parse_args([
+    options = validate_options(get_parser().parse_args([
         str(fixtures_dir / 'cassini_iss.vic'),
         '--directory', str(tmp_path),
         '--frame', '512', '512',

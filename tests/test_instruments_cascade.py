@@ -147,13 +147,13 @@ def test_cascade_falls_through_to_pds3(fixtures_dir: Path) -> None:
 
 def test_generic_vicar_fallback_for_unrecognized_instrument(tmp_path: Path) -> None:
     """A VICAR file not claimed by any instrument is read by the generic VICAR
-    fallback. vicar preserves a leading band axis, so the result is 3-D.
+    fallback. A single-band read is returned 2-D.
     """
     vic = VicarImage.from_array(np.zeros((8, 8), dtype=np.int16))
     vicpath = str(tmp_path / 'unknown.vic')
     vic.write_file(vicpath)
     data = read_image_array(vicpath)
-    assert data.array.shape == (1, 8, 8)
+    assert data.array.shape == (8, 8)
     assert data.default_upward is False
     assert data.default_tint is None
 

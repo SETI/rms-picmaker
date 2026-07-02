@@ -47,7 +47,8 @@ def test_nicmos_fits_reads_science_extension() -> None:
     assert array.shape == (263, 265)        # the SCI extension, not empty PRIMARY
     assert array.dtype.kind == 'f'          # float science data
     assert data.default_upward is True
-    assert tuple(data.default_tint) == (255, 108, 108)     # F187N -> red tint
+    # F187N (1870 nm) scaled by the default retint (0.4) -> 748 nm -> deep red.
+    assert tuple(data.default_tint) == (255, 61, 61)
 
 
 @pytest.mark.parametrize(('suffix', 'version_args', 'reference', 'mode'), PREVIEWS)

@@ -2,7 +2,7 @@
 # picmaker/__main__.py
 ##########################################################################################
 
-from picmaker.cli import main
+from picmaker.main import main
 
 if __name__ == '__main__':
     main()

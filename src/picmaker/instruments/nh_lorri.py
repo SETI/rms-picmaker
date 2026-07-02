@@ -16,11 +16,12 @@ class NH_LORRI(ImageData):
     """New Horizons LORRI detector and reader."""
 
     @staticmethod
-    def detect_in_pds3(label, **kwargs):
+    def detect_in_pds3(label, filepath, **kwargs):
         """Extract New Horizons LORRI data from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+            filepath (str or pathlib.Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -37,14 +38,15 @@ class NH_LORRI(ImageData):
             return None
 
         array = read_pds3_image_array(label)
-        return ImageData(array, _DEFAULT_UPWARD, None)
+        return NH_LORRI(array, _DEFAULT_UPWARD, None)
 
     @staticmethod
-    def detect_in_fits(hdulist, **kwargs):
+    def detect_in_fits(hdulist, filepath, **kwargs):
         """Extract New Horizons LORRI data from an open :class:`pyfits.HDUList`.
 
         Parameters:
             hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
+            filepath (str or pathlib.Path): The path to this FITS file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -60,7 +62,7 @@ class NH_LORRI(ImageData):
         except (KeyError, IndexError):
             return None
 
-        return ImageData(hdulist[0].data, _DEFAULT_UPWARD, None)
+        return NH_LORRI(hdulist[0].data, _DEFAULT_UPWARD, None)
 
 
 register_instrument(NH_LORRI)

@@ -16,11 +16,12 @@ class Cassini_ISS(ImageData):
     """Cassini ISS detector and reader."""
 
     @staticmethod
-    def detect_in_pds3(label, **kwargs):
+    def detect_in_pds3(label, filepath, **kwargs):
         """Extract Cassini ISS data from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+            filepath (str or pathlib.Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -36,16 +37,17 @@ class Cassini_ISS(ImageData):
         except (KeyError, TypeError, IndexError):
             return None
 
-        array = read_pds3_image_array(label)
+        array = read_pds3_image_array(label, **kwargs)
         filters = label.get('FILTER_NAME', ('', ''))
-        return ImageData(array, _DEFAULT_UPWARD, Cassini_ISS._default_tint(*filters))
+        return Cassini_ISS(array, _DEFAULT_UPWARD, Cassini_ISS._default_tint(*filters))
 
     @staticmethod
-    def detect_in_vicar(vic, **kwargs):
+    def detect_in_vicar(vic, filepath, **kwargs):
         """Extract Cassini ISS data from an open :class:`vicar.VicarImage`.
 
         Parameters:
             vic (:class:`vicar.VicarImage`): A VicarImage object.
+            filepath (str or pathlib.Path): The path to this Vicar file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -62,7 +64,8 @@ class Cassini_ISS(ImageData):
             return None
 
         filters = vic.get('FILTER_NAME', ('', ''))
-        return ImageData(vic.array, _DEFAULT_UPWARD, Cassini_ISS._default_tint(*filters))
+        return Cassini_ISS(vic.array[0], _DEFAULT_UPWARD,
+                           Cassini_ISS._default_tint(*filters))
 
     @staticmethod
     def _default_tint(filter1, filter2):

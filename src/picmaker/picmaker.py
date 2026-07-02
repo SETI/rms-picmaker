@@ -10,7 +10,6 @@ import numpy as np
 
 from picmaker.colornames  import ColorNames
 from picmaker.control     import get_filepaths, get_outfile
-from picmaker.enhancement import apply_colormap
 from picmaker.instruments import read_image_array
 from picmaker.layout      import wrap_pil_image, pad_pil_image
 from picmaker.orientation import rotate_rgb_array
@@ -112,6 +111,13 @@ def validate_options(options, *, logger=None, _versions_validated=None):
             if options.get('movie', False):
                 raise ValueError('--movie and --versions options are incompatible')
 
+        # obj vs. pointers
+        obj = options.get('obj', None)
+        if obj is not None:
+            pointers = options.get('pointers', [])
+            if obj and pointers:
+                raise ValueError('--obj and --pointers options are incompatible')
+
         # Validate all colors
         colormap = options.get('colormap', [])
         for color in colormap:
@@ -151,11 +157,12 @@ def get_versions(versions=None, **kwargs):
     if not versions:
         return [kwargs]
 
-    # Imported lazily to avoid a circular import at package-load time: picmaker.cli
-    # imports nothing from this module at load, but this module is reached via the package
-    # __init__, so a top-level `from picmaker.cli import PARSER` would pull cli in during
-    # `import picmaker` and make `python -m picmaker.cli` emit a runpy double-import warning.
-    from picmaker.cli import PARSER
+    # Imported lazily to avoid a circular import at package-load time: picmaker.parser
+    # imports nothing from this module, but this module is reached via the package
+    # __init__, so a top-level import would pull picmaker.parser in during `import
+    # picmaker`.
+    from picmaker.parser import get_parser
+    parser = get_parser()
 
     with open(versions, 'r') as f:  # forward any OSErrors
         lines = f.readlines()
@@ -171,7 +178,7 @@ def get_versions(versions=None, **kwargs):
             continue
 
         namespace = argparse.Namespace(**kwargs)
-        alt_namespace = PARSER.parse_args(new_args, namespace=namespace)
+        alt_namespace = parser.parse_args(new_args, namespace=namespace)
         alt_options = validate_options(alt_namespace, _versions_validated=versions)
         options_list.append(alt_options)
 
@@ -287,9 +294,12 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
         min_limits = []
         max_limits = []
         for b in range(array.shape[0]):
-            limits = get_limits(array[b], invalid_mask[b], **options)
-            array_rgb = apply_colormap(array, limits,
-                                       default_tint=image_data.default_tint, **options)
+            # slice_array returns None when no pixels are masked; index per band only
+            # when there is a mask.
+            mask_b = None if invalid_mask is None else invalid_mask[b]
+            limits = get_limits(array[b], mask_b, **options)
+            array_rgb = image_data.apply_colormap(array[b], limits,
+                                                  invalid_mask=mask_b, **options)
             rgb_arrays.append(array_rgb)
             min_limits.append(limits[0])
             max_limits.append(limits[1])
@@ -303,8 +313,8 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
         limits = get_limits(array, invalid_mask, **options)
         if return_limits:
             return (image_data, limits)
-        array_rgb = apply_colormap(array, limits,
-                                   default_tint=image_data.default_tint, **options)
+        array_rgb = image_data.apply_colormap(array, limits, invalid_mask=invalid_mask,
+                                              **options)
 
     # Set the orientation
     array_rgb = rotate_rgb_array(array_rgb, default_upward=image_data.default_upward,

@@ -30,11 +30,12 @@ class Voyager_ISS(ImageData):
     """Voyager ISS detector and reader."""
 
     @staticmethod
-    def detect_in_pds3(label, **kwargs):
+    def detect_in_pds3(label, filepath, **kwargs):
         """Extract Voyager ISS metadata from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+            filepath (str or pathlib.Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -50,12 +51,12 @@ class Voyager_ISS(ImageData):
         except (KeyError, TypeError, IndexError):
             return None
 
-        array = read_pds3_image_array(label)
+        array = read_pds3_image_array(label, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
-        return ImageData(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name, None))
+        return Voyager_ISS(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name, None))
 
     @staticmethod
-    def detect_in_vicar(vic, **kwargs):
+    def detect_in_vicar(vic, filepath, **kwargs):
         """Extract Voyager ISS data from an open :class:`vicar.VicarImage`.
 
         Voyager VICAR labels carry their identifying string in ``LAB02`` (a ``VGR``
@@ -64,6 +65,7 @@ class Voyager_ISS(ImageData):
 
         Parameters:
             vic (:class:`vicar.VicarImage`): A VicarImage object.
+            filepath (str or pathlib.Path): The path to this Vicar file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -82,7 +84,8 @@ class Voyager_ISS(ImageData):
         except (IndexError, KeyError):
             filter_name = ''
 
-        return ImageData(vic.array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name, None))
+        return Voyager_ISS(vic.array[0], _DEFAULT_UPWARD,
+                           _FILTER_TINTS.get(filter_name, None))
 
 
 register_instrument(Voyager_ISS)

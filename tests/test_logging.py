@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from pdslogger import PdsLogger
 
-from picmaker.cli import PARSER
+from picmaker.parser import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 
@@ -45,7 +45,7 @@ def _messages(records: list[logging.LogRecord], level: str | None = None) -> lis
 
 def _run(logger: PdsLogger, *argv: str) -> None:
     """Build a complete options dict the CLI way and run the pipeline."""
-    options = validate_options(PARSER.parse_args(list(argv)), logger=logger)
+    options = validate_options(get_parser().parse_args(list(argv)), logger=logger)
     options['logger'] = logger
     picmaker(**options)
 
@@ -63,7 +63,7 @@ def test_validation_error_is_logged(captured_logger) -> None:
     logger, records = captured_logger
     with pytest.raises(ValueError, match='--band and --bands'):
         validate_options(
-            PARSER.parse_args(['x.vic', '--band', '2', '--bands', '0', '1']),
+            get_parser().parse_args(['x.vic', '--band', '2', '--bands', '0', '1']),
             logger=logger,
         )
     # logger.exception() records the error at CRITICAL level.
@@ -100,7 +100,7 @@ def test_main_creates_logger_and_logs_error(
 ) -> None:
     """``main()`` builds its own ``pds.picmaker`` logger; a no-input run exits 1
     and the error is logged through it."""
-    from picmaker.cli import main
+    from picmaker.main import main
 
     handler = _ListHandler()
     # main() calls PdsLogger.get_logger('pds.picmaker', ...); attach to that name

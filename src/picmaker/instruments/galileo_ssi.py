@@ -27,17 +27,19 @@ class Galileo_SSI(ImageData):
     """Galileo SSI detector and reader."""
 
     @staticmethod
-    def detect_in_pds3(label, **kwargs):
+    def detect_in_pds3(label, filepath, **kwargs):
         """Extract Galileo SSI data from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+            filepath (str or pathlib.Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
             (Galileo_SSI or None): Instrument subclass if ``label`` describes a Galileo
             SSI product; ``None`` otherwise.
         """
+
         try:
             if label['SPACECRAFT_NAME'] != 'GALILEO ORBITER':
                 return None
@@ -46,22 +48,24 @@ class Galileo_SSI(ImageData):
         except (KeyError, TypeError, IndexError):
             return None
 
-        array = read_pds3_image_array(label)
+        array = read_pds3_image_array(label, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
-        return ImageData(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
+        return Galileo_SSI(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
     @staticmethod
-    def detect_in_vicar(vic, **kwargs):
+    def detect_in_vicar(vic, filepath, **kwargs):
         """Extract Galileo SSI data from an open :class:`vicar.VicarImage`.
 
         Parameters:
             vic (:class:`vicar.VicarImage`): A VicarImage object.
+            filepath (str or pathlib.Path): The path to this Vicar file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
             (Galileo_SSI or None): Instrument subclass if ``vic`` describes a Galileo SSI
             Galileo SSI image; ``None`` otherwise.
         """
+
         try:
             if vic['MISSION'] != 'GALILEO':
                 return None
@@ -72,7 +76,7 @@ class Galileo_SSI(ImageData):
 
         ifilter = vic.get('FILTER', 0)
         filter_name = _FILTER_NAMES[ifilter]
-        return ImageData(vic.array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
+        return Galileo_SSI(vic.array[0], _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
 
 register_instrument(Galileo_SSI)

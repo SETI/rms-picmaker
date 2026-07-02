@@ -12,18 +12,26 @@ PDS3_METHODS = ['fast', 'strict', 'loose', 'compound']
 DEFAULT_PDS3_METHOD = 'fast'
 
 
-def read_pds3_image_array(label, obj=None):
+def read_pds3_image_array(label, obj=None, pointers=[], **kwargs):
     """Return the image array described by a PDS3 label.
 
     Parameters:
         label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
         obj (int, optional): An object index within the file, needed if the label
             describes more than one image object.
+        pointers (str or list[str], optional): Name or alternative list of names of the
+            IMAGE object pointer in the PDS3 label.
+        **kwargs: Additional input parameters, ignored here.
 
-    Return: a NumPy array containing the pixel values. The array is 3-D if the IMAGE
-        object specifies BANDS and 2-D otherwise. The axes are always ordered as BANDS (if
-        present), then LINES and SAMPLES. The array preserves the data type and byte size
-        of the samples in the file, but has been converted to native byte order.
+    Returns:
+        (np.ndarray): a NumPy array containing the pixel values. The array is 3-D if the
+        IMAGE object specifies BANDS and 2-D otherwise. The axes are always ordered as
+        BANDS (if present), then LINES and SAMPLES. The array preserves the data type and
+        byte size of the samples in the file, but has been converted to native byte order.
+
+    Raises:
+        KeyError: If ``pointers`` is provided but no named pointer is found in the label.
+        IndexError: If ``obj`` is provided but is out of range for the label.
     """
 
     ######################################################################################
@@ -37,21 +45,30 @@ def read_pds3_image_array(label, obj=None):
     # the resulting list can be indexed directly by `obj`.
     ######################################################################################
 
-    image_keys = [key for key, value in label.items()
-                  if isinstance(value, dict) and value.get('OBJECT', '').endswith('IMAGE')]
+    if pointers:
+        image_key = ''
+        for pointer in pointers:
+            if pointer in label and isinstance(label[pointer], dict):
+                image_key = pointer
+                break
+        if not image_key:
+            raise KeyError(f'IMAGE pointer {pointers[0]} not found')
 
-    if not image_keys:
-        raise ValueError('label does not describe an IMAGE object')
+    else:
+        image_keys = [key for key, value in label.items()
+                      if key.endswith('IMAGE') and isinstance(value, dict)]
+        if not image_keys:
+            raise ValueError('label does not describe an IMAGE object')
 
-    # Default to the first IMAGE when no index is given.
-    if obj is None:
-        obj = 0
+        # Default to the first IMAGE when no index is given.
+        if obj is None:
+            image_key = image_keys[0]
+        else:
+            if obj < -len(image_keys) or obj >= len(image_keys):
+                raise IndexError(f'IMAGE index {obj} is out of range')
 
-    if obj < -len(image_keys) or obj >= len(image_keys):
-        raise IndexError(f'IMAGE index {obj} is out of range; the label describes '
-                         f'{len(image_keys)} IMAGE object(s)')
+            image_key = image_keys[obj]
 
-    image_key = image_keys[obj]
     image = label[image_key]
 
     ######################################################################################

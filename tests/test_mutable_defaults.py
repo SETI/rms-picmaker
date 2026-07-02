@@ -14,8 +14,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from picmaker.cli import PARSER
 from picmaker.control import get_filepaths, get_outfile
+from picmaker.parser import get_parser
 from picmaker.picmaker import validate_options
 
 
@@ -48,8 +48,8 @@ def test_get_filepaths_patterns_default_not_mutated(fixtures_dir: Path) -> None:
 
 def test_validate_options_returns_independent_dicts() -> None:
     """Each ``validate_options`` call yields its own option dict object."""
-    a = validate_options(PARSER.parse_args([]))
-    b = validate_options(PARSER.parse_args([]))
+    a = validate_options(get_parser().parse_args([]))
+    b = validate_options(get_parser().parse_args([]))
     assert a == b
     assert a is not b
     # Mutating one normalized dict does not bleed into a freshly built one.

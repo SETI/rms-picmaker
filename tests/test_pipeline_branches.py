@@ -3,7 +3,7 @@ the frame/size mutex, extension defaulting, the 16-bit guard, ``--zebra``,
 movie mode, the ``--versions`` reuse path, wrap/pad, the unreadable-file
 error path, a detached PDS3 label, and the display-orientation overrides.
 
-Options are built the CLI way: parse argv through ``PARSER`` and run it
+Options are built the CLI way: parse argv through ``get_parser()`` and run it
 through ``validate_options`` so the dict has every key ``picmaker`` expects.
 """
 
@@ -13,13 +13,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from picmaker.cli import PARSER
+from picmaker.parser import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 
 def _run(infiles: list[str], tmp_path: Path, *extra: str) -> None:
     """Build a complete options dict the CLI way and run the pipeline."""
-    options = validate_options(PARSER.parse_args(
+    options = validate_options(get_parser().parse_args(
         [*infiles, '--directory', str(tmp_path), *extra]
     ))
     picmaker(**options)

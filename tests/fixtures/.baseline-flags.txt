@@ -31,12 +31,13 @@
 --pad-color
 --pattern
 --pds3-method
---pds3-pointer
 --percentiles
+--pointer
 --proceed
 --quality
 --recursive
 --replace
+--retint
 --rotate
 --samples
 --scale
