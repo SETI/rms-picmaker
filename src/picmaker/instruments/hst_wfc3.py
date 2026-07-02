@@ -1,7 +1,7 @@
 ##########################################################################################
 # picmaker/instruments/hst_wfc3.py
 ##########################################################################################
-"""HST ACS detector and reader."""
+"""HST WFC3 detector and reader."""
 
 import re
 
@@ -71,7 +71,8 @@ class HST_WFC3(ImageData):
                 if detector == 'UVIS':
                     default_tint = tint_by_nm(digits * (retint or 1))
                 else:
-                    default_tint = tint_by_nm(digits/10. * (retint or _DEFAULT_IR_RETINT))
+                    # IR filter names encode wavelength/10 (F160W -> 1600 nm).
+                    default_tint = tint_by_nm(digits * 10. * (retint or _DEFAULT_IR_RETINT))
 
         # Handle the non-mosaicked case
         if not use_mosaic:
@@ -101,7 +102,7 @@ class HST_WFC3(ImageData):
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):
-        """Assemble WFC3's two IR or UVIS CCDs into a mosaic.
+        """Assemble WFC3's two UVIS CCDs into a mosaic.
 
         Parameters:
             arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (usually length 2),
@@ -110,18 +111,18 @@ class HST_WFC3(ImageData):
 
         Returns:
             (np.ndarray): The assembled mosaic, with shape ``(2*lines, samples, colors)``
-            for WFC. HRC and SBC images are not mosaicked.
+            for UVIS. IR images are single-detector and not mosaicked.
         """
 
-        # Only WFC has two CCDs to stack; HRC and SBC are single-detector.
+        # Only UVIS has two CCDs to stack; IR is single-detector.
         if len(arrays_rgb) < 2:
             return arrays_rgb[0]
 
-        # WFC1 on top; WFC2 on bottom, but display direction us up.
+        # UVIS2 on top; UVIS1 on the bottom. Display direction is up.
         (nl, ns, nc) = arrays_rgb[0].shape
         mosaic = np.zeros((2 * nl, ns, nc))
-        mosaic[-nl:] = arrays_rgb[0]    # WFC1
-        mosaic[:nl ] = arrays_rgb[1]    # WFC2
+        mosaic[-nl:] = arrays_rgb[0]    # UVIS1 (bottom)
+        mosaic[:nl ] = arrays_rgb[1]    # UVIS2 (top)
         return mosaic
 
 

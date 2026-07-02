@@ -36,10 +36,10 @@ def main() -> None:
     primary.header['DETECTOR'] = 'WFC'
     primary.header['FILTER1'] = 'CL1'
     primary.header['FILTER2'] = 'F606W'
-    sci1 = fits.ImageHDU(np.zeros((16, 16), dtype=np.float32))
-    err = fits.ImageHDU(np.zeros((16, 16), dtype=np.float32))
-    dq = fits.ImageHDU(np.zeros((16, 16), dtype=np.int16))
-    sci2 = fits.ImageHDU(np.zeros((16, 16), dtype=np.float32))
+    sci1 = fits.ImageHDU(np.zeros((16, 16), dtype=np.float32), name='SCI')
+    err = fits.ImageHDU(np.zeros((16, 16), dtype=np.float32), name='ERR')
+    dq = fits.ImageHDU(np.zeros((16, 16), dtype=np.int16), name='DQ')
+    sci2 = fits.ImageHDU(np.zeros((16, 16), dtype=np.float32), name='SCI')
     fits.HDUList([primary, sci1, err, dq, sci2]).writeto(OUT, overwrite=True)
 
 

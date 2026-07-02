@@ -38,7 +38,7 @@ def get_fits_image_hdus(hdulist, pointers=[], **kwargs):
 
         selected_hdus = []
         for hdu in hdulist:
-            if hdu.header['EXTNAME'] in pointers:
+            if hdu.header.get('EXTNAME') in pointers:
                 selected_hdus.append(hdu)
         if not selected_hdus:
             raise KeyError(f'HDU {pointers[0]} not found in {hdulist.filename()}')

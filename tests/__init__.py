@@ -4,8 +4,9 @@ Each preview test drives ``picmaker`` with an instrument's bundled versions
 file and compares every generated preview against a committed reference image.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -39,6 +40,23 @@ def generate_previews(input_path: Path, out_dir: Path,
     if versions_path is not None:
         args += ['--versions', str(versions_path)]
     options = vars(get_parser().parse_args(args))
+    picmaker(**options)  # type: ignore[no-untyped-call]  # untyped public entry point
+
+
+def render_snapshot(input_path: Path, out_dir: Path, slug: str,
+                    option_overrides: Mapping[str, Any], extension: str) -> None:
+    """Render one snapshot combo into ``out_dir`` as ``<stem>--<slug>.<ext>``.
+
+    A full default option dict is built from the parser, then ``suffix`` /
+    ``extension`` and the combo's option keys are overridden and ``picmaker`` is
+    run. Both :file:`fixture_recipes/generate_snapshots.py` and
+    :file:`test_snapshots.py` call this, so their pipeline invocations are
+    byte-for-byte identical -- the property the snapshot test relies on.
+    """
+    options = vars(get_parser().parse_args([str(input_path), '--directory', str(out_dir)]))
+    options['suffix'] = f'--{slug}'
+    options['extension'] = extension
+    options.update(option_overrides)
     picmaker(**options)  # type: ignore[no-untyped-call]  # untyped public entry point
 
 

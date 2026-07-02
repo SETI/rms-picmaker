@@ -125,11 +125,11 @@ class HST_ACS(ImageData):
         if len(arrays_rgb) < 2:
             return arrays_rgb[0]
 
-        # WFC1 on top; WFC2 on bottom, but display direction us up.
+        # WFC2 on top; WFC1 on the bottom. Display direction is up.
         (nl, ns, nc) = arrays_rgb[0].shape
         mosaic = np.zeros((2 * nl, ns, nc))
-        mosaic[-nl:] = arrays_rgb[0]    # WFC1
-        mosaic[:nl ] = arrays_rgb[1]    # WFC2
+        mosaic[-nl:] = arrays_rgb[0]    # WFC1 (bottom)
+        mosaic[:nl ] = arrays_rgb[1]    # WFC2 (top)
         return mosaic
 
 

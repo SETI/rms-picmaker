@@ -24,7 +24,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from picmaker.picmaker import images_to_pics
+# Run as a script from the repo root; add the repo root so ``tests`` (and its
+# shared render helper) is importable, so the generator and test_snapshots
+# invoke the pipeline identically.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tests import render_snapshot
 
 HERE = Path(__file__).parent
 FIXTURES = HERE.parent / 'fixtures'
@@ -36,12 +40,12 @@ FITS_FIXTURES = ['hst_wfc3.fits', 'hst_acs.fits', 'hst_wfpc2.fits', 'nh_mvic.fit
 ALL_FIXTURES = VICAR_FIXTURES + FITS_FIXTURES
 
 # Each combo is (slug, kwargs, extension). The slug becomes part of the
-# output filename; kwargs are passed through to images_to_pics.
+# output filename; kwargs override the parsed default option dict.
 COMBOS: list[tuple[str, dict[str, Any], str]] = [
     ('default', {}, 'jpg'),
     ('gamma2', {'gamma': 2.0}, 'jpg'),
     ('pct5_95', {'percentiles': (5.0, 95.0)}, 'jpg'),
-    ('colormap_red_blue', {'colormap': 'red-blue'}, 'jpg'),
+    ('colormap_red_blue', {'colormap': ['red', 'blue']}, 'jpg'),
     ('tint', {'tint': True}, 'jpg'),
     ('rot90', {'rotate': 'rot90'}, 'jpg'),
     ('frame_128_pad', {'frame': (128, 128), 'pad': True}, 'jpg'),
@@ -63,14 +67,7 @@ def _generate_one(
 ) -> Path | None:
     """Generate one snapshot. Returns the produced path or None on failure."""
     try:
-        suffix = f'--{slug}'
-        images_to_pics(
-            [str(fixture)],
-            directory=str(out_dir),
-            suffix=suffix,
-            extension=ext,
-            **kwargs,
-        )
+        render_snapshot(fixture, out_dir, slug, kwargs, ext)
     except Exception as exc:
         print(f'  FAIL {fixture.name} + {slug}: {type(exc).__name__}: {exc}')
         return None

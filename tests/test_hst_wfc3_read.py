@@ -117,11 +117,48 @@ def test_uvis_tint_scales_with_retint() -> None:
 
 
 def test_ir_detector_uses_ir_retint_scaling() -> None:
-    """The IR detector tints via ``digits / 10 * 0.4`` (the 0.4 default retint),
-    a different formula than the UVIS path (``digits * 1``). Asserted here on a
-    UVIS sample with DETECTOR forced to IR to exercise that branch directly."""
+    """IR filter names encode wavelength/10 (F160W -> 1600 nm), so the IR path
+    tints at ``digits * 10 * 0.4`` (the 0.4 default retint) -- matching NICMOS
+    and distinct from the UVIS path (``digits * 1``). Exercised on a UVIS sample
+    with FILTER and DETECTOR forced to an IR configuration."""
     with fits.open(FLT) as hdulist:
         hdulist[0].header['DETECTOR'] = 'IR'
+        hdulist[0].header['FILTER'] = 'F160W'
         result = HST_WFC3.detect_in_fits(hdulist, str(FLT))
     assert result is not None
-    assert tuple(result.default_tint) == tuple(tint_by_nm(606 / 10.0 * 0.4))
+    assert tuple(result.default_tint) == tuple(tint_by_nm(160 * 10.0 * 0.4))
+
+
+# --- chip ordering and error handling ------------------------------------------------
+
+def test_flt_mosaic_orders_chips_by_ccdchip() -> None:
+    """The two-chip cube is ordered by CCDCHIP: the first SCI HDU (CCDCHIP 2)
+    lands at cube index 1, which is exactly what a default (non-mosaic) read
+    returns. The two chips carry different pixels."""
+    single = np.asarray(read_image_array(FLT).array)
+    cube = np.asarray(read_image_array(FLT, mosaic=True).array)
+    assert cube.shape == (2, 410, 819)
+    np.testing.assert_array_equal(cube[1], single)   # CCDCHIP 2 = first SCI HDU
+    assert not np.array_equal(cube[0], cube[1])
+
+
+def test_mosaic_raises_without_ccdchip_headers() -> None:
+    """If a mosaic is requested but no extension carries CCDCHIP, the chip order
+    is unknowable and the reader rejects the file."""
+    with fits.open(FLT) as hdulist:
+        for hdu in hdulist:
+            hdu.header.remove('CCDCHIP', ignore_missing=True, remove_all=True)
+        with pytest.raises(ValueError, match='Unrecognized WFC3 image file structure'):
+            HST_WFC3.detect_in_fits(hdulist, str(FLT), mosaic=True)
+
+
+def test_mosaic_raises_when_selected_hdu_not_image(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Defensive guard on the mosaic path: a selected non-IMAGE HDU is rejected.
+    Normal input can't reach this (``get_fits_image_hdu`` validates the HDU
+    first), so it is forced by making ``get_fits_image_hdus`` yield a table."""
+    import picmaker.instruments.hst_wfc3 as mod
+    with fits.open(FLT) as hdulist:
+        table_hdu = hdulist['WCSCORR']
+        monkeypatch.setattr(mod, 'get_fits_image_hdus', lambda *a, **k: [table_hdu])
+        with pytest.raises(ValueError, match='not an IMAGE'):
+            HST_WFC3.detect_in_fits(hdulist, str(FLT), mosaic=True)
