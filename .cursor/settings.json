@@ -5,5 +5,5 @@
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
-  "editor.rulers": [80, 90, 100]
+  "editor.rulers": [80, 90]
 }

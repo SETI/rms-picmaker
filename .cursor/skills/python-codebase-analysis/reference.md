@@ -54,7 +54,7 @@ Use this when you need concrete examples for a dimension or wording guidance.
 - **Finding**: CI does not run Sphinx build or PyMarkdown; only ruff and pytest. **Evidence**: `.github/workflows/run-tests.yml`. **Suggestion**: Add Sphinx and PyMarkdown steps to match the local `run-all-checks.sh` so documentation issues are caught before merge.
 
 **Dependencies – configuration consistency**
-- **Finding**: Ruff is configured with `line-length = 88` but the project rule says 100. **Evidence**: `pyproject.toml` `[tool.ruff]` vs `.cursor/rules/python_best_practices.mdc`. **Suggestion**: Align `line-length` across ruff, formatter, and project rules to a single value.
+- **Finding**: Ruff is configured with `line-length = 88` but the project rule says 90. **Evidence**: `pyproject.toml` `[tool.ruff]` vs `.cursor/rules/python_best_practices.mdc`. **Suggestion**: Align `line-length` across ruff, formatter, and project rules to a single value.
 - **Finding**: Stale `[tool.black]` section remains in `pyproject.toml` after migration to Ruff. **Evidence**: `pyproject.toml` line 45. **Suggestion**: Remove the `[tool.black]` section; Ruff format replaces Black.
 
 **Technical debt**
