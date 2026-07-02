@@ -42,7 +42,7 @@ After regenerating, verify no unexpected diff: `git diff --exit-code tests/fixtu
 
 ## Style
 
-- Line length: **100** (not the ruff default of 88)
+- Line length: **90** (not the ruff default of 88)
 - Quotes: **single**
 - **Do not run `ruff format`** — it is intentionally not enforced; existing style inconsistencies are left as-is
 - mypy runs in strict mode; `MYPYPATH=src` is required

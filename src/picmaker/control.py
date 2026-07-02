@@ -17,8 +17,8 @@ def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=
     Parameters:
         files (str, pathlib.Path or list[str or pathlib.Path]): File names and
             directories.
-        directory (str or pathlib.Path, optional): The output directory uf any. By
-            default,
+        directory (str or pathlib.Path, optional): The output directory if any. By
+            default, each file is written to its own input directory.
         recursive (bool, optional): True to traverse subdirectories.
         patterns (str or list[str], optional): One or more glob patterns. Files found
             inside directories are only included if they match one of these patterns. By
@@ -27,8 +27,8 @@ def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=
         **kwargs: Other input parameters, ignored here.
 
     Returns:
-        (list[pathlib.Path, pathlib.Path]): A list of tuples (input filepath, output
-            directory path).
+        (list[tuple[pathlib.Path, pathlib.Path]]): A list of tuples (input filepath,
+            output directory path).
 
     Raises:
         FileNotFoundError: If an input file/directory does not exist.
@@ -98,8 +98,8 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
             input's directory.
         strip (str or list[str], optional): A string or list of strings to strip from the
             input filepath before appending the suffix.
-        suffix (str, operational): Extra string added before the extension.
-        extension (str, optional): Output file extension, whihch defines the output
+        suffix (str, optional): Extra string added before the extension.
+        extension (str, optional): Output file extension, which defines the output
             format, (e.g. ``'jpg'``).
         replace (str, optional): Replacement policy when the output file already exists:
             ``'all'`` (silent overwrite), ``'none'`` (skip silently), ``'warn'`` (warn and

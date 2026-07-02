@@ -32,7 +32,7 @@ class HST_NICMOS(ImageData):
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (HST_NICMOS or None): Instrument subclass if `the file describes an HST NICMOS
+            (HST_NICMOS or None): Instrument subclass if the file describes an HST NICMOS
             product; ``None`` otherwise.
         """
 

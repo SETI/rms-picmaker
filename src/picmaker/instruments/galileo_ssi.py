@@ -63,7 +63,7 @@ class Galileo_SSI(ImageData):
 
         Returns:
             (Galileo_SSI or None): Instrument subclass if ``vic`` describes a Galileo SSI
-            Galileo SSI image; ``None`` otherwise.
+            product; ``None`` otherwise.
         """
 
         try:

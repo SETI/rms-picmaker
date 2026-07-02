@@ -49,7 +49,7 @@ def filter_pil_image(image, filter=None, **kwargs):
         **kwargs: Additional input options ignored here.
 
     Returns:
-        (np.ndarray) The filtered PIL image. For ``filter="none"``, the input image is
+        (PIL.Image) The filtered PIL image. For ``filter="none"``, the input image is
             returned unchanged.
 
     Raises:

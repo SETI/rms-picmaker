@@ -9,6 +9,8 @@ import re
 class ColorNames:
     """Standard X11 color-name -> RGB lookup.
 
+    A name may be:
+
     * A canonical name (``'IndianRed'``, ``'red'``, ``'white smoke'``).
     * A case-insensitive variant with spaces, dashes, or underscores stripped
         (``'INDIAN_RED'``, ``'mint-cream'``).
@@ -779,7 +781,7 @@ class ColorNames:
 
     @staticmethod
     def lookup(name):
-        """Resolve a color name or RGB expression to tuple of three RGB values.
+        """Resolve a color name or RGB expression to a tuple of three RGB values.
 
         Parameters:
             name (str): Color name or RGB expression of the form ``"(r,g,b)"`` or
@@ -787,7 +789,7 @@ class ColorNames:
                 255.
 
         Returns:
-            (tuple[int,int,int])): ``(r, g, b)`` triple with each channel in the range 0
+            (tuple[int,int,int]): ``(r, g, b)`` triple with each channel in the range 0
             to 255.
 
         Raises:

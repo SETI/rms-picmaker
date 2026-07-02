@@ -185,6 +185,11 @@ def get_versions(versions=None, **kwargs):
 
 
 def picmaker(logger=None, **options):
+    """Validate options, resolve the input files, and drive :func:`picmaker1` over each.
+
+    In ``--movie`` mode, common enhancement limits are computed across all images before
+    writing; otherwise each input file is processed once per version.
+    """
 
     log_level = options.get('logging', 'info')
     logger and logger.set_level(log_level)
@@ -266,7 +271,7 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
         return_limits (bool, optional): Return limits tuple along with image_data
 
     Returns:
-        (:class:`ImageData` or ``(image_data, min_limit, max_limit)``: The ImageData
+        (:class:`ImageData` or ``(image_data, (min_limit, max_limit))``): The ImageData
         object from ``infile``. If ``return_limits`` is True, also include the minimum and
         maximum limits obtained, and do not save a file.
     """

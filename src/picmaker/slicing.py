@@ -14,7 +14,7 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
             2-D, ``(bands, lines, samples)`` if 3-D.
         samples (tuple[int, int], optional): Sample limits ``(s0, s1)``; ``None`` to
             preserve all samples.
-        lines (tuple[int, int], optional): Line limits `(l0, l1)``; ``None`` to preserve
+        lines (tuple[int, int], optional): Line limits ``(l0, l1)``; ``None`` to preserve
             all lines.
         bands (tuple[int, int], optional): Band limits ``(b0, b1)`` for defining a range
             of bands to coadd; ``None`` for all bands.
@@ -27,12 +27,16 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
     Returns:
         (tuple): ``(sliced_array, invalid_mask)``, where
 
-        * ``sliced_array`` is a 2-D band-averaged array if ``bands``` were specified.
+        * ``sliced_array`` is a 2-D band-averaged array if ``bands`` were specified.
           Otherwise, the number of dimensions in the original array is preserved. Under
-          most circumstances, this is the
+          most circumstances, this matches the dimensionality of the input array (a
+          singleton band axis is collapsed, so a 3-D input with one band returns 2-D).
         * ``invalid_mask`` is the mask array; it may be ``None`` if no pixels are masked.
           Values of NaN are always masked. The shape of this mask always matches that of
           ``sliced_array``.
+
+    Raises:
+        ValueError: If the requested slice has size zero.
     """
 
     # Apply index ranges
@@ -91,7 +95,7 @@ def _crop_array(array, crop=0., *, mask=None):
 
     Returns:
         (tuple): (``array``, ``mask``), where ``array`` is the cropped array and ``mask``
-        ``mask`` is the cropped mask.
+        is the cropped mask.
     """
 
     if mask is not None:

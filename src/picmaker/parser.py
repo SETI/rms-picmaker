@@ -101,7 +101,7 @@ def get_parser():
              'start at 1 and are inclusive of the upper limit specified.')
     _slicing.add_argument(
         '--lines', type=int, nargs=2, default=None,
-        help='a pair of line indices defining the image sub-region to include. Sample '
+        help='a pair of line indices defining the image sub-region to include. Line '
              'values start at 1 and are inclusive of the upper limit specified.')
     _slicing.add_argument(
         '--samples', type=int, nargs=2, default=None,

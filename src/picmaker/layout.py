@@ -105,8 +105,8 @@ def pad_pil_image(image, frame=None, pad=False, pad_color='gray', **kwargs):
         frame (tuple[int, int], optional): ``(width, height)`` for padding, or None to
             skip padding.
         pad (bool, optional): True to pad the image.
-        pad_color (str or tuple[int, int, int]): Gap fill color (name or ``(R, G, B)``
-            triple).
+        pad_color (str or tuple[int, int, int], optional): Pad fill color (name or
+            ``(R, G, B)`` triple).
         **kwargs: Additional input arguments ignored here.
 
     Returns:

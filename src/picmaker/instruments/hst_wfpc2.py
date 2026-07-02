@@ -27,8 +27,9 @@ class HST_WFPC2(ImageData):
         Parameters:
             hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
             filepath (str or pathlib.Path): The path to this FITS file.
-            obj (int, optional): The HDU index (starting at 0) of the image array. If not
-                specified, the first image array in the file is used.
+            obj (int, optional): The zero-based detector selector; the detector whose
+                DETECTOR value equals ``obj + 1`` is returned. If not specified, the first
+                detector in the file is used.
             mosaic (bool, optional): True to enable the construction of a mosaic of the
                 four WFPC2 detectors; False to return the array from just a single
                 selected detector.

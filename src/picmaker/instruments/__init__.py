@@ -52,9 +52,9 @@ class ImageData:
         """Apply a colormap to up to three grayscale images.
 
         Produces a 3-D array with one band (grayscale) or three bands (RGB), in axis order
-        ``(band, line, sample)``. Values are scaled zero to one.
+        ``(line, sample, channel)``. Values are scaled zero to one.
 
-        This is overridden instruments that require a special method for applying a
+        This is overridden by instruments that require a special method for applying a
         colormap. Here, the default procedure is called.
 
         Parameters:
@@ -109,6 +109,8 @@ def _read_one_image_array(filepath, **kwargs):
         file.
 
     Raises:
+        FileNotFoundError: If the file does not exist.
+        IsADirectoryError: If the path refers to a directory.
         OSError: If none of the format readers succeed.
     """
 

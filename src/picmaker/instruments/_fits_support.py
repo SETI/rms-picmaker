@@ -25,7 +25,7 @@ def get_fits_image_hdus(hdulist, pointers=None, **kwargs):
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        (list[HDU]): The selected image array.
+        (list[HDU]): The selected image HDUs.
 
     Raises:
         KeyError: If none of the named ``pointers`` are found in the HDUList.

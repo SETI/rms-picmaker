@@ -39,7 +39,7 @@ class HST_ACS(ImageData):
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
             mosaic (bool, optional): True to enable the construction of a mosaic from the
-                two WFC frames; ignored for ACS and SBC.
+                two WFC frames; ignored for HRC and SBC.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -112,11 +112,11 @@ class HST_ACS(ImageData):
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):
-        """Assemble ACS/WFC's two CCDs (WFC1 above, WFC2 below) into a mosaic.
+        """Assemble ACS/WFC's two CCDs (WFC2 above, WFC1 below) into a mosaic.
 
         Parameters:
             arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (usually length 2),
-                each indexed``(lines, samples, color)``.
+                each indexed ``(lines, samples, color)``.
             **kwargs: Additional input options, ignored here.
 
         Returns:

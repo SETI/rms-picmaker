@@ -31,7 +31,7 @@ class Voyager_ISS(ImageData):
 
     @staticmethod
     def detect_in_pds3(label, filepath, **kwargs):
-        """Extract Voyager ISS metadata from a parsed :class:`pdsparser.Pds3Label`.
+        """Extract Voyager ISS data from a parsed :class:`pdsparser.Pds3Label`.
 
         Parameters:
             label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.

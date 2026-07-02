@@ -18,8 +18,9 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
             height)``. Use a single value for a square image, or None to preserve the
             given array size.
         scale (float or tuple[float, float], optional): Scale factor as a percentage to
-            apply. A scalar applies to both axes; pass two values to scale height and
-            width independently. Note that the
+            apply. A scalar applies to both axes; pass two values ``(width, height)`` to
+            scale the width and height independently. Note that the resulting size may
+            still be constrained by ``size``, ``frame``, or ``frame_max``.
         frame (int or tuple[int, int], optional): The firm outer limit on the ``(width,
             height)`` size of the output image. If the result of the above parameters
             exceeds the frame in either dimension, the image is scaled down proportionally
@@ -31,7 +32,7 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
         overlaps (tuple[float, float], optional): ``(min, max)`` percentages of allowed
             overlap between the end of one wrapped section and the beginning of the next.
             For example, (5,10) means that between 5% and 10% of the last pixels in one
-            section of a wrapped image.
+            section may overlap the first pixels of the next section.
         gap_size (int, optional): The size of the gap between wrap sections in pixels.
         frame_max (float, optional): Maximum percentage scale applied when ``frame`` is
             set and ``wrap`` is False.
@@ -40,9 +41,9 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
     Returns:
         (tuple): ``(unwrapped_size, wrapped_size, sections, wrap_axis)``:
 
-        * ``unwrapped_size ``(tuple[int, int]): The ``(w,h)`` size of the PIL image before
+        * ``unwrapped_size`` (tuple[int, int]): The ``(w,h)`` size of the PIL image before
           wrapping but after any re-scaling.
-        * ``wrapped_size ``(tuple[int, int]): The ``(w,h)`` size of the PIL image after
+        * ``wrapped_size`` (tuple[int, int]): The ``(w,h)`` size of the PIL image after
           wrapping.
         * ``sections`` (int): The number of sections to wrap.
         * ``wrap_axis`` (int): 0 to wrap horizontally, 1 to wrap vertically.
@@ -191,6 +192,7 @@ def _get_size_for_size(array_size, size, axis, expand_min, expand_max):
         size (tuple[int, int]): ``(w,h)`` of the available pixels.
         axis (int): The axis being wrapped: 0 for width; 1 for height.
         expand_min (float): Minimum allowed expansion factor on the specified axis.
+        expand_max (float): Maximum allowed expansion factor on the specified axis.
 
     Returns:
         (tuple): ``(unexpanded_size, quality, expand)``, where:

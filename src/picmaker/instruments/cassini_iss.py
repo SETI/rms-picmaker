@@ -25,8 +25,8 @@ class Cassini_ISS(ImageData):
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (Cassini_ISS or None): Instrument subclass if `label` describes a Cassini ISS
-            product; ``None`` otherwise.
+            (Cassini_ISS or None): Instrument subclass if ``label`` describes a Cassini
+            ISS product; ``None`` otherwise.
         """
 
         try:

@@ -10,7 +10,7 @@ ROTATE_CHOICES = ['none', 'fliplr', 'fliptb', 'rot90', 'rot180', 'rot270']
 
 def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation=None,
                      **kwargs):
-    """Apply an new orientation to an array.
+    """Apply a new orientation to an array.
 
     Parameters:
         array_rgb (np.ndarray): A 2-D or 3-D array. The index order is ``(lines,
@@ -29,7 +29,7 @@ def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation
         The rotated array.
 
     Raises:
-        KeyError: If ``rotation_name`` is not one of the recognized choices.
+        KeyError: If ``rotation`` is not one of the recognized choices.
     """
 
     # Resolve the desired vertical orientation, falling back to the instrument default.

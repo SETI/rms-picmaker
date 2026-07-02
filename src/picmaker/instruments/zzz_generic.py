@@ -23,6 +23,7 @@ _PDS3_LABEL_SIGNATURE = re.compile(rb'PDS_VERSION_ID\s*=\s*"?PDS3')
 
 
 class ZZZ_Generic(ImageData):
+    """Generic image detector and reader."""
 
     @staticmethod
     def detect_in_pds3(label, filepath, obj=0, **kwargs):
@@ -92,7 +93,7 @@ class ZZZ_Generic(ImageData):
 
         Returns:
             (:class:`ImageData` or ``None``): The :class:`ImageData` object if the format
-            of ``file`` is recognized; otherwise, ``None``.
+            of ``filepath`` is recognized; otherwise, ``None``.
         """
 
         # Handle a PDS3 file with an attached label. A ".lbl" file is recognized earlier

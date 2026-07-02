@@ -27,7 +27,7 @@ def array_to_pil(array, twobytes=False, rescale=True):
         array (np.ndarray): Image array containing one band of grayscale or three bands
             if RGB.
         twobytes (bool, optional): True for 16-bit images, False for 8-bit.
-        rescale (bool, optional): True to scale values from unit; False to leave them
+        rescale (bool, optional): True to scale values from unity; False to leave them
             alone.
 
     Returns:
@@ -89,17 +89,20 @@ def array_to_pil(array, twobytes=False, rescale=True):
 def pil_to_array(image, rescale=True):
     """Convert a PIL image (or list of RGB images) to a Numpy array.
 
-    The shape of the returned array is ``(width, height, channel)`` for an RGB image or
-    ``(width, height)`` for a grayscale image.
+    The shape of the returned array is ``(height, width, channel)`` for an RGB image or
+    ``(height, width)`` for a grayscale image.
 
     Parameters:
-        image ((:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a
+        image (:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a
             list of three PIL images.
         rescale (bool, optional): True to scale values to the range 0-1; False to leave
             them alone.
 
     Returns:
-        (np.ndarray): 2-D or 3-D mage array.
+        (np.ndarray): 2-D or 3-D image array.
+
+    Raises:
+        OSError: If a PIL image has an unsupported mode (not ``'I'``, ``'L'``, or RGB).
     """
 
     # Determine if it's a triple
@@ -156,10 +159,13 @@ def write_pil(image, outfile, quality=75):
     """Write a PIL image (or list of RGB images) to a file.
 
     Parameters:
-        image ((:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a
+        image (:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a
             list of three PIL images.
         outfile (str or pathlib.Path): The output file to write.
         quality (float): Quality factor 0-100 to use for JPEG output.
+
+    Raises:
+        OSError: If a single PIL image has an unsupported mode for the chosen output.
     """
 
     # Create the parent directory if necessary

@@ -19,8 +19,8 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
         label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
         obj (int, optional): An object index within the file, needed if the label
             describes more than one image object.
-        pointers (str or list[str], optional): Name or alternative list of names of the
-            IMAGE object pointer in the PDS3 label.
+        pointers (list[str], optional): Alternative list of names of the IMAGE object
+            pointer in the PDS3 label.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
@@ -32,6 +32,9 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
     Raises:
         KeyError: If ``pointers`` is provided but no named pointer is found in the label.
         IndexError: If ``obj`` is provided but is out of range for the label.
+        ValueError: If the label does not describe a readable IMAGE object, lacks a
+            pointer, or the data file is shorter than the label describes.
+        FileNotFoundError: If the detached data file cannot be found.
     """
 
     ######################################################################################
@@ -304,6 +307,9 @@ def _resolve_pds3_filename(base_dir, name):
 
     Returns:
         (pathlib.Path): Path of the first matching file that exists.
+
+    Raises:
+        FileNotFoundError: If no matching file is found in ``base_dir``.
     """
 
     for candidate in (name, name.upper(), name.lower()):

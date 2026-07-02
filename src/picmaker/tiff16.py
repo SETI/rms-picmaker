@@ -38,9 +38,12 @@ def write_tiff16(filepath, array, palette=None, up=False, byteorder='native',
         translate (bool, optional): True to translate a palette image to RGB on write,
             because many TIFF readers do not support 16-bit palettes. False writes the
             palette index plus the palette table.
-        transpose (: Optional geometric transformation before writing. Choices are
-            ``FLIP_LEFT_RIGHT``, ``FLIP_TOP_BOTTOM``, ``ROTATE_90``, ``ROTATE_180``,
-            ``ROTATE_270``.
+        transpose (Image.Transpose, optional): Optional geometric transformation before
+            writing. Choices are ``FLIP_LEFT_RIGHT``, ``FLIP_TOP_BOTTOM``, ``ROTATE_90``,
+            ``ROTATE_180``, ``ROTATE_270``.
+
+    Raises:
+        ValueError: If ``byteorder`` is not ``'native'``, ``'little'``, or ``'big'``.
     """
 
     # Open the output file
@@ -202,9 +205,9 @@ def read_tiff16(filepath, up=False, transpose=None):
         filepath (str or pathlib.Path): The name of the file to read.
         up (bool, optional): True for line numbers to increase upward; False for
             downward.
-        transpose (str, optional): Optional geometric transformation to undo on the
-            image before returning. Choices are ``FLIP_LEFT_RIGHT``, ``FLIP_TOP_BOTTOM``,
-            ``ROTATE_90``, ``ROTATE_180``, ``ROTATE_270``.
+        transpose (Image.Transpose, optional): Optional geometric transformation to undo
+            on the image before returning. Choices are ``FLIP_LEFT_RIGHT``,
+            ``FLIP_TOP_BOTTOM``, ``ROTATE_90``, ``ROTATE_180``, ``ROTATE_270``.
 
     Returns:
         ``(array, palette)``:
@@ -214,6 +217,9 @@ def read_tiff16(filepath, up=False, transpose=None):
         * ``palette`` — an optional ``(65536, 3)`` array. When present, the 0th band of
           ``array`` indexes into the palette to derive each pixel's ``(R, G, B)`` triple.
           ``None`` for non-palette inputs.
+
+    Raises:
+        OSError: If the file is not a TIFF16 file written by :func:`write_tiff16`.
     """
 
     # Open the output file inside a `with` so it is closed promptly if `_my_assert`

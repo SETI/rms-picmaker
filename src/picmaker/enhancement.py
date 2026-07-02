@@ -14,8 +14,8 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
                    above_color=None, invalid_color='black', gamma=1., **kwargs):
     """Apply a colormap to up to three grayscale images.
 
-    Produces a 3-D array with one band (grayscale) or three bands (RGB), in axis order
-    ``(band, line, sample)``. Values are scaled zero to one.
+    Produces a 3-D array with one channel (grayscale) or three channels (RGB), in axis
+    order ``(line, sample, channel)``. Values are scaled zero to one.
 
     Parameters:
         array (np.ndarray): A 2-D or 3-D numpy array. If 3-D, the axis order is (bands,
@@ -26,18 +26,20 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
         default_tint (str, tuple[int, int, int], or list of these, optional): The default
             colormap to use as defined by the instrument. This is used if not overridden
             by ``colormap`` and if ``tint`` is True.
-        histogram(bool, optional): True to use histogram shading (uniform DN
+        histogram (bool, optional): True to use histogram shading (uniform DN
             distribution).
-        colormap (str, tuple[int, int, int], or list, optional]: A color or list of
+        colormap (str, tuple[int, int, int], or list, optional): A color or list of
             colors to define the colors for the image. For example, ``["black", "blue",
-            "white"`` defines an mapping in which the darkest pixels are black, the
+            "white"]`` defines a mapping in which the darkest pixels are black, the
             brightest pixels are white, and intermediate values contain varying shades of
             blue. If a single color is specified, it is treated as shorthand for
             ``["black", <color>, "white"]``.
+        tint (bool, optional): True to apply the instrument's ``default_tint`` as the
+            colormap when no explicit ``colormap`` is given.
         below_color (str or tuple[int, int, int], optional): Color for pixels below the
             lower limit. The default is the first color of the ``colormap``.
         above_color (str or tuple[int, int, int], optional): Color for pixels above the
-            upper limit. The default the last color of the colormap.
+            upper limit. The default is the last color of the colormap.
         invalid_color (str or tuple[int, int, int], optional): Color for invalid pixels.
         gamma (float): Gamma factor. Values > 1 darken midtones; values < 1 brighten
             midtones.
@@ -49,7 +51,7 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
         length 3.
 
     Notes:
-        All colors are defined by either either a color name (e.g., "blue") or by a tuple
+        All colors are defined by either a color name (e.g., "blue") or by a tuple
         of three (R,G,B) integers in the range 0-255 (e.g., (255,255,0) for yellow). You
         can also specify a color using a string that contains an RGB tuple.
     """
