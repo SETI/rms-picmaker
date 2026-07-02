@@ -12,10 +12,10 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
     """Compute stretch limits from numeric limits and/or percentiles.
 
     Parameters:
-        array (np.ndarray): A 2-D or 3-D array.
-        mask (np.ndarray, optional): mask array (True for invalid pixels), or ``None``.
+        array (array): A 2-D or 3-D array.
+        mask (array, optional): mask array (True for invalid pixels), or None.
         limits (tuple[float, float], optional): Lower and upper limits of the pixel values
-            to consider; values outside this range are masked. Use ``None`` for the full
+            to consider; values outside this range are masked. Use None for the full
             dynamic range.
         percentiles (tuple[float, float], optional): Percentage points between the
             identified extremes corresponding to the returned limits.
@@ -108,7 +108,7 @@ def _circle_mask(diameter):
         diameter (float): The disk diameter in pixels.
 
     Returns:
-        (np.ndarray[bool]): A 2-D array where ``True`` marks pixels inside the circle.
+        array[bool]: A 2-D array where True marks pixels inside the circle.
     """
 
     size = int(np.ceil(diameter))

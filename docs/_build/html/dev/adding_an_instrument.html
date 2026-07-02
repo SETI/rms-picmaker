@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Adding a new instrument &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>Adding a new instrument &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
 
@@ -15,7 +15,7 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=10858467"></script>
+        <script src="../_static/documentation_options.js?v=e2a04e36"></script>
         <script src="../_static/doctools.js?v=9a2dae69"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -54,7 +54,7 @@
 <li class="toctree-l2"><a class="reference internal" href="running_tests.html">Running the test suite</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Adding a new instrument</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-instrument-protocol">The instrument protocol</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#function-descriptions">Function descriptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#method-descriptions">Method descriptions</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#shared-format-utilities">Shared format utilities</a></li>
@@ -106,337 +106,285 @@
   <section id="adding-a-new-instrument">
 <h1>Adding a new instrument<a class="headerlink" href="#adding-a-new-instrument" title="Link to this heading"></a></h1>
 <p>Every supported mission lives in its own module under
-<a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code></a>. Each module exposes a small structural
-protocol — there is no formal <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Protocol</span></code></a> declaration but
-every module is structurally identical and the tests pin the contract.</p>
+<a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code></a>. Each module defines a subclass of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">picmaker.instruments.ImageData</span></code> and registers it by calling
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.register_instrument()</span></code>. There is no formal
+<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Protocol</span></code></a>; the contract is the set of <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> static
+methods described below, and the tests pin it.</p>
 <section id="the-instrument-protocol">
 <h2>The instrument protocol<a class="headerlink" href="#the-instrument-protocol" title="Link to this heading"></a></h2>
-<p><strong>Required</strong> — every instrument module must implement these three
-functions:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">,</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<p>An instrument is an <code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> subclass
+that implements one or more <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> static methods, one per input
+format it understands. The reader cascade in
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments._read_one_image_array()</span></code> tries the relevant
+method against every registered instrument, in class-name order, and
+uses the first non-<code class="docutils literal notranslate"><span class="pre">None</span></code> result.</p>
+<p><strong>Detection methods</strong> — implement whichever apply to your instrument’s
+file format(s). Each returns an instance of your subclass on a match, or
+<code class="docutils literal notranslate"><span class="pre">None</span></code> to let the cascade try the next instrument:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">detect_in_pds3</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> <span class="o">...</span>   <span class="c1"># parsed .lbl label</span>
 
-<span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">detect_in_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> <span class="o">...</span>    <span class="c1"># open VicarImage</span>
 
-<span class="k">def</span> <span class="nf">tint_for</span><span class="p">(</span><span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">detect_in_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> <span class="o">...</span> <span class="c1"># open pyfits HDUList</span>
+
+<span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">detect_in_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> <span class="o">...</span>          <span class="c1"># any other format</span>
 </pre></div>
 </div>
-<p><strong>Optional</strong> — define these only when the instrument needs behaviour
-beyond what <code class="docutils literal notranslate"><span class="pre">tint_for</span></code> can express:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">apply_tint</span><span class="p">(</span>
-    <span class="n">array3d</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-    <span class="n">image_info</span><span class="p">:</span> <span class="n">ImageInfo</span><span class="p">,</span>
-    <span class="n">options</span><span class="p">:</span> <span class="n">PicmakerOptions</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
-
-<span class="k">def</span> <span class="nf">apply_mosaic</span><span class="p">(</span>
-    <span class="n">array3d</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
-    <span class="n">image_info</span><span class="p">:</span> <span class="n">ImageInfo</span><span class="p">,</span>
-    <span class="n">options</span><span class="p">:</span> <span class="n">PicmakerOptions</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">default_is_up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">colormap</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">imagefile</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
-</pre></div>
-</div>
-<section id="function-descriptions">
-<h3>Function descriptions<a class="headerlink" href="#function-descriptions" title="Link to this heading"></a></h3>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">read_file(filename,</span> <span class="pre">obj,</span> <span class="pre">**kwargs)</span></code> — the instrument’s complete
-file reader.  <em>filename</em> is either a file path (<code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">PathLike</span></code>)
-or a pre-parsed <code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> (passed when the pipeline
-is given a <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> input).  The function must detect whether the
-input belongs to this instrument (via magic bytes, header keywords,
-file extension, label metadata, or any other heuristic) and return a
-<a class="reference internal" href="../module.html#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a> on success, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the
-file / label is not owned by this instrument.  Each instrument owns
-its own format detection; the caller never pre-opens the file.
-Instruments that do not support PDS3 label inputs can safely receive
-a <code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> and return <code class="docutils literal notranslate"><span class="pre">None</span></code> — the shared
-helpers (<code class="xref py py-func docutils literal notranslate"><span class="pre">try_open_vicar()</span></code> and
-<code class="xref py py-func docutils literal notranslate"><span class="pre">is_fits_file()</span></code>) both handle a
-label argument gracefully.  Shared format utilities are available in
-<code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._shared</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> carries every pipeline option listed in
-<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.options.READ_FILE_KWARGS</span></code>; currently that is <code class="docutils literal notranslate"><span class="pre">mosaic</span></code>
-and <code class="docutils literal notranslate"><span class="pre">pds3_method</span></code>.  Instruments that do not need any of these
-values simply accept and ignore them.  An instrument that <em>does</em> need
-one extracts it with <code class="docutils literal notranslate"><span class="pre">kwargs.get('key',</span> <span class="pre">default)</span></code> — see
-<a class="reference internal" href="../module.html#module-picmaker.instruments.hst" title="picmaker.instruments.hst"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst</span></code></a> for the <code class="docutils literal notranslate"><span class="pre">mosaic</span></code> example and
-<a class="reference internal" href="#adding-instrument-option"><span class="std std-ref">Adding an instrument-specific option</span></a> below for how to introduce a new
-instrument-specific option.</p>
-</li>
-<li><p><code class="docutils literal notranslate"><span class="pre">matches(inst_host,</span> <span class="pre">inst_id)</span></code> — quick host-level predicate used
-by <a class="reference internal" href="../module.html#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.lookup()</span></code></a> once the cascade already has a
-<code class="docutils literal notranslate"><span class="pre">image_info</span></code> triple (e.g. when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is applied to a file
-whose metadata was read without going through <code class="docutils literal notranslate"><span class="pre">read_file</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tint_for(inst_id,</span> <span class="pre">filter_name)</span></code> — given the filter, return the
-three-stop colormap <code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">tint,</span> <span class="pre">white]</span></code>, the two-stop fallback
-<code class="docutils literal notranslate"><span class="pre">[black,</span> <span class="pre">white]</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the filter is genuinely unknown
-(the HST wavelength-inference path uses <code class="docutils literal notranslate"><span class="pre">None</span></code> to mean “unable to
-infer; keep the user’s colormap”).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apply_tint(array3d,</span> <span class="pre">image_info,</span> <span class="pre">options)</span></code> — checked via
-<a class="reference external" href="https://docs.python.org/3/library/functions.html#hasattr" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hasattr()</span></code></a> in <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline._process_one_image()</span></code>; called
-only when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is set.  Define it when the tinting algorithm
-cannot be expressed as a fixed colormap list.  Return a
-<code class="docutils literal notranslate"><span class="pre">(lines,</span> <span class="pre">samples,</span> <span class="pre">C)</span></code> RGB array to bypass the standard colormap
-pipeline, or <code class="docutils literal notranslate"><span class="pre">None</span></code> to fall through.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">apply_mosaic(array3d,</span> <span class="pre">image_info,</span> <span class="pre">options,</span> <span class="pre">*,</span> <span class="pre">default_is_up,</span>
-<span class="pre">colormap,</span> <span class="pre">imagefile)</span></code> — checked via <a class="reference external" href="https://docs.python.org/3/library/functions.html#hasattr" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hasattr()</span></code></a>; called only
-when <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> is set, and only if <code class="docutils literal notranslate"><span class="pre">apply_tint</span></code> did not already
-return a non-<code class="docutils literal notranslate"><span class="pre">None</span></code> result.  Define it for instruments that assemble
-images from multiple detectors.  Receives the pipeline’s resolved
-<code class="docutils literal notranslate"><span class="pre">colormap</span></code> (post-tint override) and <code class="docutils literal notranslate"><span class="pre">imagefile</span></code> so it can identify
-per-detector files by name substring.  <code class="docutils literal notranslate"><span class="pre">default_is_up</span></code> signals
-whether the raw data is stored display-upward; if so, flip lines
-before assembling panels.  Return the assembled <code class="docutils literal notranslate"><span class="pre">(lines,</span> <span class="pre">samples,</span> <span class="pre">C)</span></code>
-array, or <code class="docutils literal notranslate"><span class="pre">None</span></code> to fall through to the standard
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_band_to_rgb()</span></code> path.  When non-<code class="docutils literal notranslate"><span class="pre">None</span></code> is
-returned the pipeline treats orientation as already baked in and sets
-<code class="docutils literal notranslate"><span class="pre">this_display_upward</span> <span class="pre">=</span> <span class="pre">False</span></code>.</p></li>
+<p>The cascade only calls a method that exists (it guards each call with
+<a class="reference external" href="https://docs.python.org/3/library/functions.html#hasattr" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">hasattr()</span></code></a>), so an instrument that reads only FITS defines only
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_in_fits()</span></code>.</p>
+<p><strong>Construction.</strong> Every <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> method builds and returns
+<code class="docutils literal notranslate"><span class="pre">cls(array,</span> <span class="pre">default_upward,</span> <span class="pre">default_tint)</span></code> — the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> constructor:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">array</span></code> — the pixel array, 2-D <code class="docutils literal notranslate"><span class="pre">(lines,</span> <span class="pre">samples)</span></code> or 3-D
+<code class="docutils literal notranslate"><span class="pre">(bands,</span> <span class="pre">lines,</span> <span class="pre">samples)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default_upward</span></code> — <code class="docutils literal notranslate"><span class="pre">True</span></code> if the raw data is stored
+display-upward (typical for FITS), <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise (typical for
+VICAR / PDS3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default_tint</span></code> — the default tint color (an <code class="docutils literal notranslate"><span class="pre">(R,</span> <span class="pre">G,</span> <span class="pre">B)</span></code> tuple or
+<code class="docutils literal notranslate"><span class="pre">None</span></code>), used when <code class="docutils literal notranslate"><span class="pre">--tint</span></code> is set and the user gave no explicit
+<code class="docutils literal notranslate"><span class="pre">--colormap</span></code>.</p></li>
 </ul>
+<p><strong>Optional overrides</strong> — define these on the subclass only when the
+instrument needs behaviour the base class does not provide:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">apply_colormap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">valid_limits</span><span class="p">,</span> <span class="n">invalid_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="o">...</span>   <span class="c1"># override only for a non-standard colormap policy</span>
+
+<span class="k">def</span> <span class="nf">apply_mosaic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays_rgb</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="o">...</span>   <span class="c1"># define for instruments assembled from multiple detectors</span>
+</pre></div>
+</div>
+<p>The base <code class="xref py py-meth docutils literal notranslate"><span class="pre">ImageData.apply_colormap</span></code> already forwards to
+<a class="reference internal" href="../module.html#picmaker.enhancement.apply_colormap" title="picmaker.enhancement.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhancement.apply_colormap()</span></code></a> with the instrument’s
+<code class="docutils literal notranslate"><span class="pre">default_tint</span></code>, so most instruments never override it. Define
+<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code> when the instrument builds one image from several
+detector panels; it receives the list of per-band RGB arrays (already
+colormapped in <a class="reference internal" href="../module.html#picmaker.picmaker.picmaker1" title="picmaker.picmaker.picmaker1"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker1()</span></code></a>) and returns the
+assembled array. It is invoked only when <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> is set and the
+sliced array is still 3-D.</p>
+<section id="method-descriptions">
+<h3>Method descriptions<a class="headerlink" href="#method-descriptions" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">detect_in_pds3(label,</span> <span class="pre">filepath,</span> <span class="pre">**kwargs)</span></code> — receives a parsed
+<a class="reference external" href="https://rms-pdsparser.readthedocs.io/en/latest/module.html#pdsparser.Pds3Label" title="(in pdsparser)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code></a> (the cascade parses any <code class="docutils literal notranslate"><span class="pre">.lbl</span></code> input
+before dispatching) and the label’s path. Inspect the label’s
+metadata keys to decide ownership, then extract the array — usually
+via <a class="reference internal" href="../module.html#picmaker.instruments.read_pds3_image_array" title="picmaker.instruments.read_pds3_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.read_pds3_image_array()</span></code></a>, which resolves
+the <code class="docutils literal notranslate"><span class="pre">^IMAGE</span></code> pointer and reads the referenced data file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detect_in_vicar(vic,</span> <span class="pre">filepath,</span> <span class="pre">**kwargs)</span></code> — receives an open
+<a class="reference external" href="https://rms-vicar.readthedocs.io/en/latest/module.html#vicar.VicarImage" title="(in vicar)"><code class="xref py py-class docutils literal notranslate"><span class="pre">vicar.VicarImage</span></code></a>. Read VICAR header keywords to decide
+ownership and take the array from <code class="docutils literal notranslate"><span class="pre">vic.array</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detect_in_fits(hdulist,</span> <span class="pre">filepath,</span> <span class="pre">**kwargs)</span></code> — receives an open
+<a class="reference external" href="https://docs.astropy.org/en/stable/io/fits/api/hdulists.html#astropy.io.fits.HDUList" title="(in Astropy v8.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.io.fits.HDUList</span></code></a>. Read header cards to decide
+ownership and select the image HDU. The cascade copies the pixels out
+of the memory-mapped HDU after you return, so you may return a view.
+The FITS helpers in <code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._fits_support</span></code>
+(<a class="reference internal" href="../module.html#picmaker.instruments.get_fits_array" title="picmaker.instruments.get_fits_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_fits_array()</span></code></a>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">get_fits_image_hdu()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">get_fits_image_hdus()</span></code>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">hdu_is_image()</span></code>) handle HDU selection and the <code class="docutils literal notranslate"><span class="pre">obj</span></code> /
+<code class="docutils literal notranslate"><span class="pre">pointers</span></code> options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">detect_in_file(filepath,</span> <span class="pre">**kwargs)</span></code> — the catch-all for formats not
+covered above (pickle, <code class="docutils literal notranslate"><span class="pre">.npy</span></code>, 16-bit TIFF, attached-label PDS3, and
+any PIL-readable image). This is where the always-accepting fallback
+<code class="xref py py-class docutils literal notranslate"><span class="pre">picmaker.instruments.zzz_generic.ZZZ_Generic</span></code> does its work.</p></li>
+</ul>
+<p>Every method receives the full pipeline options as <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>. Extract
+what you need with <code class="docutils literal notranslate"><span class="pre">kwargs.get('name',</span> <span class="pre">default)</span></code>, or declare named
+parameters ahead of <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> (as <code class="docutils literal notranslate"><span class="pre">detect_in_fits</span></code> does for
+<code class="docutils literal notranslate"><span class="pre">obj</span></code>, <code class="docutils literal notranslate"><span class="pre">pointers</span></code>, <code class="docutils literal notranslate"><span class="pre">retint</span></code>, and <code class="docutils literal notranslate"><span class="pre">mosaic</span></code> in
+<a class="reference internal" href="../module.html#module-picmaker.instruments.hst_acs" title="picmaker.instruments.hst_acs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_acs</span></code></a>).</p>
 </section>
 </section>
 <section id="shared-format-utilities">
 <h2>Shared format utilities<a class="headerlink" href="#shared-format-utilities" title="Link to this heading"></a></h2>
-<p><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._shared</span></code> provides helpers that multiple
-instrument modules can import without circular-import issues:</p>
+<p>Helper modules whose names begin with an underscore are <em>not</em> imported
+as instruments; they provide utilities that instrument modules import:</p>
 <ul class="simple">
-<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">try_open_vicar()</span></code> — parse
-<em>filename</em> as a VICAR file and return a <code class="xref py py-class docutils literal notranslate"><span class="pre">vicar.VicarImage</span></code>, or
-<code class="docutils literal notranslate"><span class="pre">None</span></code> on any error (including non-VICAR files or a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> argument).</p></li>
-<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">is_fits_file()</span></code> — return <code class="docutils literal notranslate"><span class="pre">True</span></code>
-iff the file begins with the FITS magic bytes <code class="docutils literal notranslate"><span class="pre">b'SIMPLE</span>&#160; <span class="pre">='</span></code>; also
-returns <code class="docutils literal notranslate"><span class="pre">False</span></code> safely when given a <code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code>.</p></li>
-<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">extract_fits_array()</span></code> — extract a
-3-D <code class="docutils literal notranslate"><span class="pre">(bands,</span> <span class="pre">lines,</span> <span class="pre">samples)</span></code> array from an open FITS HDU list,
-handling <code class="docutils literal notranslate"><span class="pre">obj=None</span></code> (auto-detect), list/tuple (stack), and scalar
-(direct index) selectors.</p></li>
-<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">read_pds3_image_array()</span></code> — resolve
-the first <code class="docutils literal notranslate"><span class="pre">^*IMAGE</span></code> pointer in a <code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code>, then
-read the referenced data file via VICAR or FITS.  Used by instruments
-that support PDS3 label inputs and by the generic PDS3 fallback in
-<a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a>.</p></li>
+<li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._fits_support</span></code> —
+<a class="reference internal" href="../module.html#picmaker.instruments.get_fits_array" title="picmaker.instruments.get_fits_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_fits_array()</span></code></a>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">get_fits_image_hdu()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">get_fits_image_hdus()</span></code>, and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">hdu_is_image()</span></code> for selecting and extracting FITS image arrays.</p></li>
+<li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._pds3_support</span></code> —
+<a class="reference internal" href="../module.html#picmaker.instruments.read_pds3_image_array" title="picmaker.instruments.read_pds3_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.read_pds3_image_array()</span></code></a> (resolve a PDS3
+<code class="docutils literal notranslate"><span class="pre">^IMAGE</span></code> pointer and read the data file) plus the
+<code class="xref py py-data docutils literal notranslate"><span class="pre">PDS3_METHODS</span></code> list and <code class="xref py py-data docutils literal notranslate"><span class="pre">DEFAULT_PDS3_METHOD</span></code>.</p></li>
+<li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._hst_support</span></code> —
+<code class="xref py py-func docutils literal notranslate"><span class="pre">get_hst_filter_digits()</span></code> (the integer embedded in an HST filter
+name) and <code class="xref py py-func docutils literal notranslate"><span class="pre">is_science_hdu()</span></code>.</p></li>
 </ul>
+<p>The package also exposes <a class="reference internal" href="../module.html#picmaker.instruments.tint_by_nm" title="picmaker.instruments.tint_by_nm"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.tint_by_nm()</span></code></a>, which
+maps a wavelength in nanometers to an <code class="docutils literal notranslate"><span class="pre">(R,</span> <span class="pre">G,</span> <span class="pre">B)</span></code> tint; the HST
+readers use it together with <code class="xref py py-func docutils literal notranslate"><span class="pre">get_hst_filter_digits()</span></code> to derive a
+default tint from the filter name.</p>
 </section>
 <section id="writing-the-instrument-module">
 <h2>Writing the instrument module<a class="headerlink" href="#writing-the-instrument-module" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>Create the module.</strong> Choose the detection pattern that matches
-the file format(s) your instrument produces.</p>
-<p><strong>VICAR-based instrument</strong> (e.g. Cassini ISS, Voyager ISS, Galileo SSI):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;My-Mission MyInstrument detection and tint.&quot;&quot;&quot;</span>
+<li><p><strong>Create the module.</strong> Add <code class="docutils literal notranslate"><span class="pre">src/picmaker/instruments/mymission.py</span></code>
+(any name not starting with an underscore). Choose the <code class="docutils literal notranslate"><span class="pre">detect_*</span></code>
+method(s) matching the format(s) your instrument produces.</p>
+<p><strong>VICAR-based instrument</strong> (e.g. Cassini ISS, Voyager ISS,
+Galileo SSI):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;My-Mission MyInstrument detector and reader.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">register_instrument</span>
 
-<span class="kn">from</span> <span class="nn">vicar</span> <span class="kn">import</span> <span class="n">VicarError</span>
+<span class="n">_DEFAULT_UPWARD</span> <span class="o">=</span> <span class="kc">False</span>
 
-<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
-<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">_shared</span>
-
-<span class="n">_FILTER_DICT</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">_FILTER_DICT</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;BLUE&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">210</span><span class="p">),</span>
     <span class="s1">&#39;RED&#39;</span><span class="p">:</span>  <span class="p">(</span><span class="mi">190</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
     <span class="c1"># ... per-filter tints here ...</span>
 <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return (&#39;MYMISSION&#39;, &#39;MYINST&#39;, filter) or None.&quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_HOST_NAME&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;MY MISSION&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;MYMISSION&#39;</span><span class="p">,</span> <span class="s1">&#39;MYINST&#39;</span><span class="p">,</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;FILTER_NAME&#39;</span><span class="p">])</span>
-    <span class="k">except</span> <span class="p">(</span><span class="n">VicarError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
-        <span class="k">pass</span>
-    <span class="k">return</span> <span class="kc">None</span>
+<span class="k">class</span> <span class="nc">MyMission_MyInst</span><span class="p">(</span><span class="n">ImageData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;My-Mission MyInstrument detector and reader.&quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_HOST_NAME&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MY MISSION&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_ID&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MYINST&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">filter_name</span> <span class="o">=</span> <span class="n">vic</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">default_tint</span> <span class="o">=</span> <span class="n">_FILTER_DICT</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filter_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">MyMission_MyInst</span><span class="p">(</span><span class="n">vic</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">_DEFAULT_UPWARD</span><span class="p">,</span> <span class="n">default_tint</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to detect and read a My-Mission VICAR image.&quot;&quot;&quot;</span>
-    <span class="n">vic</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">try_open_vicar</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">vic</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">array3d</span> <span class="o">=</span> <span class="n">vic</span><span class="o">.</span><span class="n">data_3d</span>
-    <span class="k">if</span> <span class="n">array3d</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">array3d</span> <span class="o">=</span> <span class="n">array3d</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">array3d</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Host-level predicate.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">inst_host</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;MY MISSION&#39;</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">tint_for</span><span class="p">(</span>
-    <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">:</span> <span class="n">Any</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return [black, tint, white] for known filters.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">inst_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;MYINST&#39;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_FILTER_DICT</span><span class="p">[</span><span class="n">filter_name</span><span class="p">],</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)]</span>
-
-
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">,</span> <span class="s1">&#39;read_file&#39;</span><span class="p">,</span> <span class="s1">&#39;tint_for&#39;</span><span class="p">]</span>
+<span class="n">register_instrument</span><span class="p">(</span><span class="n">MyMission_MyInst</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>FITS-based instrument</strong> (e.g. HST, New Horizons MVIC) — replace
-<code class="docutils literal notranslate"><span class="pre">_detect_vicar</span></code> + <code class="docutils literal notranslate"><span class="pre">try_open_vicar</span></code> with <code class="docutils literal notranslate"><span class="pre">_detect_fits</span></code> +
-<code class="docutils literal notranslate"><span class="pre">is_fits_file</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<p><strong>FITS-based instrument</strong> (e.g. HST, New Horizons MVIC) — use
+<code class="docutils literal notranslate"><span class="pre">detect_in_fits</span></code> and the FITS helpers:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">register_instrument</span><span class="p">,</span> <span class="n">tint_by_nm</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments._fits_support</span> <span class="kn">import</span> <span class="n">get_fits_array</span>
 
-<span class="kn">import</span> <span class="nn">astropy.io.fits</span> <span class="k">as</span> <span class="nn">pyfits</span>
+<span class="n">_DEFAULT_UPWARD</span> <span class="o">=</span> <span class="kc">True</span>
 
-<span class="k">def</span> <span class="nf">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return (&#39;MYMISSION&#39;, &#39;MYINST&#39;, filter) or None.&quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;TELESCOP&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;MY MISSION&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;MYMISSION&#39;</span><span class="p">,</span> <span class="s1">&#39;MYINST&#39;</span><span class="p">,</span>
-                    <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">))</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">pass</span>
-    <span class="k">return</span> <span class="kc">None</span>
 
-<span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to detect and read a My-Mission FITS image.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_shared</span><span class="o">.</span><span class="n">is_fits_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(),</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span> <span class="k">as</span> <span class="n">hdulist</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">)</span>
-            <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">MyMission_MyInst</span><span class="p">(</span><span class="n">ImageData</span><span class="p">):</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;TELESCOP&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MY MISSION&#39;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
-            <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">extract_fits_array</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;INSTRUME&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MYINST&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">array</span> <span class="o">=</span> <span class="n">get_fits_array</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">MyMission_MyInst</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">_DEFAULT_UPWARD</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+
+<span class="n">register_instrument</span><span class="p">(</span><span class="n">MyMission_MyInst</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>PDS3-labeled instrument</strong> (e.g. Cassini ISS via <code class="docutils literal notranslate"><span class="pre">.LBL</span></code>, NH LORRI
-via <code class="docutils literal notranslate"><span class="pre">.LBL</span></code>) — add a <code class="docutils literal notranslate"><span class="pre">_detect_pds3</span></code> path and dispatch at the top of
-<code class="docutils literal notranslate"><span class="pre">read_file</span></code>.  The actual image data pointed to by the label may be
-in any format supported by
-<code class="xref py py-func docutils literal notranslate"><span class="pre">read_pds3_image_array()</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pdsparser</span>
+via <code class="docutils literal notranslate"><span class="pre">.LBL</span></code>) — add a <code class="docutils literal notranslate"><span class="pre">detect_in_pds3</span></code> method and extract the array
+with <a class="reference internal" href="../module.html#picmaker.instruments.read_pds3_image_array" title="picmaker.instruments.read_pds3_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_pds3_image_array()</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">register_instrument</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments._pds3_support</span> <span class="kn">import</span> <span class="n">read_pds3_image_array</span>
 
-<span class="k">def</span> <span class="nf">_detect_pds3</span><span class="p">(</span><span class="n">label</span><span class="p">:</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return (&#39;MYMISSION&#39;, &#39;MYINST&#39;, filter) or None.&quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;INSTRUMENT_HOST_NAME&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;MY MISSION&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">filter_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;MYMISSION&#39;</span><span class="p">,</span> <span class="s1">&#39;MYINST&#39;</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
 
-<span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">,</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to detect and read a My-Mission image.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">):</span>
-        <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_pds3</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">MyMission_MyInst</span><span class="p">(</span><span class="n">ImageData</span><span class="p">):</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_pds3</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_HOST_NAME&#39;</span><span class="p">][:</span><span class="mi">7</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MYMISSN&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
-    <span class="c1"># ... VICAR or FITS detection below for non-label paths ...</span>
+
+        <span class="n">array</span> <span class="o">=</span> <span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">MyMission_MyInst</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+
+<span class="n">register_instrument</span><span class="p">(</span><span class="n">MyMission_MyInst</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>An instrument can combine all three patterns: check
-<code class="docutils literal notranslate"><span class="pre">isinstance(filename,</span> <span class="pre">pdsparser.Pds3Label)</span></code> first, then fall through
-to VICAR / FITS detection for bare file paths (see
+<p>An instrument can implement several <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> methods on the same
+subclass — for example <code class="docutils literal notranslate"><span class="pre">detect_in_pds3</span></code> for <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> inputs and
+<code class="docutils literal notranslate"><span class="pre">detect_in_vicar</span></code> for bare VICAR data files (see
 <a class="reference internal" href="../module.html#module-picmaker.instruments.cassini_iss" title="picmaker.instruments.cassini_iss"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.cassini_iss</span></code></a> for a complete example).</p>
 </li>
-<li><p><strong>Register the module.</strong> Open
-<code class="file docutils literal notranslate"><span class="pre">src/picmaker/instruments/__init__.py</span></code> and add the new module
-to the import line and to <a class="reference internal" href="../module.html#picmaker.instruments.ALL_INSTRUMENTS" title="picmaker.instruments.ALL_INSTRUMENTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALL_INSTRUMENTS</span></code></a>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">cassini_iss</span><span class="p">,</span> <span class="n">galileo_ssi</span><span class="p">,</span> <span class="n">hst</span><span class="p">,</span> <span class="n">mymission</span><span class="p">,</span> <span class="n">nh_lorri</span><span class="p">,</span> <span class="n">nh_mvic</span><span class="p">,</span> <span class="n">voyager_iss</span>
-
-<span class="n">ALL_INSTRUMENTS</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ModuleType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">cassini_iss</span><span class="p">,</span> <span class="n">voyager_iss</span><span class="p">,</span> <span class="n">galileo_ssi</span><span class="p">,</span> <span class="n">hst</span><span class="p">,</span> <span class="n">nh_lorri</span><span class="p">,</span> <span class="n">nh_mvic</span><span class="p">,</span> <span class="n">mymission</span><span class="p">]</span>
-</pre></div>
-</div>
-<p>Order matters: the cascade tries each instrument in list order and
-returns on the first match, so put more-specific instruments before
-more-general ones.</p>
+<li><p><strong>Registration is automatic — no ``__init__.py`` edit needed.</strong>
+<a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code></a> discovers and imports every module in the
+package whose name does not start with an underscore, so dropping the
+file in is enough; the module registers itself by calling
+<code class="xref py py-func docutils literal notranslate"><span class="pre">register_instrument()</span></code> at import time.</p>
+<p>Ordering is by <strong>class name</strong>:
+<code class="xref py py-func docutils literal notranslate"><span class="pre">register_instrument()</span></code> keeps the internal
+list sorted by <code class="docutils literal notranslate"><span class="pre">__name__</span></code>, and the cascade returns on the first
+match. The always-accepting fallback is named <code class="docutils literal notranslate"><span class="pre">ZZZ_Generic</span></code> (in
+<code class="docutils literal notranslate"><span class="pre">zzz_generic.py</span></code>) precisely so it sorts last and is only reached
+when no real instrument claims the file. If two instruments could
+both claim a file, choose class names whose alphabetical order puts
+the more-specific one first.</p>
 </li>
 </ol>
 </section>
 <section id="writing-the-unit-tests">
 <h2>Writing the unit tests<a class="headerlink" href="#writing-the-unit-tests" title="Link to this heading"></a></h2>
 <ol class="arabic" start="3">
-<li><p><strong>Create a fixture.</strong> Create
-<code class="file docutils literal notranslate"><span class="pre">tests/fixture_recipes/mymission_myinst_recipe.py</span></code> that builds a
-tiny synthetic file in whatever format(s) your instrument reads —
-VICAR, FITS, a PDS3 label pointing to a data file, or any other
-format.  The file only needs to be large enough to contain the
-metadata keys your detection function reads; a 4×4 or 8×8 pixel
-image is sufficient.</p>
-<p>Run it once from the venv to write the fixture to
-<code class="file docutils literal notranslate"><span class="pre">tests/fixtures/</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tests/fixture_recipes/mymission_myinst_recipe.py
+<li><p><strong>Create a fixture recipe.</strong> Add
+<code class="file docutils literal notranslate"><span class="pre">tests/fixture_recipes/mymission_recipe.py</span></code> that builds a tiny
+synthetic file in whatever format your instrument reads — VICAR,
+FITS, or a PDS3 label plus its data file. The file only needs the
+metadata keys your detection method reads; a 4×4 or 8×8 image is
+enough. Run it once from the venv to write the fixture into
+<code class="file docutils literal notranslate"><span class="pre">tests/fixtures/</span></code>, and commit the result:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tests/fixture_recipes/mymission_recipe.py
 </pre></div>
 </div>
-<p>Commit the resulting fixture file(s) to git.  If the instrument
-supports both a bare data-file path and a PDS3 <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> label, create
-separate fixtures for each path so both branches of <code class="docutils literal notranslate"><span class="pre">read_file</span></code> are
-exercised.</p>
+<p>If the instrument reads both a bare data file and a <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> label,
+create separate fixtures so both <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> branches are exercised.</p>
 </li>
-<li><p><strong>Wire into the cascade tests.</strong> Open <code class="file docutils literal notranslate"><span class="pre">tests/test_io.py</span></code> and
-add an entry to <code class="docutils literal notranslate"><span class="pre">INSTRUMENT_FIXTURES</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">INSTRUMENT_FIXTURES</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">(</span><span class="s1">&#39;cassini_iss.vic&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;CASSINI&#39;</span><span class="p">,</span> <span class="s1">&#39;ISS&#39;</span><span class="p">,</span> <span class="s1">&#39;CL1+GRN&#39;</span><span class="p">),</span> <span class="kc">False</span><span class="p">),</span>
+<li><p><strong>Wire into the cascade tests.</strong> Open
+<code class="file docutils literal notranslate"><span class="pre">tests/test_instruments_reading.py</span></code> and add an entry to
+<code class="docutils literal notranslate"><span class="pre">INSTRUMENT_FIXTURES</span></code> — a
+<code class="docutils literal notranslate"><span class="pre">(fixture_name,</span> <span class="pre">expected_shape,</span> <span class="pre">default_upward,</span> <span class="pre">default_tint)</span></code>
+tuple:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># (fixture_name, expected_shape, default_upward, default_tint)</span>
+<span class="n">INSTRUMENT_FIXTURES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">&#39;cassini_iss.vic&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
     <span class="c1"># ... existing entries ...</span>
-    <span class="p">(</span><span class="s1">&#39;mymission_myinst.vic&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;MYMISSION&#39;</span><span class="p">,</span> <span class="s1">&#39;MYINST&#39;</span><span class="p">,</span> <span class="s1">&#39;BLUE&#39;</span><span class="p">),</span> <span class="kc">False</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;mymission.vic&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">210</span><span class="p">)),</span>
 <span class="p">]</span>
 </pre></div>
 </div>
-<p><code class="xref py py-func docutils literal notranslate"><span class="pre">tests.test_io.test_instrument_detection()</span></code> parametrizes over
-this list, exercising both <a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a>
-(the full reader cascade) and <a class="reference internal" href="../module.html#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.lookup()</span></code></a>
-(the <code class="docutils literal notranslate"><span class="pre">image_info</span></code> triple).  Add a second entry for any PDS3 label
-fixture, pointing to the <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> filename with the same expected
-<code class="docutils literal notranslate"><span class="pre">image_info</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">test_instrument_detection</span></code> parametrizes over this list, calling
+<a class="reference internal" href="../module.html#picmaker.instruments.read_image_array" title="picmaker.instruments.read_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.read_image_array()</span></code></a> on each fixture and
+asserting the array shape, <code class="docutils literal notranslate"><span class="pre">default_upward</span></code>, and <code class="docutils literal notranslate"><span class="pre">default_tint</span></code>.</p>
 </li>
-<li><p><strong>Add per-instrument unit tests.</strong> Open
-<code class="file docutils literal notranslate"><span class="pre">tests/test_instruments_branches.py</span></code> and add:</p>
-<ul class="simple">
-<li><p>A parametrize case for every <code class="docutils literal notranslate"><span class="pre">tint_for</span></code> branch you want pinned,
-mirroring the existing Cassini and Voyager blocks.</p></li>
-<li><p>If you added <code class="docutils literal notranslate"><span class="pre">apply_mosaic</span></code>, unit tests in
-<code class="file docutils literal notranslate"><span class="pre">tests/test_pipeline_helpers.py</span></code> covering each mosaic variant
-(and verifying <code class="docutils literal notranslate"><span class="pre">None</span></code> is returned for non-mosaic instrument IDs),
-following the HST <code class="docutils literal notranslate"><span class="pre">apply_mosaic</span></code> tests as a model.</p></li>
-</ul>
-</li>
-<li><p><strong>Add a snapshot.</strong> If the new fixture should be included in the
-pixel-level regression suite, append it to <code class="docutils literal notranslate"><span class="pre">ALL_FIXTURES</span></code> in
+<li><p><strong>Add per-instrument read tests.</strong> Add a
+<code class="file docutils literal notranslate"><span class="pre">tests/test_mymission_read.py</span></code> (modelled on
+<code class="file docutils literal notranslate"><span class="pre">tests/test_hst_acs_read.py</span></code> or
+<code class="file docutils literal notranslate"><span class="pre">tests/test_cassini_iss_previews.py</span></code>) covering each detection
+branch, each tint mapping you want pinned, and — if you defined
+<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code> — each mosaic variant.</p></li>
+<li><p><strong>Add a snapshot.</strong> If the fixture should be part of the pixel-level
+regression suite, append its name to <code class="docutils literal notranslate"><span class="pre">VICAR_FIXTURES</span></code> or
+<code class="docutils literal notranslate"><span class="pre">FITS_FIXTURES</span></code> in
 <code class="file docutils literal notranslate"><span class="pre">tests/fixture_recipes/generate_snapshots.py</span></code> and regenerate:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tests/fixture_recipes/generate_snapshots.py
 </pre></div>
 </div>
 <p>The script writes new files under <code class="file docutils literal notranslate"><span class="pre">tests/fixtures/expected/</span></code>
-and rewrites <code class="file docutils literal notranslate"><span class="pre">tests/snapshots_index.py</span></code>. Both should be
-committed.</p>
+and rewrites <code class="file docutils literal notranslate"><span class="pre">tests/snapshots_index.py</span></code>. Commit both.</p>
 </li>
 </ol>
 </section>
@@ -456,155 +404,90 @@ instrument’s detection labels, filter set, and tint table.</p></li>
 </section>
 <section id="adding-an-instrument-specific-option">
 <span id="adding-instrument-option"></span><h2>Adding an instrument-specific option<a class="headerlink" href="#adding-an-instrument-specific-option" title="Link to this heading"></a></h2>
-<p>Sometimes a new feature only makes sense for one instrument — for example
-a Cassini-specific decompression mode or an HST-specific scaling flag.
-Adding such an option touches four files: <code class="file docutils literal notranslate"><span class="pre">src/picmaker/cli.py</span></code>
-(in two functions), <code class="file docutils literal notranslate"><span class="pre">src/picmaker/options.py</span></code>,
-<code class="file docutils literal notranslate"><span class="pre">src/picmaker/pipeline.py</span></code>, and the instrument module itself.
-<a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> needs no changes.</p>
+<p>Sometimes a new feature only makes sense for one instrument — for
+example an HST-specific retint factor. Because options travel through
+the pipeline as a plain <code class="docutils literal notranslate"><span class="pre">dict</span></code> and every <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> method accepts
+<code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>, adding one is lightweight: there is no <code class="docutils literal notranslate"><span class="pre">options.py</span></code>, no
+<code class="docutils literal notranslate"><span class="pre">PicmakerOptions</span></code> dataclass, and no per-function signature to thread
+the value through.</p>
 <section id="how-the-forwarding-works">
 <h3>How the forwarding works<a class="headerlink" href="#how-the-forwarding-works" title="Link to this heading"></a></h3>
-<p><code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.options.READ_FILE_KWARGS</span></code> is a tuple of
-<a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a> field names that the pipeline
-forwards to every <code class="docutils literal notranslate"><span class="pre">read_file</span></code> call as keyword arguments:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># options.py</span>
-<span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_method&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>In <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline._process_one_image()</span></code> the kwargs dict is
-assembled generically from those names:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">**</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">READ_FILE_KWARGS</span><span class="p">}</span>
-</pre></div>
-</div>
-<p><a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a> then forwards the whole dict
-unchanged to every instrument’s <code class="docutils literal notranslate"><span class="pre">read_file</span></code>.  Instruments that do not
-need a value ignore it silently; instruments that do extract it with
-<code class="docutils literal notranslate"><span class="pre">kwargs.get</span></code>.</p>
+<p>The validated option dict produced by
+<a class="reference internal" href="../module.html#picmaker.picmaker.validate_options" title="picmaker.picmaker.validate_options"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.validate_options()</span></code></a> flows unchanged through
+<a class="reference internal" href="../module.html#picmaker.picmaker.picmaker" title="picmaker.picmaker.picmaker"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.picmaker()</span></code></a> →
+<a class="reference internal" href="../module.html#picmaker.picmaker.picmaker1" title="picmaker.picmaker.picmaker1"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.picmaker1()</span></code></a> →
+<a class="reference internal" href="../module.html#picmaker.instruments.read_image_array" title="picmaker.instruments.read_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.read_image_array()</span></code></a> →
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments._read_one_image_array()</span></code>, which passes it to
+each instrument’s <code class="docutils literal notranslate"><span class="pre">detect_*</span></code> method as <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>. So any key you
+add to the parser is automatically visible to every detection method;
+instruments that do not care about it simply ignore it.</p>
 </section>
 <section id="step-by-step-for-a-new-instrument-specific-option">
 <h3>Step-by-step for a new instrument-specific option<a class="headerlink" href="#step-by-step-for-a-new-instrument-specific-option" title="Link to this heading"></a></h3>
-<p>Suppose you want to add <code class="docutils literal notranslate"><span class="pre">--cassini-encoding</span></code> (a Cassini-only flag):</p>
+<p>Suppose you want to add <code class="docutils literal notranslate"><span class="pre">--retint</span></code> (used only by the HST readers):</p>
 <ol class="arabic">
-<li><p><strong>Add and wire the CLI argument.</strong> In <code class="file docutils literal notranslate"><span class="pre">src/picmaker/cli.py</span></code>,
-make two edits:</p>
-<ol class="loweralpha">
-<li><p>In <code class="xref py py-func docutils literal notranslate"><span class="pre">_build_parser()</span></code>, add the <code class="docutils literal notranslate"><span class="pre">--cassini-encoding</span></code> argument
-to the argparse parser under the appropriate argument group:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">instrument</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;instrument options&#39;</span><span class="p">)</span>
-<span class="n">instrument</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-    <span class="s1">&#39;--cassini-encoding&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s1">&#39;cassini_encoding&#39;</span><span class="p">,</span>
-    <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;standard&#39;</span><span class="p">,</span>
-    <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Cassini ISS decompression mode.&#39;</span><span class="p">,</span>
-<span class="p">)</span>
+<li><p><strong>Add the CLI argument.</strong> In <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.parser.get_parser()</span></code>
+(<code class="file docutils literal notranslate"><span class="pre">src/picmaker/parser.py</span></code>), add the argument under an
+appropriate argument group:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_instrument</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;instrument options&#39;</span><span class="p">)</span>
+<span class="n">_instrument</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s1">&#39;--retint&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s1">&#39;factor by which to scale filter wavelengths for tinting.&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>The <code class="docutils literal notranslate"><span class="pre">dest</span></code> (here <code class="docutils literal notranslate"><span class="pre">retint</span></code>) becomes the dictionary key.</p>
 </li>
-<li><p>In <code class="xref py py-func docutils literal notranslate"><span class="pre">_normalize_and_validate()</span></code>, add the key to the
-<code class="docutils literal notranslate"><span class="pre">option_dict</span></code> that the function returns.  The dict is built
-explicitly by name so every key must be listed:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">option_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="c1"># ... existing keys ...</span>
-    <span class="s1">&#39;cassini_encoding&#39;</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">cassini_encoding</span><span class="p">,</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</li>
-</ol>
-</li>
-<li><p><strong>Register the option.</strong> In <code class="file docutils literal notranslate"><span class="pre">src/picmaker/options.py</span></code>, make
-two additions in the same edit:</p>
-<ol class="loweralpha">
-<li><p>Add the field to <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cassini_encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;standard&#39;</span>
-</pre></div>
-</div>
-</li>
-<li><p>Add its name to <code class="xref py py-data docutils literal notranslate"><span class="pre">READ_FILE_KWARGS</span></code>.  The
-comment above that constant reminds you to do this whenever you add
-a new field:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">READ_FILE_KWARGS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s1">&#39;cassini_encoding&#39;</span><span class="p">,</span> <span class="s1">&#39;mosaic&#39;</span><span class="p">,</span> <span class="s1">&#39;pds3_method&#39;</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</li>
-</ol>
-</li>
-<li><p><strong>Expose the option through the pipeline entry point.</strong> In
-<code class="file docutils literal notranslate"><span class="pre">src/picmaker/pipeline.py</span></code>, make two additions to
-<a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">images_to_pics()</span></code></a>:</p>
-<ol class="loweralpha">
-<li><p>Add the kwarg to the function signature (keep alphabetical or
-thematic order consistent with the existing list):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">images_to_pics</span><span class="p">(</span>
-    <span class="n">filenames</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="c1"># ... existing kwargs ...</span>
-    <span class="n">cassini_encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;standard&#39;</span><span class="p">,</span>
-    <span class="c1"># ...</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</pre></div>
-</div>
-</li>
-<li><p>Pass it to the <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a>
-constructor call inside the same function:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">options</span> <span class="o">=</span> <span class="n">PicmakerOptions</span><span class="p">(</span>
-    <span class="c1"># ... existing fields ...</span>
-    <span class="n">cassini_encoding</span><span class="o">=</span><span class="n">cassini_encoding</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</li>
-</ol>
-<p>Library callers that bypass the CLI — passing kwargs directly to
-<a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">images_to_pics()</span></code></a> — receive the option through
-this signature.  The CLI path reaches it via <code class="docutils literal notranslate"><span class="pre">**option_dict</span></code>
-(assembled in step 1b).</p>
-</li>
-<li><p><strong>Consume the option in the instrument.</strong> In
-<code class="file docutils literal notranslate"><span class="pre">src/picmaker/instruments/cassini_iss.py</span></code>, extract the value at
-the top of <code class="docutils literal notranslate"><span class="pre">read_file</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cassini_encoding&#39;</span><span class="p">,</span> <span class="s1">&#39;standard&#39;</span><span class="p">)</span>
+<li><p><strong>(Optional) validate it.</strong> If the option interacts with others, add
+a mutex or range check in
+<a class="reference internal" href="../module.html#picmaker.picmaker.validate_options" title="picmaker.picmaker.validate_options"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.validate_options()</span></code></a>
+(<code class="file docutils literal notranslate"><span class="pre">src/picmaker/picmaker.py</span></code>). A standalone value with a sensible
+default needs no change here.</p></li>
+<li><p><strong>Consume it in the instrument.</strong> In the relevant <code class="docutils literal notranslate"><span class="pre">detect_*</span></code>
+method, read the value — either as a named parameter or via
+<code class="docutils literal notranslate"><span class="pre">kwargs.get</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">detect_in_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">retint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">retint</span> <span class="o">=</span> <span class="n">retint</span> <span class="ow">or</span> <span class="mf">1.</span>
     <span class="o">...</span>
 </pre></div>
 </div>
-<p>All other instrument <code class="docutils literal notranslate"><span class="pre">read_file</span></code> functions already accept
-<code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> and ignore unknown keys, so they need no changes.</p>
+<p>No other instrument needs changing: they all accept and ignore
+unknown keys through <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>.</p>
 </li>
 </ol>
 </section>
 </section>
 <section id="when-to-break-the-protocol">
 <h2>When to break the protocol<a class="headerlink" href="#when-to-break-the-protocol" title="Link to this heading"></a></h2>
-<p>Three existing modules deviate slightly from the minimal template:</p>
+<p>Several existing modules go beyond the minimal template:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="../module.html#module-picmaker.instruments.cassini_iss" title="picmaker.instruments.cassini_iss"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.cassini_iss</span></code></a> keeps the tint chain in a private
-helper <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.cassini_iss._iss_tint()</span></code> rather than a
-fixed dict, because the chain is substring-based (<code class="docutils literal notranslate"><span class="pre">IR</span></code>, <code class="docutils literal notranslate"><span class="pre">UV</span></code>,
-<code class="docutils literal notranslate"><span class="pre">BL</span></code>, …) rather than an exact-key mapping.</p></li>
-<li><p><a class="reference internal" href="../module.html#module-picmaker.instruments.hst" title="picmaker.instruments.hst"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst</span></code></a> derives the tint from wavelength
-inferred from filter-name digits rather than a fixed mapping, and has
-special cases for NICMOS scaling, WFPC2 quad filters (<code class="docutils literal notranslate"><span class="pre">FQUV*</span></code> /
-<code class="docutils literal notranslate"><span class="pre">FQCH4*</span></code>), polarizers (<code class="docutils literal notranslate"><span class="pre">POL0S</span></code> / <code class="docutils literal notranslate"><span class="pre">POL0L</span></code>), and long-pass
-broadband filters (<code class="docutils literal notranslate"><span class="pre">F350LP</span></code>, <code class="docutils literal notranslate"><span class="pre">F606W</span></code>, <code class="docutils literal notranslate"><span class="pre">LONG_PASS</span></code>).</p></li>
-<li><p><a class="reference internal" href="../module.html#module-picmaker.instruments.hst" title="picmaker.instruments.hst"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst</span></code></a> also contains a private
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_extract_hst_array()</span></code> helper that handles ACS/WFC two-detector
-and WFPC2 four-detector mosaic extraction in <code class="xref py py-func docutils literal notranslate"><span class="pre">read_file()</span></code>,
-because the array layout depends on the instrument sub-type, and it
-extracts <code class="docutils literal notranslate"><span class="pre">mosaic</span> <span class="pre">=</span> <span class="pre">kwargs.get('mosaic',</span> <span class="pre">False)</span></code> at the top of
-<code class="docutils literal notranslate"><span class="pre">read_file</span></code> to gate the multi-detector array extraction path.  The
-colormap application and panel layout are handled separately in
-<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code> (called by the pipeline under <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code>).</p></li>
+<li><p><a class="reference internal" href="../module.html#module-picmaker.instruments.cassini_iss" title="picmaker.instruments.cassini_iss"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.cassini_iss</span></code></a> computes its tint from a
+substring scan of the filter pair (<code class="docutils literal notranslate"><span class="pre">IR</span></code>, <code class="docutils literal notranslate"><span class="pre">UV</span></code>, <code class="docutils literal notranslate"><span class="pre">BL</span></code>, <code class="docutils literal notranslate"><span class="pre">GRN</span></code>,
+…) in a private <code class="xref py py-func docutils literal notranslate"><span class="pre">_default_tint()</span></code> helper rather than an exact-key
+lookup, and implements both <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_in_pds3()</span></code> and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">detect_in_vicar()</span></code> so it reads <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> labels and bare VICAR
+files alike.</p></li>
+<li><p>The HST readers (<a class="reference internal" href="../module.html#module-picmaker.instruments.hst_acs" title="picmaker.instruments.hst_acs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_acs</span></code></a>,
+<a class="reference internal" href="../module.html#module-picmaker.instruments.hst_wfc3" title="picmaker.instruments.hst_wfc3"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_wfc3</span></code></a>,
+<a class="reference internal" href="../module.html#module-picmaker.instruments.hst_wfpc2" title="picmaker.instruments.hst_wfpc2"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_wfpc2</span></code></a>, and
+<a class="reference internal" href="../module.html#module-picmaker.instruments.hst_nicmos" title="picmaker.instruments.hst_nicmos"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_nicmos</span></code></a>) derive the tint from the
+wavelength inferred from the filter-name digits
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">get_hst_filter_digits()</span></code> +
+<a class="reference internal" href="../module.html#picmaker.instruments.tint_by_nm" title="picmaker.instruments.tint_by_nm"><code class="xref py py-func docutils literal notranslate"><span class="pre">tint_by_nm()</span></code></a>) rather than a fixed mapping,
+and each treats “undiagnostic” filters (<code class="docutils literal notranslate"><span class="pre">CLEAR*</span></code>, polarizers,
+long-pass broadbands, <code class="docutils literal notranslate"><span class="pre">FQCH4*</span></code>, …) as tint-neutral.</p></li>
+<li><p><a class="reference internal" href="../module.html#module-picmaker.instruments.hst_acs" title="picmaker.instruments.hst_acs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_acs</span></code></a> and
+<a class="reference internal" href="../module.html#module-picmaker.instruments.hst_wfpc2" title="picmaker.instruments.hst_wfpc2"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments.hst_wfpc2</span></code></a> gate a multi-detector array
+layout on the <code class="docutils literal notranslate"><span class="pre">mosaic</span></code> option inside <code class="xref py py-func docutils literal notranslate"><span class="pre">detect_in_fits()</span></code>, and
+each defines an <code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code> method that assembles the panels
+(ACS/WFC stacks two CCDs; WFPC2 tiles four detectors into a 2×2
+quadrant). <a class="reference internal" href="../module.html#picmaker.picmaker.picmaker1" title="picmaker.picmaker.picmaker1"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker1()</span></code></a> calls
+<code class="xref py py-func docutils literal notranslate"><span class="pre">apply_mosaic()</span></code> under <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> after colormapping each band.</p></li>
 </ul>
-<p>All three still expose the full required protocol; the internal
-implementation just differs.</p>
+<p>All still subclass <code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> and register
+through <code class="xref py py-func docutils literal notranslate"><span class="pre">register_instrument()</span></code>; only the
+internals differ.
+&lt;/content&gt;</p>
 </section>
 </section>
 
@@ -619,7 +502,7 @@ implementation just differs.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

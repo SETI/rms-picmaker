@@ -10,20 +10,20 @@ from picmaker.pil_utils import array_to_pil, pil_to_array
 
 def wrap_pil_image(image, wrapped_size, sections, wrap_axis=0, gap_size=1,
                    gap_color='white', **kwargs):
-    """Wrap a PIL image into ``sections`` sub-images separated by gaps.
+    """Wrap a PIL image into `sections` sub-images separated by gaps.
 
     Parameters:
-        image (:class:`PIL.Image`): A PIL image.
-        wrapped_size (tuple[int, int]): ``(width, height)`` of the final wrapped image.
+        image (PIL.Image): A PIL image.
+        wrapped_size (tuple[int, int]): (width, height) of the final wrapped image.
         sections (int): Number of sections to wrap.
         wrap_axis (int, optional): 0 for horizontal wrapping; 1 for vertical.
         gap_size (int, optional): Width of gap in pixels between sections.
         gap_color (str or tuple[int, int, int], optional): Gap color, either as a name or
-            as an ``(R, G, B)`` triple.
+            as an (R, G, B) triple.
         **kwargs: Additional input arguments ignored here.
 
     Returns:
-        (:class:`PIL.Image`): A new PIL image of the requested size.
+        PIL.Image: A new PIL image of the requested size.
     """
 
     # Get the gap color if necessary
@@ -101,17 +101,17 @@ def pad_pil_image(image, frame=None, pad=False, pad_color='gray', **kwargs):
     """Pad a PIL image to fill a target frame size.
 
     Parameters:
-        image (:class:`PIL.Image`): A PIL image.
-        frame (tuple[int, int], optional): ``(width, height)`` for padding, or None to
+        image (PIL.Image): A PIL image.
+        frame (tuple[int, int], optional): (width, height) for padding, or None to
             skip padding.
         pad (bool, optional): True to pad the image.
         pad_color (str or tuple[int, int, int], optional): Pad fill color (name or
-            ``(R, G, B)`` triple).
+            (R, G, B) triple).
         **kwargs: Additional input arguments ignored here.
 
     Returns:
-        (:class:`PIL.Image`): A padded PIL image of the requested size, or the original if
-        no padding is needed.
+        PIL.Image: A padded PIL image of the requested size, or the original if no padding
+        is needed.
     """
 
     # Make sure padding is needed

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>User Guide &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -15,7 +15,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=10858467"></script>
+        <script src="_static/documentation_options.js?v=e2a04e36"></script>
         <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -167,7 +167,7 @@ channel by default; 16-bit TIFF when <code class="docutils literal notranslate">
 importable Python library (<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">picmaker</span></code>). The CLI is the fastest
 way to get a single image converted; the library lets you script
 multi-file pipelines and embed the conversion inside larger tools.</p>
-<p>The library entry point is <code class="docutils literal notranslate"><span class="pre">images_to_pics</span></code>, which accepts the same
+<p>The library entry point is <code class="docutils literal notranslate"><span class="pre">picmaker</span></code>, which accepts the same
 keyword arguments the CLI binds to, so any CLI invocation is exactly
 equivalent to one library call.</p>
 </section>
@@ -198,12 +198,13 @@ your other Python environments:</p>
 </div>
 <p>The full command-line reference is in section 4 below.</p>
 <p>The same operation from Python:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="n">images_to_pics</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="n">picmaker</span>
+<span class="kn">from</span> <span class="nn">picmaker.parser</span> <span class="kn">import</span> <span class="n">get_parser</span>
 
-<span class="n">images_to_pics</span><span class="p">(</span>
-    <span class="p">[</span><span class="s1">&#39;tests/fixtures/cassini_iss.vic&#39;</span><span class="p">],</span>
-    <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;/tmp/out&#39;</span><span class="p">,</span>
+<span class="n">options</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span>
+    <span class="p">[</span><span class="s1">&#39;tests/fixtures/cassini_iss.vic&#39;</span><span class="p">,</span> <span class="s1">&#39;--directory&#39;</span><span class="p">,</span> <span class="s1">&#39;/tmp/out&#39;</span><span class="p">],</span>
 <span class="p">)</span>
+<span class="n">picmaker</span><span class="p">(</span><span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
 </pre></div>
 </div>
 </section>
@@ -217,15 +218,15 @@ your other Python environments:</p>
 Required when <code class="docutils literal notranslate"><span class="pre">--recursive</span></code> is set.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-r</span></code>, <code class="docutils literal notranslate"><span class="pre">--recursive</span></code> — Descend into directory trees, mirroring the
 input layout under <code class="docutils literal notranslate"><span class="pre">--directory</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--pattern</span> <span class="pre">PATTERN</span></code> (default: <code class="docutils literal notranslate"><span class="pre">'*'</span></code>) — Glob filter applied to file
-names during recursion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pattern</span> <span class="pre">PATTERN</span> <span class="pre">[PATTERN</span> <span class="pre">...]</span></code> (default: match every file) — One or
+more glob filters applied to file names during recursion.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--movie</span></code> — Share one set of enhancement limits across every input.
-Incompatible with <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code>.</p></li>
+Incompatible with <code class="docutils literal notranslate"><span class="pre">--versions</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--versions</span> <span class="pre">FILE</span></code> — For each non-blank line in <code class="docutils literal notranslate"><span class="pre">FILE</span></code>, re-parse
 the command line with that line’s tokens appended and run the
 resulting pipeline. Produces one output per non-blank line.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>) — <code class="docutils literal notranslate"><span class="pre">1</span></code> prints each directory in a
-recursive walk; <code class="docutils literal notranslate"><span class="pre">2</span></code> prints every file path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--logging</span> <span class="pre">LEVEL</span></code> (default: <code class="docutils literal notranslate"><span class="pre">info</span></code>) — Logging verbosity. One of
+<code class="docutils literal notranslate"><span class="pre">warning</span></code>, <code class="docutils literal notranslate"><span class="pre">info</span></code>, <code class="docutils literal notranslate"><span class="pre">debug</span></code>, <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--replace</span> <span class="pre">POLICY</span></code> (default: <code class="docutils literal notranslate"><span class="pre">all</span></code>) — One of <code class="docutils literal notranslate"><span class="pre">all</span></code> (silent
 overwrite), <code class="docutils literal notranslate"><span class="pre">none</span></code> (skip silently), <code class="docutils literal notranslate"><span class="pre">warn</span></code> (overwrite with a
 warning), <code class="docutils literal notranslate"><span class="pre">error</span></code> (abort).</p></li>
@@ -236,41 +237,39 @@ with the remaining inputs instead of aborting.</p></li>
 <section id="output-options">
 <h3><a class="toc-backref" href="#id6" role="doc-backlink">Output options</a><a class="headerlink" href="#output-options" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">-x</span> <span class="pre">EXT</span></code>, <code class="docutils literal notranslate"><span class="pre">--extension</span> <span class="pre">EXT</span></code> (default: <code class="docutils literal notranslate"><span class="pre">jpg</span></code>, or <code class="docutils literal notranslate"><span class="pre">tiff</span></code> if
-<code class="docutils literal notranslate"><span class="pre">--16</span></code>) — Output file format. Choices: <code class="docutils literal notranslate"><span class="pre">bmp</span></code>, <code class="docutils literal notranslate"><span class="pre">dib</span></code>, <code class="docutils literal notranslate"><span class="pre">gif</span></code>,
+<li><p><code class="docutils literal notranslate"><span class="pre">-x</span> <span class="pre">EXT</span></code>, <code class="docutils literal notranslate"><span class="pre">--extension</span> <span class="pre">EXT</span></code> (default: <code class="docutils literal notranslate"><span class="pre">jpg</span></code>) — Output file format.
+Choices: <code class="docutils literal notranslate"><span class="pre">bmp</span></code>, <code class="docutils literal notranslate"><span class="pre">dib</span></code>, <code class="docutils literal notranslate"><span class="pre">gif</span></code>,
 <code class="docutils literal notranslate"><span class="pre">jpg</span></code>, <code class="docutils literal notranslate"><span class="pre">jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">png</span></code>, <code class="docutils literal notranslate"><span class="pre">tif</span></code>, <code class="docutils literal notranslate"><span class="pre">tiff</span></code> (any-case).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">STR</span></code>, <code class="docutils literal notranslate"><span class="pre">--suffix</span> <span class="pre">STR</span></code> (default: <code class="docutils literal notranslate"><span class="pre">''</span></code>) — Inserted between the
 file stem and <code class="docutils literal notranslate"><span class="pre">.&lt;ext&gt;</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--strip</span> <span class="pre">STR</span></code> (default: <code class="docutils literal notranslate"><span class="pre">''</span></code>) — Substring to remove from the
-output filename’s stem before appending the suffix.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--alt-strip</span> <span class="pre">STR</span></code>, <code class="docutils literal notranslate"><span class="pre">--alt_strip</span> <span class="pre">STR</span></code> — Additional substring to
-strip; both <code class="docutils literal notranslate"><span class="pre">--strip</span></code> and <code class="docutils literal notranslate"><span class="pre">--alt-strip</span></code> apply.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--strip</span> <span class="pre">STR</span> <span class="pre">[STR</span> <span class="pre">...]</span></code> (default: none) — One or more substrings to
+remove from the output filename’s stem before appending the suffix.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-q</span> <span class="pre">N</span></code>, <code class="docutils literal notranslate"><span class="pre">--quality</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">75</span></code>) — JPEG quality, 1-100.
 Ignored for non-JPEG outputs.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--16</span></code> — Emit a 16-bit grayscale or 16-bit RGB TIFF. Forces
-<code class="docutils literal notranslate"><span class="pre">--extension</span></code> to <code class="docutils literal notranslate"><span class="pre">tiff</span></code> when unset. Incompatible with
-<code class="docutils literal notranslate"><span class="pre">--filter</span></code> (16-bit filters are not supported).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--16</span></code> — Emit a 16-bit grayscale or 16-bit RGB TIFF. Requires
+<code class="docutils literal notranslate"><span class="pre">--extension</span> <span class="pre">tiff</span></code> (or <code class="docutils literal notranslate"><span class="pre">tif</span></code>) to be given explicitly. Incompatible
+with <code class="docutils literal notranslate"><span class="pre">--filter</span></code> (image filters are not supported for 16-bit images).</p></li>
 </ul>
 </section>
 <section id="selection-options">
 <h3><a class="toc-backref" href="#id7" role="doc-backlink">Selection options</a><a class="headerlink" href="#selection-options" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">-b</span> <span class="pre">N</span></code>, <code class="docutils literal notranslate"><span class="pre">--band</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>) — Select a single band from a
-3-D array. Incompatible with <code class="docutils literal notranslate"><span class="pre">--bands</span></code> (except when
-<code class="docutils literal notranslate"><span class="pre">band</span> <span class="pre">==</span> <span class="pre">bands[0]</span> <span class="pre">==</span> <span class="pre">bands[1]</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--bands</span> <span class="pre">LO</span> <span class="pre">HI</span></code> (default: <code class="docutils literal notranslate"><span class="pre">(band,</span> <span class="pre">band+1)</span></code>) — Average bands
-<code class="docutils literal notranslate"><span class="pre">LO..HI-1</span></code> (half-open range).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--rectangle</span> <span class="pre">S1</span> <span class="pre">L1</span> <span class="pre">S2</span> <span class="pre">L2</span></code> — Sub-region selection by sample / line
-corners.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-b</span> <span class="pre">N</span></code>, <code class="docutils literal notranslate"><span class="pre">--band</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>) — Select a single band from a
+3-D array (band indices start at 1). Incompatible with <code class="docutils literal notranslate"><span class="pre">--bands</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bands</span> <span class="pre">LO</span> <span class="pre">HI</span></code> — Coadd bands <code class="docutils literal notranslate"><span class="pre">LO..HI</span></code> (indices start at 1 and are
+inclusive of the upper limit). Incompatible with <code class="docutils literal notranslate"><span class="pre">--band</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--lines</span> <span class="pre">L1</span> <span class="pre">L2</span></code> — Sub-region selection by line index (1-based,
+inclusive of the upper limit).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--samples</span> <span class="pre">S1</span> <span class="pre">S2</span></code> — Sub-region selection by sample index (1-based,
+inclusive of the upper limit).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-o</span> <span class="pre">N</span></code>, <code class="docutils literal notranslate"><span class="pre">--object</span> <span class="pre">N</span></code> (default: first valid) — Index of the PDS
 object to read when a file contains multiple image objects.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--pointer</span> <span class="pre">PTR</span></code> (default: <code class="docutils literal notranslate"><span class="pre">IMAGE</span></code>) — PDS pointer name (without
-leading <code class="docutils literal notranslate"><span class="pre">^</span></code>) identifying the image object in a detached label.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--alt-pointer</span> <span class="pre">PTR</span></code>, <code class="docutils literal notranslate"><span class="pre">--alt_pointer</span> <span class="pre">PTR</span></code> — Fallback pointer tried
-when <code class="docutils literal notranslate"><span class="pre">--pointer</span></code> is not in the label.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--pds3-method</span> <span class="pre">METHOD</span></code>, <code class="docutils literal notranslate"><span class="pre">--pds3_method</span> <span class="pre">METHOD</span></code>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pointer</span> <span class="pre">PTR</span> <span class="pre">[PTR</span> <span class="pre">...]</span></code> — One or more pointer strings identifying
+the image object in a PDS3 label (without leading <code class="docutils literal notranslate"><span class="pre">^</span></code>) or the HDU in
+a FITS file; tried in order.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pds3-method</span> <span class="pre">METHOD</span></code>
 (default: <code class="docutils literal notranslate"><span class="pre">fast</span></code>) — Parsing strictness forwarded to
-<code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code> for <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> inputs. Choices:
+<a class="reference external" href="https://rms-pdsparser.readthedocs.io/en/latest/module.html#pdsparser.Pds3Label" title="(in pdsparser)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pdsparser.Pds3Label</span></code></a> for <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> inputs. Choices:
 <code class="docutils literal notranslate"><span class="pre">fast</span></code> (minimum-overhead key/value scan), <code class="docutils literal notranslate"><span class="pre">strict</span></code> (rigorous
 PDS3 grammar), <code class="docutils literal notranslate"><span class="pre">loose</span></code> (allow common deviations), <code class="docutils literal notranslate"><span class="pre">compound</span></code>
 (try strict then loose).</p></li>
@@ -290,10 +289,10 @@ percentage scale.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--crop</span> <span class="pre">VALUE</span></code> — Crop outer rows / columns whose every pixel equals
 <code class="docutils literal notranslate"><span class="pre">VALUE</span></code> (typically used to trim CCD frames of zeros).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--frame</span> <span class="pre">W</span> <span class="pre">H</span></code> — Fit the image inside a <code class="docutils literal notranslate"><span class="pre">W</span> <span class="pre">x</span> <span class="pre">H</span></code> box, preserving
-aspect ratio. Incompatible with <code class="docutils literal notranslate"><span class="pre">--size</span></code> and <code class="docutils literal notranslate"><span class="pre">--wrap-ratio</span></code>.</p></li>
+aspect ratio. Incompatible with <code class="docutils literal notranslate"><span class="pre">--size</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--pad</span></code> — When set with <code class="docutils literal notranslate"><span class="pre">--frame</span></code>, pad the output to the full
 frame size; otherwise the output is cropped to content.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--pad-color</span> <span class="pre">NAME</span></code> (default: <code class="docutils literal notranslate"><span class="pre">black</span></code>) — Padding fill color (any
+<li><p><code class="docutils literal notranslate"><span class="pre">--pad-color</span> <span class="pre">NAME</span></code> (default: <code class="docutils literal notranslate"><span class="pre">gray</span></code>) — Padding fill color (any
 X11 color name or <code class="docutils literal notranslate"><span class="pre">#RRGGBB</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--frame_max</span> <span class="pre">PCT</span></code> — When set with <code class="docutils literal notranslate"><span class="pre">--frame</span></code>, the up-scaling is
 capped at this percentage of the input size (prevents up-scaling a
@@ -304,18 +303,17 @@ tiny image to fill a large frame).</p></li>
 <h3><a class="toc-backref" href="#id9" role="doc-backlink">Layout options</a><a class="headerlink" href="#layout-options" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--wrap</span></code> — Split very elongated images into stacked sections.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--wrap-ratio</span> <span class="pre">R</span></code> — Wrap when <code class="docutils literal notranslate"><span class="pre">max(W,</span> <span class="pre">H)</span> <span class="pre">/</span> <span class="pre">min(W,</span> <span class="pre">H)</span> <span class="pre">&gt;</span> <span class="pre">R</span></code>.
-Incompatible with <code class="docutils literal notranslate"><span class="pre">--frame</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--overlap</span> <span class="pre">PCT</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>) — Per-section overlap percentage
-(single value). Incompatible with <code class="docutils literal notranslate"><span class="pre">--overlaps</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--overlaps</span> <span class="pre">LO</span> <span class="pre">HI</span></code> — Range of overlap percentages explored to pick
-the best fit.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--gap-size</span> <span class="pre">N</span></code>, <code class="docutils literal notranslate"><span class="pre">--gapsize</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>) — Width in pixels
-of the gap drawn between wrapped sections.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--gap-color</span> <span class="pre">NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">--gapcolor</span> <span class="pre">NAME</span></code> (default: <code class="docutils literal notranslate"><span class="pre">white</span></code>) — Gap
-color (X11 color name or <code class="docutils literal notranslate"><span class="pre">#RRGGBB</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--wrap-ratio</span> <span class="pre">R</span></code> — Wrap when <code class="docutils literal notranslate"><span class="pre">max(W,</span> <span class="pre">H)</span> <span class="pre">/</span> <span class="pre">min(W,</span> <span class="pre">H)</span> <span class="pre">&gt;</span> <span class="pre">R</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--overlap</span> <span class="pre">PCT</span></code> — Per-section overlap percentage (single value).
+Incompatible with <code class="docutils literal notranslate"><span class="pre">--overlaps</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--overlaps</span> <span class="pre">LO</span> <span class="pre">HI</span></code> — Minimum and maximum overlap percentages explored
+to pick the best fit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gap-size</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>) — Width in pixels of the gap drawn
+between wrapped sections.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gap-color</span> <span class="pre">NAME</span></code> (default: <code class="docutils literal notranslate"><span class="pre">white</span></code>) — Gap color (X11 color name
+or <code class="docutils literal notranslate"><span class="pre">(R,G,B)</span></code> tuple).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> — Construct a mosaic from all detector panels (currently
-HST ACS/WFC and WFPC2). Incompatible with <code class="docutils literal notranslate"><span class="pre">--band</span></code> / <code class="docutils literal notranslate"><span class="pre">--bands</span></code> / <code class="docutils literal notranslate"><span class="pre">--movie</span></code>.</p></li>
+HST ACS/WFC and WFPC2).</p></li>
 </ul>
 </section>
 <section id="scaling-options-histogram-and-intensity-controls">
@@ -331,8 +329,8 @@ Percentile cut for the histogram stretch. Used when <code class="docutils litera
 not set.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--trim</span> <span class="pre">N</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>) — Pixels at the image edge to ignore
 when computing the histogram.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--trim-zeros</span></code>, <code class="docutils literal notranslate"><span class="pre">--trimzeros</span></code> — Ignore exterior rows / columns
-that are entirely zero (CCD overscan cleanup).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trim-zeros</span></code> — Ignore exterior rows / columns that are entirely
+zero (CCD overscan cleanup).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--footprint</span> <span class="pre">D</span></code> (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>) — Diameter in pixels of a circular
 median-filter footprint used to compute the histogram.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--histogram</span></code> — Use a flat-histogram stretch instead of the linear
@@ -342,9 +340,11 @@ stretch.</p></li>
 <section id="enhancement-options">
 <h3><a class="toc-backref" href="#id11" role="doc-backlink">Enhancement options</a><a class="headerlink" href="#enhancement-options" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">-c</span> <span class="pre">NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">NAME</span></code> — Apply a named colormap (e.g.
-<code class="docutils literal notranslate"><span class="pre">black-white</span></code>, <code class="docutils literal notranslate"><span class="pre">red-blue</span></code>, <code class="docutils literal notranslate"><span class="pre">black-blue-white</span></code>). Names are
-hyphen-separated lists of X11 color stops.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span> <span class="pre">COLOR</span> <span class="pre">[COLOR</span> <span class="pre">...]</span></code>, <code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">COLOR</span> <span class="pre">[COLOR</span> <span class="pre">...]</span></code> — Build a
+colormap from one or more color stops, e.g.
+<code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">black</span> <span class="pre">blue</span> <span class="pre">white</span></code>. A single color (e.g.
+<code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">blue</span></code>) is shorthand for <code class="docutils literal notranslate"><span class="pre">black</span> <span class="pre">&lt;color&gt;</span> <span class="pre">white</span></code>. Each
+stop is an X11 color name or an <code class="docutils literal notranslate"><span class="pre">(R,G,B)</span></code> tuple.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--below</span> <span class="pre">COLOR</span></code> — Color used for pixels below the lower limit.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--above</span> <span class="pre">COLOR</span></code> — Color used for pixels above the upper limit.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--invalid</span> <span class="pre">COLOR</span></code> (default: <code class="docutils literal notranslate"><span class="pre">black</span></code>) — Color used for invalid
@@ -353,6 +353,9 @@ pixel values and NaNs.</p></li>
 applied to the grayscale axis.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--tint</span></code> — Override the colormap with the per-instrument tint
 inferred from the filter name. See section 6.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--retint</span> <span class="pre">FACTOR</span></code> — Factor applied to the filter wavelength before
+the tint color is chosen; use it to map IR or UV instruments into the
+visual range.</p></li>
 </ul>
 </section>
 <section id="orientation-options">
@@ -385,16 +388,15 @@ legacy detectors put at the start and end of each line.</p></li>
 <p><code class="docutils literal notranslate"><span class="pre">rms-picmaker</span></code> reads the following input formats:</p>
 <ul class="simple">
 <li><p><strong>PDS3 detached label</strong> — a <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> file pointing at one or more
-<code class="docutils literal notranslate"><span class="pre">IMAGE</span></code> objects in a sibling data file. <code class="docutils literal notranslate"><span class="pre">--pointer</span></code> and
-<code class="docutils literal notranslate"><span class="pre">--alt-pointer</span></code> choose which pointer to follow when more than one
-is present.</p></li>
+<code class="docutils literal notranslate"><span class="pre">IMAGE</span></code> objects in a sibling data file. <code class="docutils literal notranslate"><span class="pre">--pointer</span></code> chooses
+which pointer(s) to follow when more than one is present.</p></li>
 <li><p><strong>PDS3 attached label</strong> — the label header precedes the image data
 in the same file.</p></li>
 <li><p><strong>VICAR</strong> — including per-instrument variants (Cassini ISS, Voyager
 ISS, Galileo SSI). The instrument is recognized automatically from
 the label, which enables instrument-aware tinting (see section 6).</p></li>
 <li><p><strong>FITS</strong> — including HST (WFC3, ACS, WFPC2, NICMOS) and New
-Horizons (MVIC). HST mosaics across multiple detector panels are
+Horizons (LORRI, MVIC). HST mosaics across multiple detector panels are
 reconstructed with <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code>.</p></li>
 <li><p><strong>Pickled NumPy arrays</strong> (<code class="docutils literal notranslate"><span class="pre">.pkl</span></code>) and <strong>NumPy</strong> <code class="docutils literal notranslate"><span class="pre">.npy</span></code> files.</p></li>
 <li><p><strong>Common raster formats</strong> — BMP, GIF, JPEG, PNG, plain TIFF.</p></li>
@@ -500,9 +502,8 @@ is a 16-bit grayscale TIFF (or 16-bit RGB when the colormap path
 produced 3-channel data).</p></li>
 </ul>
 <p>The output filename stem is built as
-<code class="docutils literal notranslate"><span class="pre">&lt;input-stem&gt;&lt;suffix&gt;.&lt;extension&gt;</span></code>, with <code class="docutils literal notranslate"><span class="pre">--strip</span></code> and
-<code class="docutils literal notranslate"><span class="pre">--alt-strip</span></code> each removing the first occurrence of their value from
-<code class="docutils literal notranslate"><span class="pre">&lt;input-stem&gt;</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">&lt;input-stem&gt;&lt;suffix&gt;.&lt;extension&gt;</span></code>, with <code class="docutils literal notranslate"><span class="pre">--strip</span></code> removing each of
+its one-or-more substrings from <code class="docutils literal notranslate"><span class="pre">&lt;input-stem&gt;</span></code>.</p>
 </section>
 <section id="enhancement-controls">
 <h2><a class="toc-backref" href="#id22" role="doc-backlink">8. Enhancement controls</a><a class="headerlink" href="#enhancement-controls" title="Link to this heading"></a></h2>
@@ -516,21 +517,23 @@ endpoints (<code class="docutils literal notranslate"><span class="pre">--limits
 considered.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--histogram</span></code> switches the stretch from linear to
 flat-histogram-equalised.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">NAME</span></code> maps the stretched values into RGB. Names are
-hyphen-separated lists of X11 color names. <code class="docutils literal notranslate"><span class="pre">--tint</span></code> overrides this
-step with the per-instrument tint from section 6.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gamma</span> <span class="pre">G</span></code> applies a power-law correction to the stretched
+grayscale (<code class="docutils literal notranslate"><span class="pre">out</span> <span class="pre">=</span> <span class="pre">in</span> <span class="pre">**</span> <span class="pre">G</span></code>) before the colormap is applied. Values
+<code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">1</span></code> darken the midtones; values <code class="docutils literal notranslate"><span class="pre">&lt;</span> <span class="pre">1</span></code> brighten them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">COLOR</span> <span class="pre">...</span></code> maps the stretched values into RGB. Supply
+one or more X11 color names (or <code class="docutils literal notranslate"><span class="pre">(R,G,B)</span></code> tuples) as separate color
+stops. <code class="docutils literal notranslate"><span class="pre">--tint</span></code> overrides this step with the per-instrument tint
+from section 6.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--below</span></code>, <code class="docutils literal notranslate"><span class="pre">--above</span></code>, <code class="docutils literal notranslate"><span class="pre">--invalid</span></code> override the colors used for
 the three special cases.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--gamma</span> <span class="pre">G</span></code> applies a final power-law correction
-(<code class="docutils literal notranslate"><span class="pre">out</span> <span class="pre">=</span> <span class="pre">in</span> <span class="pre">**</span> <span class="pre">(1</span> <span class="pre">/</span> <span class="pre">G)</span></code>).</p></li>
 </ol>
 </section>
 <section id="geometry-controls">
 <h2><a class="toc-backref" href="#id23" role="doc-backlink">9. Geometry controls</a><a class="headerlink" href="#geometry-controls" title="Link to this heading"></a></h2>
 <p>Geometry runs in this order:</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--rectangle</span></code> / <code class="docutils literal notranslate"><span class="pre">--crop</span></code> / <code class="docutils literal notranslate"><span class="pre">--trim</span></code> shrink the working
-region.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--lines</span></code> / <code class="docutils literal notranslate"><span class="pre">--samples</span></code> / <code class="docutils literal notranslate"><span class="pre">--crop</span></code> / <code class="docutils literal notranslate"><span class="pre">--trim</span></code> shrink the
+working region.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--rotate</span></code> (or the implicit default from the per-instrument
 detector geometry) flips / rotates the working array.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--size</span></code> / <code class="docutils literal notranslate"><span class="pre">--scale</span></code> / <code class="docutils literal notranslate"><span class="pre">--wscale</span></code> / <code class="docutils literal notranslate"><span class="pre">--hscale</span></code> resize the
@@ -565,35 +568,43 @@ invalid version doesn’t abort the others (when combined with
 <section id="programmatic-usage">
 <h2><a class="toc-backref" href="#id25" role="doc-backlink">11. Programmatic usage</a><a class="headerlink" href="#programmatic-usage" title="Link to this heading"></a></h2>
 <p>The library mirrors the CLI: every flag binds to a keyword argument of
-<code class="docutils literal notranslate"><span class="pre">images_to_pics</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="n">images_to_pics</span>
+<code class="docutils literal notranslate"><span class="pre">picmaker</span></code>. The most robust way to assemble a complete set of options
+is to let the argument parser fill in all of the defaults, then pass the
+resulting namespace straight through:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="n">picmaker</span>
+<span class="kn">from</span> <span class="nn">picmaker.parser</span> <span class="kn">import</span> <span class="n">get_parser</span>
 
 <span class="c1"># Convert one file with a percentile stretch and a colormap.</span>
-<span class="n">images_to_pics</span><span class="p">(</span>
-    <span class="p">[</span><span class="s1">&#39;data/cassini.vic&#39;</span><span class="p">],</span>
-    <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;/tmp/out&#39;</span><span class="p">,</span>
-    <span class="n">percentiles</span><span class="o">=</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">95.0</span><span class="p">),</span>
-    <span class="n">colormap</span><span class="o">=</span><span class="s1">&#39;black-blue-white&#39;</span><span class="p">,</span>
-    <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="n">options</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span><span class="o">.</span><span class="n">parse_args</span><span class="p">([</span>
+    <span class="s1">&#39;data/cassini.vic&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--directory&#39;</span><span class="p">,</span> <span class="s1">&#39;/tmp/out&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--percentiles&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;95&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--colormap&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;white&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--extension&#39;</span><span class="p">,</span> <span class="s1">&#39;png&#39;</span><span class="p">,</span>
+<span class="p">])</span>
+<span class="n">picmaker</span><span class="p">(</span><span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
 
-<span class="c1"># Re-use the same stretch across a sequence of frames (movie mode).</span>
-<span class="n">limits</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">images_to_pics</span><span class="p">([</span><span class="s1">&#39;frame_001.vic&#39;</span><span class="p">],</span> <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;/tmp/out&#39;</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">):</span>
-    <span class="n">images_to_pics</span><span class="p">(</span>
-        <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;frame_</span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s1">03d</span><span class="si">}</span><span class="s1">.vic&#39;</span><span class="p">],</span>
-        <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;/tmp/out&#39;</span><span class="p">,</span>
-        <span class="n">limits</span><span class="o">=</span><span class="n">limits</span><span class="p">,</span>
-    <span class="p">)</span>
+<span class="c1"># Re-use one set of enhancement limits across a sequence of frames by</span>
+<span class="c1"># passing every frame at once with ``--movie``.</span>
+<span class="n">options</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span><span class="o">.</span><span class="n">parse_args</span><span class="p">([</span>
+    <span class="s1">&#39;frame_001.vic&#39;</span><span class="p">,</span> <span class="s1">&#39;frame_002.vic&#39;</span><span class="p">,</span> <span class="s1">&#39;frame_003.vic&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--directory&#39;</span><span class="p">,</span> <span class="s1">&#39;/tmp/out&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--movie&#39;</span><span class="p">,</span>
+<span class="p">])</span>
+<span class="n">picmaker</span><span class="p">(</span><span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>Lower-level helpers are re-exported on the top-level package:</p>
+<p>Lower-level helpers are re-exported on the top-level package. For example,
+<code class="docutils literal notranslate"><span class="pre">read_image_array</span></code> reads a file into an <code class="docutils literal notranslate"><span class="pre">ImageData</span></code> object whose
+<code class="docutils literal notranslate"><span class="pre">.array</span></code> holds the raw pixels:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">read_one_image_array</span><span class="p">,</span>
-    <span class="n">tinted_colormap</span><span class="p">,</span>
+    <span class="n">read_image_array</span><span class="p">,</span>
     <span class="n">apply_colormap</span><span class="p">,</span>
     <span class="n">array_to_pil</span><span class="p">,</span>
 <span class="p">)</span>
+
+<span class="n">image_data</span> <span class="o">=</span> <span class="n">read_image_array</span><span class="p">(</span><span class="s1">&#39;data/cassini.vic&#39;</span><span class="p">)</span>
+<span class="n">pixels</span> <span class="o">=</span> <span class="n">image_data</span><span class="o">.</span><span class="n">array</span>
 </pre></div>
 </div>
 <p>See <a class="reference internal" href="module.html"><span class="doc">picmaker Module</span></a> for the full API reference.</p>
@@ -601,28 +612,22 @@ invalid version doesn’t abort the others (when combined with
 <section id="troubleshooting">
 <h2><a class="toc-backref" href="#id26" role="doc-backlink">12. Troubleshooting</a><a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">Unrecognized</span> <span class="pre">image</span> <span class="pre">file</span> <span class="pre">format</span></code> — None of the supported readers
+<li><p><code class="docutils literal notranslate"><span class="pre">unrecognized</span> <span class="pre">file</span> <span class="pre">format</span> <span class="pre">in</span> <span class="pre">&lt;path&gt;</span></code> — None of the supported readers
 recognized the file. Check the file is not truncated and that its
 magic bytes match one of the supported formats.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Unknown</span> <span class="pre">HST</span> <span class="pre">filter:</span> <span class="pre">&lt;inst&gt;</span> <span class="pre">&lt;name&gt;</span></code> — HST wavelength inference
-failed for this filter; no tint is applied and the existing colormap
-is preserved.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mosaic</span> <span class="pre">and</span> <span class="pre">band</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--mosaic</span></code> consumes
-every detector panel, so it cannot be combined with <code class="docutils literal notranslate"><span class="pre">--band</span></code> or
-<code class="docutils literal notranslate"><span class="pre">--bands</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">band</span> <span class="pre">and</span> <span class="pre">bands</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--band</span></code> and
-<code class="docutils literal notranslate"><span class="pre">--bands</span></code> were both given with mismatched values. Use one or the
-other.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">scale</span> <span class="pre">and</span> <span class="pre">wscale</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--scale</span></code> sets both
-axes; use <code class="docutils literal notranslate"><span class="pre">--wscale</span></code> / <code class="docutils literal notranslate"><span class="pre">--hscale</span></code> instead for per-axis control.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">frame</span> <span class="pre">and</span> <span class="pre">size</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--frame</span></code> and
+<li><p>When HST wavelength inference fails for a filter, no tint is applied
+and the existing colormap is preserved.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--band</span> <span class="pre">and</span> <span class="pre">--bands</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--band</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--bands</span></code> were both given. Use one or the other.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--scale</span> <span class="pre">and</span> <span class="pre">--wscale</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> (likewise
+<code class="docutils literal notranslate"><span class="pre">--scale</span> <span class="pre">and</span> <span class="pre">--hscale</span></code>) — <code class="docutils literal notranslate"><span class="pre">--scale</span></code> sets both axes; use
+<code class="docutils literal notranslate"><span class="pre">--wscale</span></code> / <code class="docutils literal notranslate"><span class="pre">--hscale</span></code> instead for per-axis control.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--frame</span> <span class="pre">and</span> <span class="pre">--size</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--frame</span></code> and
 <code class="docutils literal notranslate"><span class="pre">--size</span></code> both specify the output dimensions and can’t be combined.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">frame</span> <span class="pre">and</span> <span class="pre">wrap_ratio</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">incompatible</span></code> — <code class="docutils literal notranslate"><span class="pre">--frame</span></code> and
-<code class="docutils literal notranslate"><span class="pre">--wrap-ratio</span></code> produce conflicting layout decisions.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">only</span> <span class="pre">tiffs</span> <span class="pre">can</span> <span class="pre">be</span> <span class="pre">written</span> <span class="pre">in</span> <span class="pre">16-bit</span> <span class="pre">mode</span></code> — <code class="docutils literal notranslate"><span class="pre">--16</span></code> requires
-<code class="docutils literal notranslate"><span class="pre">--extension</span> <span class="pre">tiff</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">16-bit</span> <span class="pre">filter</span> <span class="pre">options</span> <span class="pre">are</span> <span class="pre">not</span> <span class="pre">supported</span></code> — The Pillow filter
-presets only work on 8-bit images; drop <code class="docutils literal notranslate"><span class="pre">--filter</span></code> when using
+<li><p><code class="docutils literal notranslate"><span class="pre">only</span> <span class="pre">tiffs</span> <span class="pre">can</span> <span class="pre">be</span> <span class="pre">written</span> <span class="pre">in</span> <span class="pre">16-bit</span> <span class="pre">mode</span></code> — <code class="docutils literal notranslate"><span class="pre">--16</span></code> requires an
+explicit <code class="docutils literal notranslate"><span class="pre">--extension</span> <span class="pre">tiff</span></code> (or <code class="docutils literal notranslate"><span class="pre">tif</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span> <span class="pre">filters</span> <span class="pre">are</span> <span class="pre">not</span> <span class="pre">supported</span> <span class="pre">for</span> <span class="pre">2-byte</span> <span class="pre">images</span></code> — The Pillow
+filter presets only work on 8-bit images; drop <code class="docutils literal notranslate"><span class="pre">--filter</span></code> when using
 <code class="docutils literal notranslate"><span class="pre">--16</span></code>.</p></li>
 </ul>
 </section>
@@ -639,7 +644,7 @@ presets only work on 8-bit images; drop <code class="docutils literal notranslat
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

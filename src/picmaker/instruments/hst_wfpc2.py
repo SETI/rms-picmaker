@@ -22,22 +22,22 @@ class HST_WFPC2(ImageData):
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, **kwargs):
-        """Extract HST WFPC2 data from an open :class:`pyfits.HDUList`.
+        """Extract HST WFPC2 data from an open HDUList.
 
         Parameters:
-            hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
-            filepath (str or pathlib.Path): The path to this FITS file.
-            obj (int, optional): The zero-based detector selector; the detector whose
-                DETECTOR value equals ``obj + 1`` is returned. If not specified, the first
-                detector in the file is used.
+            hdulist (HDUList): The HDUList of the FITS file.
+            filepath (str or Path): The path to this FITS file.
+            obj (int, optional): The zero-based detector selector: 0 for PC1, 1 for WF2,
+                2 for WF3, or 3 for WF4. If not specified, the first detector in the file
+                is used, or all four detectors if `mosaic` is True.
             mosaic (bool, optional): True to enable the construction of a mosaic of the
                 four WFPC2 detectors; False to return the array from just a single
                 selected detector.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (HST_WFPC2 or None): Instrument subclass if the file describes an HST WFPC2
-            product; ``None`` otherwise.
+            HST_WFPC2 or None: Instrument subclass if the file describes an HST WFPC2
+            product; None otherwise.
         """
 
         try:
@@ -97,13 +97,12 @@ class HST_WFPC2(ImageData):
         """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
 
         Parameters:
-            arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (usually length 4),
-                each indexed ``(lines, samples, color)``.
+            arrays_rgb (list[array]): Per-detector RGB arrays (usually length 4), each
+                indexed (lines, samples, color).
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (np.ndarray): The assembled 2x2 mosaic, with shape ``(2*lines, 2*samples,
-            colors)``.
+            array: The assembled 2x2 mosaic, with shape (2*lines, 2*samples, colors).
         """
 
         # Note that images all display upward. This is inverted afterward.

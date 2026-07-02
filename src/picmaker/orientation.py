@@ -13,23 +13,23 @@ def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation
     """Apply a new orientation to an array.
 
     Parameters:
-        array_rgb (np.ndarray): A 2-D or 3-D array. The index order is ``(lines,
-            samples)`` or ``(lines, samples, channels)``.
+        array_rgb (array): A 2-D or 3-D array. The index order is (lines, samples) or
+            (lines, samples, channels).
         default_upward (bool): True to display the image with lines increasing upward;
             False to display with the lines increasing downward. This default is used only
-            if it is not overridden by ``display_upward``.
+            if it is not overridden by `display_upward`.
         display_upward (bool, optional): True to display the image with lines increasing
             upward; False to display with the lines increasing downward.
         rotation (str, optional): Name of the rotation to be applied. Choices are
-            ``"NONE"``, ``"FLIPLR"``, ``"FLIPTB"``,  ``"ROT90"``, ``"ROT180"``,
-            ``"ROT270"``. Values are case-insensitive. Rotation is counterclockwise.
+            "NONE", "FLIPLR", "FLIPTB",  "ROT90", "ROT180", "ROT270". Values are
+            case-insensitive. Rotation is counterclockwise.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        The rotated array.
+        array: The rotated array.
 
     Raises:
-        KeyError: If ``rotation`` is not one of the recognized choices.
+        KeyError: If `rotation` is not one of the recognized choices.
     """
 
     # Resolve the desired vertical orientation, falling back to the instrument default.

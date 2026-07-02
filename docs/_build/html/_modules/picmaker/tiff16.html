@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>picmaker.tiff16 &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>picmaker.tiff16 &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
 
@@ -14,7 +14,7 @@
   
         <script src="../../_static/jquery.js?v=5d32c60e"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../_static/documentation_options.js?v=10858467"></script>
+        <script src="../../_static/documentation_options.js?v=e2a04e36"></script>
         <script src="../../_static/doctools.js?v=9a2dae69"></script>
         <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
@@ -511,66 +511,57 @@ window.runMermaid = runMermaid;</script>
            <div itemprop="articleBody">
              
   <h1>Source code for picmaker.tiff16</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Read and write 16-bit TIFF files.</span>
+<span></span><span class="c1">##########################################################################################</span>
+<span class="c1"># picmaker/tiff16.py</span>
+<span class="c1">##########################################################################################</span>
+<span class="sd">&quot;&quot;&quot;Read and write 16-bit TIFF files.</span>
 
-<span class="sd">:func:`write_tiff16` writes a numpy array as a 16-bit uncompressed TIFF in</span>
-<span class="sd">grayscale, RGB, or palette color. :func:`read_tiff16` reads files written by</span>
-<span class="sd">:func:`write_tiff16`; it is not a general TIFF reader. Note that 16-bit palette</span>
-<span class="sd">color is not widely supported, so :func:`write_tiff16` translates it to RGB by</span>
-<span class="sd">default.</span>
+<span class="sd">:func:`write_tiff16` writes a numpy array as a 16-bit uncompressed TIFF in grayscale, RGB,</span>
+<span class="sd">or palette color. :func:`read_tiff16` reads files written by :func:`write_tiff16`; it is</span>
+<span class="sd">not a general TIFF reader. Note that 16-bit palette color is not widely supported, so</span>
+<span class="sd">:func:`write_tiff16` translates it to RGB by default.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">struct</span> <span class="kn">import</span> <span class="n">pack</span><span class="p">,</span> <span class="n">unpack</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
 
 
 <div class="viewcode-block" id="write_tiff16">
-<a class="viewcode-back" href="../../module.html#picmaker.tiff16.write_tiff16">[docs]</a>
-<span class="k">def</span> <span class="nf">write_tiff16</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">array</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">palette</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">byteorder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;native&quot;</span><span class="p">,</span>
-    <span class="n">translate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">transpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a class="viewcode-back" href="../../module.html#picmaker.write_tiff16">[docs]</a>
+<span class="k">def</span> <span class="nf">write_tiff16</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">up</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s1">&#39;native&#39;</span><span class="p">,</span>
+                 <span class="n">translate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Write a 16-bit TIFF file from a 2-D or 3-D numpy array.</span>
 
 <span class="sd">    Three TIFF formats are supported: grayscale, RGB, and palette.</span>
 
 <span class="sd">    Parameters:</span>
-<span class="sd">        filename: The name of the file to write.</span>
-<span class="sd">        array: A numpy 2-D or 3-D array containing the image pixels.</span>
-<span class="sd">            Values are converted to unsigned 16-bit if they are not</span>
-<span class="sd">            already in that format. Indices are</span>
-<span class="sd">            ``(line, sample, band)``; the third axis is optional. If</span>
-<span class="sd">            present with size ``&gt;= 3`` and no ``palette`` is provided,</span>
-<span class="sd">            ``array[:, :, 0:3]`` is interpreted as the ``(R, G, B)``</span>
+<span class="sd">        filepath (str or Path): The name of the file to write.</span>
+<span class="sd">        array (array): A Numpy 2-D or 3-D array containing the image pixels. Values are</span>
+<span class="sd">            converted to unsigned 16-bit if they are not already in that format. Indices</span>
+<span class="sd">            are (line, sample, band); the third axis is optional. If present with size &gt;=</span>
+<span class="sd">            3 and no `palette` is provided, array[:,:,0:3] is interpreted as the (R, G, B)</span>
 <span class="sd">            values for each pixel.</span>
-<span class="sd">        palette: Optional ``(65536, 3)`` array. When provided, the 0th</span>
-<span class="sd">            band of ``array`` indexes into the palette to derive each</span>
-<span class="sd">            pixel&#39;s ``(R, G, B)`` triple.</span>
-<span class="sd">        up: True for line numbers to increase upward; False (default)</span>
-<span class="sd">            for downward.</span>
-<span class="sd">        byteorder: One of ``&#39;native&#39;``, ``&#39;little&#39;``, or ``&#39;big&#39;``.</span>
-<span class="sd">            Default is ``&#39;native&#39;``.</span>
-<span class="sd">        translate: True to translate a palette image to RGB on write</span>
-<span class="sd">            (default; many TIFF readers do not support 16-bit</span>
-<span class="sd">            palettes). False writes the palette index plus the palette</span>
-<span class="sd">            table.</span>
-<span class="sd">        transpose: Optional geometric transformation before writing.</span>
-<span class="sd">            Choices match ``PIL.Image.Transpose``:</span>
-<span class="sd">            ``FLIP_LEFT_RIGHT``, ``FLIP_TOP_BOTTOM``, ``ROTATE_90``,</span>
-<span class="sd">            ``ROTATE_180``, ``ROTATE_270``.</span>
+<span class="sd">        palette (array, optional): (65536, 3) array. When provided, the 0th band of</span>
+<span class="sd">            `array` indexes into the palette to derive each pixel&#39;s (R, G, B) triple.</span>
+<span class="sd">        up (bool, optional): True for line numbers to increase upward; False (default) for</span>
+<span class="sd">            downward.</span>
+<span class="sd">        byteorder (str, optional): One of &quot;native&quot;, &quot;little&quot;, or &quot;big&quot;.</span>
+<span class="sd">        translate (bool, optional): True to translate a palette image to RGB on write,</span>
+<span class="sd">            because many TIFF readers do not support 16-bit palettes. False writes the</span>
+<span class="sd">            palette index plus the palette table.</span>
+<span class="sd">        transpose (Image.Transpose, optional): Optional geometric transformation before</span>
+<span class="sd">            writing. Choices are FLIP_LEFT_RIGHT, FLIP_TOP_BOTTOM, ROTATE_90, ROTATE_180,</span>
+<span class="sd">            or ROTATE_270.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If `byteorder` is not &quot;native&quot;, &quot;little&quot;, or &quot;big&quot;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Open the output file</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 
         <span class="c1"># Flip if line numbers increase upward</span>
         <span class="k">if</span> <span class="n">up</span><span class="p">:</span>
@@ -614,24 +605,23 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># `byteorder` value fails fast rather than silently being</span>
         <span class="c1"># treated as big-endian.</span>
         <span class="n">byteorder</span> <span class="o">=</span> <span class="n">byteorder</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">byteorder</span> <span class="o">==</span> <span class="s2">&quot;native&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
             <span class="n">byteorder</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span>
-        <span class="k">if</span> <span class="n">byteorder</span> <span class="o">==</span> <span class="s2">&quot;little&quot;</span><span class="p">:</span>
-            <span class="n">o</span> <span class="o">=</span> <span class="s2">&quot;&lt;&quot;</span>
-            <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;I&quot;</span>
-        <span class="k">elif</span> <span class="n">byteorder</span> <span class="o">==</span> <span class="s2">&quot;big&quot;</span><span class="p">:</span>
-            <span class="n">o</span> <span class="o">=</span> <span class="s2">&quot;&gt;&quot;</span>
-            <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;M&quot;</span>
+        <span class="k">if</span> <span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;little&#39;</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;I&#39;</span>
+        <span class="k">elif</span> <span class="n">byteorder</span> <span class="o">==</span> <span class="s1">&#39;big&#39;</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="s1">&#39;&gt;&#39;</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;M&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;byteorder must be &#39;native&#39;, &#39;little&#39;, or &#39;big&#39;; got </span><span class="si">{</span><span class="n">byteorder</span><span class="si">!r}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;byteorder must be &quot;native&quot;, &quot;little&quot;, or &quot;big&quot;; &#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;got &quot;</span><span class="si">{</span><span class="n">byteorder</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
 
         <span class="c1"># Write the Image File Header</span>
         <span class="c1">#------- 0 bytes</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;cc&quot;</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="n">flag</span><span class="p">))</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>                            <span class="c1"># TIFF&#39;s 42</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>                             <span class="c1"># IFD begins at offset 8</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;cc&#39;</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="n">flag</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>                            <span class="c1"># TIFF&#39;s 42</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>                             <span class="c1"># IFD begins at offset 8</span>
         <span class="c1">#------- 8 bytes</span>
 
         <span class="c1"># Determine the key offsets into the file</span>
@@ -656,55 +646,55 @@ window.runMermaid = runMermaid;</script>
         <span class="n">data_offset</span> <span class="o">=</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="n">after_bytes</span>
 
         <span class="c1"># Write the Image File Directory</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">ifd_entries</span><span class="p">))</span>                   <span class="c1"># number of entries</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="n">ifd_entries</span><span class="p">))</span>                   <span class="c1"># number of entries</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">256</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">))</span>          <span class="c1"># image width</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">257</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>         <span class="c1"># image height</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">256</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">))</span>          <span class="c1"># image width</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">257</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>         <span class="c1"># image height</span>
 
         <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>                                          <span class="c1"># bits per sample</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="mi">258</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="mi">258</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">258</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">258</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">259</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>           <span class="c1"># no compression</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">259</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>           <span class="c1"># no compression</span>
 
         <span class="k">if</span> <span class="n">has_palette</span><span class="p">:</span>                                     <span class="c1"># photometric model</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>       <span class="c1"># palette</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>       <span class="c1"># palette</span>
         <span class="k">elif</span> <span class="n">is_rgb</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>       <span class="c1"># RGB</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>       <span class="c1"># RGB</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>       <span class="c1"># black is zero</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>       <span class="c1"># black is zero</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">273</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">data_offset</span><span class="p">))</span>    <span class="c1"># where data begins</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">273</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">data_offset</span><span class="p">))</span>    <span class="c1"># where data begins</span>
 
         <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>                                          <span class="c1"># samples per pixel</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">277</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">277</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">278</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>         <span class="c1"># rows per strip</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">279</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">*</span> <span class="n">pixel_bytes</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">278</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>         <span class="c1"># rows per strip</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">279</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">*</span> <span class="n">pixel_bytes</span><span class="p">))</span>
                                                             <span class="c1"># bytes per strip</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">282</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span><span class="p">))</span>   <span class="c1"># x resolution</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span>  <span class="mi">283</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">282</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span><span class="p">))</span>   <span class="c1"># x resolution</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span>  <span class="mi">283</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">8</span><span class="p">))</span>
                                                             <span class="c1"># y resolution</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="mi">296</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>           <span class="c1"># unit is inches</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="mi">296</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>           <span class="c1"># unit is inches</span>
 
         <span class="k">if</span> <span class="n">has_palette</span><span class="p">:</span>                                     <span class="c1"># start of table</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="mi">65536</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="mi">65536</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
 
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>                             <span class="c1"># end of IFD</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>                             <span class="c1"># end of IFD</span>
 
         <span class="c1"># &quot;After&quot; values pointed to by every IFD</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;LL&quot;</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>                        <span class="c1"># x unit is 72/inch</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;LL&quot;</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>                        <span class="c1"># y unit is 72/inch</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;LL&#39;</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>                        <span class="c1"># x unit is 72/inch</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;LL&#39;</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>                        <span class="c1"># y unit is 72/inch</span>
 
         <span class="c1"># Write the palette here if there is one</span>
         <span class="k">if</span> <span class="n">has_palette</span><span class="p">:</span>
-            <span class="n">palette</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">65536</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;u2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">palette</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">65536</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;u2&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
 
         <span class="c1"># Otherwise, write the size of each RGB pixel if necessary</span>
         <span class="k">elif</span> <span class="n">is_rgb</span><span class="p">:</span>                                        <span class="c1"># samples per pixel</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHHH&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHHH&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
         <span class="c1"># Translate colors if necessary</span>
         <span class="k">if</span> <span class="n">translate_to_rgb</span><span class="p">:</span>
@@ -718,128 +708,122 @@ window.runMermaid = runMermaid;</script>
             <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[:,:,</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c1"># Append data to output file</span>
-        <span class="n">array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;u2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+        <span class="n">array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;u2&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="read_tiff16">
-<a class="viewcode-back" href="../../module.html#picmaker.tiff16.read_tiff16">[docs]</a>
-<span class="k">def</span> <span class="nf">read_tiff16</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">transpose</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<a class="viewcode-back" href="../../module.html#picmaker.read_tiff16">[docs]</a>
+<span class="k">def</span> <span class="nf">read_tiff16</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">up</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a 16-bit TIFF file written by :func:`write_tiff16`.</span>
 
 <span class="sd">    No other TIFF file formats are supported.</span>
 
 <span class="sd">    Parameters:</span>
-<span class="sd">        filename: The name of the file to read.</span>
-<span class="sd">        up: True for line numbers to increase upward; False (default)</span>
-<span class="sd">            for downward.</span>
-<span class="sd">        transpose: Optional geometric transformation to undo on the</span>
-<span class="sd">            image before returning. Choices match</span>
-<span class="sd">            ``PIL.Image.Transpose``: ``FLIP_LEFT_RIGHT``,</span>
-<span class="sd">            ``FLIP_TOP_BOTTOM``, ``ROTATE_90``, ``ROTATE_180``,</span>
-<span class="sd">            ``ROTATE_270``.</span>
+<span class="sd">        filepath (str or Path): The name of the file to read.</span>
+<span class="sd">        up (bool, optional): True for line numbers to increase upward; False for</span>
+<span class="sd">            downward.</span>
+<span class="sd">        transpose (Image.Transpose, optional): Optional geometric transformation to undo</span>
+<span class="sd">            on the image before returning. Choices are Choices are FLIP_LEFT_RIGHT,</span>
+<span class="sd">            FLIP_TOP_BOTTOM, ROTATE_90, ROTATE_180, or ROTATE_270.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ``(array, palette)``:</span>
+<span class="sd">        tuple: `(array, palette)`, where:</span>
 
-<span class="sd">        * ``array`` — a numpy 2-D or 3-D ``uint16`` array indexed</span>
-<span class="sd">          ``(line, sample, band)``. The third axis is present only for</span>
-<span class="sd">          RGB inputs (``size &gt;= 3``).</span>
-<span class="sd">        * ``palette`` — an optional ``(65536, 3)`` array. When present,</span>
-<span class="sd">          the 0th band of ``array`` indexes into the palette to derive</span>
-<span class="sd">          each pixel&#39;s ``(R, G, B)`` triple. ``None`` for non-palette</span>
-<span class="sd">          inputs.</span>
+<span class="sd">        * `array` is a 2-D or 3-D &quot;uint16&quot; array indexed (line, sample, band). The third</span>
+<span class="sd">          axis is present only for RGB inputs (size &gt;= 3).</span>
+<span class="sd">        * `palette` is an optional (65536, 3) array. When present, the 0th band of `array`</span>
+<span class="sd">          indexes into the palette to derive each pixel&#39;s (R, G, B) triple. None for</span>
+<span class="sd">          non-palette inputs.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OSError: If the file is not a TIFF16 file written by :func:`write_tiff16`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># Open the output file inside a `with` so the handle is closed</span>
-    <span class="c1"># promptly if any `raise OSError` / `my_assert` short-circuits the</span>
-    <span class="c1"># parse (otherwise the file leaks until GC and `pytest -W error`</span>
+    <span class="c1"># Open the output file inside a `with` so it is closed promptly if `_my_assert`</span>
+    <span class="c1"># short-circuits the parse (otherwise the file leaks until GC and `pytest -W error`</span>
     <span class="c1"># turns the ResourceWarning into a test failure).</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 
         <span class="c1"># Read the Image File Header</span>
         <span class="c1">#------- 0 bytes</span>
-        <span class="c1"># f.read(pack(&quot;cc&quot;, flag, flag))</span>
-        <span class="c1"># f.read(pack(o+&quot;H&quot;, fortytwo))                     # TIFF&#39;s 42</span>
-        <span class="c1"># f.read(pack(o+&quot;L&quot;, eight))                        # IFD begins at offset 8</span>
+        <span class="c1"># f.read(pack(&#39;cc&#39;, flag, flag))</span>
+        <span class="c1"># f.read(pack(o+&#39;H&#39;, fortytwo))                     # TIFF&#39;s 42</span>
+        <span class="c1"># f.read(pack(o+&#39;L&#39;, eight))                        # IFD begins at offset 8</span>
         <span class="c1">#------- 8 bytes</span>
 
         <span class="n">flag1</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">flag2</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">flag1</span> <span class="o">!=</span> <span class="n">flag2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s2">&quot;File format is not TIFF&quot;</span><span class="p">)</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="k">if</span>   <span class="n">flag1</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;I&#39;</span><span class="p">:</span>
-            <span class="n">o</span> <span class="o">=</span> <span class="s2">&quot;&lt;&quot;</span>
-        <span class="k">elif</span> <span class="n">flag1</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;M&quot;</span><span class="p">:</span>
-            <span class="n">o</span> <span class="o">=</span> <span class="s2">&quot;&gt;&quot;</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span>
+        <span class="k">elif</span> <span class="n">flag1</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;M&#39;</span><span class="p">:</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="s1">&#39;&gt;&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s2">&quot;File format is not TIFF&quot;</span><span class="p">)</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">42</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s2">&quot;File format is not TIFF&quot;</span><span class="p">)</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">8</span><span class="p">)</span>
 
-        <span class="c1"># f.write(pack(o+&quot;H&quot;, ifd_entries))                 # number of entries</span>
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  256, 4, 1, width))        # image width</span>
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  257, 4, 1, height))       # image height</span>
+        <span class="c1"># f.write(pack(o+&#39;H&#39;, ifd_entries))                 # number of entries</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  256, 4, 1, width))        # image width</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  257, 4, 1, height))       # image height</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
         <span class="n">ifd_entries</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">width</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">257</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">257</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">height</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
 
         <span class="c1"># if is_rgb:                                        # bits per sample</span>
-        <span class="c1">#     f.write(pack(o+&quot;HHLL&quot;, 258, 3, 3, after_offset + 16))</span>
+        <span class="c1">#     f.write(pack(o+&#39;HHLL&#39;, 258, 3, 3, after_offset + 16))</span>
         <span class="c1"># else:</span>
-        <span class="c1">#     f.write(pack(o+&quot;HHLHH&quot;, 258, 3, 1, 16, 0))</span>
+        <span class="c1">#     f.write(pack(o+&#39;HHLHH&#39;, 258, 3, 1, 16, 0))</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">258</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">258</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
 
         <span class="k">if</span>   <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">is_rgb</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">elif</span> <span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">is_rgb</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">my_assert</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>
             <span class="n">after_offset</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="mi">16</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">_my_assert</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">==</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="c1"># f.write(pack(o+&quot;HHLHH&quot;, 259, 3, 1, 1, 0))         # no compression</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLHH&#39;, 259, 3, 1, 1, 0))         # no compression</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">259</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">259</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
         <span class="c1"># if has_palette:                                   # photometric model</span>
-        <span class="c1">#    f.write(pack(o+&quot;HHLHH&quot;, 262, 3, 1, 3, 0))      # palette</span>
+        <span class="c1">#    f.write(pack(o+&#39;HHLHH&#39;, 262, 3, 1, 3, 0))      # palette</span>
         <span class="c1"># elif is_rgb:</span>
-        <span class="c1">#    f.write(pack(o+&quot;HHLHH&quot;, 262, 3, 1, 2, 0))      # RGB</span>
+        <span class="c1">#    f.write(pack(o+&#39;HHLHH&#39;, 262, 3, 1, 2, 0))      # RGB</span>
         <span class="c1"># else:</span>
-        <span class="c1">#    f.write(pack(o+&quot;HHLHH&quot;, 262, 3, 1, 1, 0))      # black is zero</span>
+        <span class="c1">#    f.write(pack(o+&#39;HHLHH&#39;, 262, 3, 1, 1, 0))      # black is zero</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
         <span class="n">has_palette</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
         <span class="n">test_rgb</span>    <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
         <span class="n">is_gray</span>     <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">262</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">test_rgb</span> <span class="o">==</span> <span class="n">is_rgb</span><span class="p">)</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">has_palette</span> <span class="ow">or</span> <span class="n">is_rgb</span> <span class="ow">or</span> <span class="n">is_gray</span><span class="p">)</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">test_rgb</span> <span class="o">==</span> <span class="n">is_rgb</span><span class="p">)</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">has_palette</span> <span class="ow">or</span> <span class="n">is_rgb</span> <span class="ow">or</span> <span class="n">is_gray</span><span class="p">)</span>
 
         <span class="c1"># Fill in expected sizes now</span>
         <span class="n">ifd_offset</span> <span class="o">=</span> <span class="mi">8</span>
@@ -862,94 +846,94 @@ window.runMermaid = runMermaid;</script>
 
         <span class="n">data_offset</span> <span class="o">=</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="n">after_bytes</span>
 
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  273, 4, 1, data_offset))  # where data begins</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  273, 4, 1, data_offset))  # where data begins</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">273</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">data_offset</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">273</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">data_offset</span><span class="p">))</span>
 
         <span class="c1"># if is_rgb:                                        # samples per pixel</span>
-        <span class="c1">#    f.write(pack(o+&quot;HHLHH&quot;, 277, 3, 1, 3, 0))</span>
+        <span class="c1">#    f.write(pack(o+&#39;HHLHH&#39;, 277, 3, 1, 3, 0))</span>
 
         <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-            <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">277</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">277</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  278, 4, 1, height))       # rows per strip</span>
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  279, 4, 1, width * height * pixel_bytes))</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  278, 4, 1, height))       # rows per strip</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  279, 4, 1, width * height * pixel_bytes))</span>
                                                             <span class="c1"># bytes per strip</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">278</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">278</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>
             <span class="n">pixel_bytes</span> <span class="o">=</span> <span class="mi">6</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">pixel_bytes</span> <span class="o">=</span> <span class="mi">2</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">279</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">*</span> <span class="n">pixel_bytes</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">279</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">*</span> <span class="n">pixel_bytes</span><span class="p">))</span>
 
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  282, 5, 1, after_offset)) # x resolution</span>
-        <span class="c1"># f.write(pack(o+&quot;HHLL&quot;,  283, 5, 1, after_offset + 8))</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  282, 5, 1, after_offset)) # x resolution</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLL&#39;,  283, 5, 1, after_offset + 8))</span>
                                                             <span class="c1"># y resolution</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">282</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">282</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span><span class="p">))</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">283</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">283</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">8</span><span class="p">))</span>
 
-        <span class="c1"># f.write(pack(o+&quot;HHLHH&quot;, 296, 3, 1, 2, 0))         # unit is inches</span>
+        <span class="c1"># f.write(pack(o+&#39;HHLHH&#39;, 296, 3, 1, 2, 0))         # unit is inches</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLHH&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">296</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLHH&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">296</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
         <span class="c1"># if has_palette:                                   # start of table</span>
-        <span class="c1">#    f.write(pack(o+&quot;HHLL&quot;, 320, 3, 3*65536, after_offset + 16))</span>
+        <span class="c1">#    f.write(pack(o+&#39;HHLL&#39;, 320, 3, 3*65536, after_offset + 16))</span>
 
         <span class="k">if</span> <span class="n">has_palette</span><span class="p">:</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHLL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
-            <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">320</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="mi">65536</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHLL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">12</span><span class="p">))</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">320</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="mi">65536</span><span class="p">,</span> <span class="n">after_offset</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
 
-        <span class="c1"># f.write(pack(o+&quot;L&quot;, 0))                           # end of IFD</span>
+        <span class="c1"># f.write(pack(o+&#39;L&#39;, 0))                           # end of IFD</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># &quot;After&quot; values pointed to by every IFD</span>
-        <span class="c1"># f.write(pack(o+&quot;LL&quot;, 72, 1))                      # x unit is 72/inch</span>
-        <span class="c1"># f.write(pack(o+&quot;LL&quot;, 72, 1))                      # y unit is 72/inch</span>
+        <span class="c1"># f.write(pack(o+&#39;LL&#39;, 72, 1))                      # x unit is 72/inch</span>
+        <span class="c1"># f.write(pack(o+&#39;LL&#39;, 72, 1))                      # y unit is 72/inch</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;LL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;LL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
-        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;LL&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
-        <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;LL&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+        <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
         <span class="c1"># Read the palette here if there is one</span>
         <span class="c1"># if has_palette:</span>
-        <span class="c1">#    palette[0:65536,0:3].astype(o+&quot;u2&quot;).transpose().tofile(f,sep=&quot;&quot;)</span>
+        <span class="c1">#    palette[0:65536,0:3].astype(o+&#39;u2&#39;).transpose().tofile(f,sep=&#39;&#39;)</span>
 
         <span class="n">palette</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">has_palette</span><span class="p">:</span>
-            <span class="n">palette</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;u2&quot;</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">65536</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">palette</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;u2&#39;</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">65536</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
             <span class="n">palette</span> <span class="o">=</span> <span class="n">palette</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">65536</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
 
         <span class="c1"># Otherwise, write the size of each RGB pixel if necessary</span>
         <span class="c1"># elif is_rgb:                                      # samples per pixel</span>
-        <span class="c1">#     f.write(pack(o+&quot;HHHH&quot;, 16, 16, 16, 0))</span>
+        <span class="c1">#     f.write(pack(o+&#39;HHHH&#39;, 16, 16, 16, 0))</span>
 
         <span class="k">elif</span> <span class="n">is_rgb</span><span class="p">:</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;HHHH&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
-            <span class="n">my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;HHHH&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+            <span class="n">_my_assert</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
         <span class="c1"># Append data to output file</span>
-        <span class="c1"># array.astype(o+&quot;u2&quot;).tofile(f, sep=&quot;&quot;)</span>
+        <span class="c1"># array.astype(o+&#39;u2&#39;).tofile(f, sep=&#39;&#39;)</span>
 
         <span class="n">items</span> <span class="o">=</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span>
         <span class="k">if</span> <span class="n">is_rgb</span><span class="p">:</span>
             <span class="n">items</span> <span class="o">*=</span> <span class="mi">3</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">o</span><span class="o">+</span><span class="s2">&quot;u2&quot;</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">items</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">o</span><span class="o">+</span><span class="s1">&#39;u2&#39;</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">items</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
 
     <span class="c1"># Interpret the shape of the image</span>
     <span class="c1"># if array.ndim == 3:</span>
@@ -985,10 +969,12 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">my_assert</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s2">&quot;Not a recognized TIFF16 file.&quot;</span><span class="p">)</span>
 
+<span class="k">def</span> <span class="nf">_my_assert</span><span class="p">(</span><span class="n">test</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">test</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s1">&#39;not a recognized TIFF16 file&#39;</span><span class="p">)</span>
+
+<span class="c1">##########################################################################################</span>
 </pre></div>
 
            </div>
@@ -998,7 +984,7 @@ window.runMermaid = runMermaid;</script>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

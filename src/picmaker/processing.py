@@ -35,26 +35,25 @@ FILTER_CHOICES = list(_FILTER_DICT.keys())
 def filter_pil_image(image, filter=None, **kwargs):
     """Apply an arbitrary filter to a PIL image.
 
-    Two-byte (16-bit) images are not supported and raise ``ValueError``.
+    Two-byte (16-bit) images are not supported and raise ValueError.
 
     Parameters:
         image (PIL.Image): A PIL image as 8-bit RGB or grayscale.
         filter (str, optional): Name of the filter to be applied. Valid choices are:
-            ``"none"``, ``"blur"``, ``"contour"``, ``"detail"``, ``"edge_enhance"``,
-            ``"edge_enhance_more"``, ``"emboss"``, ``"find_edges"``, ``"smooth"``,
-            ``"smooth_more"``, ``"sharpen"``, ``"median_3"``, ``"median_5"``,
-            ``"median_7"``, ``"minimum_3"``, ``"minimum_5"``, ``"minimum_7"``,
-            ``"maximum_3"``, ``"maximum_5"``, or ``"maximum_7"``. Values are
-            case-insensitive. ``"none"`` returns the input image unchanged.
+            "none", "blur", "contour", "detail", "edge_enhance", "edge_enhance_more",
+            "emboss", "find_edges", "smooth", "smooth_more", "sharpen", "median_3",
+            "median_5", "median_7", "minimum_3", "minimum_5", "minimum_7", "maximum_3",
+            "maximum_5", or "maximum_7". Values are case-insensitive. "none" returns the
+            input image unchanged.
         **kwargs: Additional input options ignored here.
 
     Returns:
-        (PIL.Image) The filtered PIL image. For ``filter="none"``, the input image is
+        PIL.Image: The filtered PIL image. For `filter` == "none", the input image is
             returned unchanged.
 
     Raises:
-        ValueError: If ``image`` is a list (16-bit two-byte image).
-        KeyError: If ``filter`` (ignoring case) is not recognized.
+        ValueError: If `image` is a list (16-bit two-byte image).
+        KeyError: If `filter` (ignoring case) is not recognized.
     """
 
     filter = (filter or 'none').lower()
@@ -79,13 +78,13 @@ def fill_zebra_stripes(array, **kwargs):
     associated with some spacecraft compression procedures.
 
     Parameters:
-        array (np.ndarray): A 2-D or 3-D array. It is not modified.
+        array (array): A 2-D or 3-D array. It is not modified.
         **kwargs: Additional input options, ignored here.
 
     Returns:
-        (np.ndarray[float]): A new floating-point array with the zebra stripes filled. The
-        input is never modified, so a caller may reuse it (e.g. for a following version in
-        which ``--zebra`` is not set).
+        array[float]: A new floating-point array with the zebra stripes filled. The input
+        is never modified, so a caller may reuse it (e.g. for a following version in which
+        "--zebra" is not set).
     """
 
     # Get the dimensions

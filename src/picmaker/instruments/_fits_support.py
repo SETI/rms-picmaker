@@ -19,16 +19,16 @@ def get_fits_image_hdus(hdulist, pointers=None, **kwargs):
     """Return a list of selected HDUs from an HDUList.
 
     Parameters:
-        hdulist (pyfits.HDUList): HDUList of opened FITS file.
+        hdulist (HDUList): HDUList of the FITS file.
         pointers (str or list[str], optional): Name or alternative list of names of the
             IMAGE object pointer in the PDS3 label.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        (list[HDU]): The selected image HDUs.
+        list[HDU]: The selected image HDUs.
 
     Raises:
-        KeyError: If none of the named ``pointers`` are found in the HDUList.
+        KeyError: If none of the named `pointers` are found in the HDUList.
         ValueError: If the file does not contain an image array.
     """
 
@@ -56,19 +56,19 @@ def get_fits_image_hdu(hdulist, obj=None, pointers=None, **kwargs):
     """Return an image HDU from a FITS file.
 
     Parameters:
-        hdulist (pyfits.HDUList): HDUList of opened FITS file.
-        obj (int, optional): The HDU index (starting at 0) of the image array. If not
-            specified, the first image array in the file is used.
+        hdulist (HDUList): HDUList of the FITS file.
+        obj (int, optional): The HDU index (starting at 0) of the IMAGE HDU. If not
+            specified, the first image HDU in the file is used.
         pointers (str or list[str], optional): Name or alternative list of names of the
             IMAGE object pointer in the PDS3 label.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        (HDU): The selected HDU.
+        HDU: The selected HDU.
 
     Raises:
-        IndexError: If ``obj`` is out of range.
-        KeyError: If none of the named ``pointers`` are found in the HDUList.
+        IndexError: If `obj` is out of range.
+        KeyError: If none of the named `pointers` are found in the HDUList.
         ValueError: If the file does not contain an image array.
         ValueError: If the selected HDU does not contain an image.
     """
@@ -93,7 +93,7 @@ def get_fits_array(hdulist, obj=None, pointers=None, **kwargs):
     """Return an image array from a FITS file.
 
     Parameters:
-        hdulist (pyfits.HDUList): HDUList of opened FITS file.
+        hdulist (HDUList): HDUList of the FITS file.
         obj (int, optional): The HDU index (starting at 0) of the image array. If not
             specified, the first image array in the file is used.
         pointers (str or list[str], optional): Name or alternative list of names of the
@@ -101,11 +101,11 @@ def get_fits_array(hdulist, obj=None, pointers=None, **kwargs):
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        (np.ndarray): The selected image array.
+        array: The selected image array.
 
     Raises:
-        IndexError: If ``obj`` is out of range.
-        KeyError: If none of the named ``pointers`` are found in the HDUList.
+        IndexError: If `obj` is out of range.
+        KeyError: If none of the named `pointers` are found in the HDUList.
         ValueError: If the file does not contain an image array.
         ValueError: If the selected HDU does not contain an image.
     """

@@ -3,9 +3,6 @@
 ##########################################################################################
 """Cassini ISS detector and reader."""
 
-import pdsparser    # noqa
-import vicar        # noqa
-
 from picmaker.instruments import ImageData, register_instrument
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
@@ -17,16 +14,16 @@ class Cassini_ISS(ImageData):
 
     @staticmethod
     def detect_in_pds3(label, filepath, **kwargs):
-        """Extract Cassini ISS data from a parsed :class:`pdsparser.Pds3Label`.
+        """Extract Cassini ISS data from a parsed Pds3Label.
 
         Parameters:
-            label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
-            filepath (str or pathlib.Path): The path to this PDS3 label.
+            label (Pds3Label): A parsed PDS3 label.
+            filepath (str or Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (Cassini_ISS or None): Instrument subclass if ``label`` describes a Cassini
-            ISS product; ``None`` otherwise.
+            Cassini_ISS or None: Instrument subclass if `label` describes a Cassini ISS
+            product; None otherwise.
         """
 
         try:
@@ -43,16 +40,16 @@ class Cassini_ISS(ImageData):
 
     @staticmethod
     def detect_in_vicar(vic, filepath, **kwargs):
-        """Extract Cassini ISS data from an open :class:`vicar.VicarImage`.
+        """Extract Cassini ISS data from an open VicarImage.
 
         Parameters:
-            vic (:class:`vicar.VicarImage`): A VicarImage object.
-            filepath (str or pathlib.Path): The path to this Vicar file.
+            vic (VicarImage): A VicarImage object.
+            filepath (str or Path): The path to this Vicar file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (Cassini_ISS or None): Instrument subclass if ``vic`` describes a Cassini ISS
-            product; ``None`` otherwise.
+            Cassini_ISS or None: Instrument subclass if `vic` describes a Cassini ISS
+            product; None otherwise.
         """
 
         try:

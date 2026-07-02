@@ -15,10 +15,9 @@ def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=
     """Get a complete list of all filepaths to process.
 
     Parameters:
-        files (str, pathlib.Path or list[str or pathlib.Path]): File names and
-            directories.
-        directory (str or pathlib.Path, optional): The output directory if any. By
-            default, each file is written to its own input directory.
+        files (str, Path or list[str or Path]): One or more file and directory paths.
+        directory (str or Path, optional): The output directory. By default, each output
+            file is written to the same directory as its input file.
         recursive (bool, optional): True to traverse subdirectories.
         patterns (str or list[str], optional): One or more glob patterns. Files found
             inside directories are only included if they match one of these patterns. By
@@ -27,8 +26,7 @@ def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=
         **kwargs: Other input parameters, ignored here.
 
     Returns:
-        (list[tuple[pathlib.Path, pathlib.Path]]): A list of tuples (input filepath,
-            output directory path).
+        list[tuple[Path, Path]]: A list of tuples (input filepath, output directory path).
 
     Raises:
         FileNotFoundError: If an input file/directory does not exist.
@@ -93,27 +91,27 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
     """Derive the output filepath for one input path.
 
     Parameters:
-        inpath (str or pathlib.Path): The input file.
-        outdir (str or pathlib.Path, optional): Output directory, or ``None`` to use the
-            input's directory.
+        inpath (str or Path): The input file.
+        outdir (str or Path, optional): Output directory, or None to use the input's
+            directory.
         strip (str or list[str], optional): A string or list of strings to strip from the
             input filepath before appending the suffix.
         suffix (str, optional): Extra string added before the extension.
         extension (str, optional): Output file extension, which defines the output
-            format, (e.g. ``'jpg'``).
+            format, (e.g. "jpg").
         replace (str, optional): Replacement policy when the output file already exists:
-            ``'all'`` (silent overwrite), ``'none'`` (skip silently), ``'warn'`` (warn and
-            overwrite), or ``'error'`` (raise OSError).
+            "all" (silent overwrite), "none" (skip silently), "warn" (warn and overwrite),
+            or "error" (raise OSError).
         logger (PdsLogger, optional): Optional PdsLogger for error messages and warnings.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        The output file path, or an empty string when ``replace='none'`` and the file
-            already exists.
+        Path or None: The output file path; None if `replace` is "none" and the file
+        already exists.
 
     Raises:
-        ValueError: If ``replace`` option is invalid.
-        OSError: If ``replace='error'`` and the file already exists.
+        ValueError: If `replace` option is invalid.
+        OSError: If `replace` == "error" and the file already exists.
         PermissionError: If a file or directory cannot be created.
 
     Side Effects:
@@ -145,7 +143,7 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
         outpath = outdir / (stem + '.' + extension.lstrip('.'))
         if outpath.exists():
             if replace == 'none':
-                return ''
+                return None
             elif replace == 'warn':
                 logger and logger.warn(f'File overwritten: {outpath}')
                 warnings.warn(f'File overwritten: {outpath}', UserWarning, stacklevel=2)

@@ -98,6 +98,10 @@ intersphinx_mapping = {
     'astropy': ('https://docs.astropy.org/en/stable/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
     'pytest': ('https://docs.pytest.org/en/stable/', None),
+    'pdsparser': ('https://rms-pdsparser.readthedocs.io/en/latest/', None),
+    'pdslogger': ('https://rms-pdslogger.readthedocs.io/en/latest/', None),
+    'tabulation': ('https://rms-tabulation.readthedocs.io/en/latest/', None),
+    'vicar': ('https://rms-vicar.readthedocs.io/en/latest/', None),
 }
 
 # Nitpicky mode (sphinx-build -n) flags any unresolved cross-reference.

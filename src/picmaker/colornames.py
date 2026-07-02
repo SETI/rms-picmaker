@@ -11,10 +11,11 @@ class ColorNames:
 
     A name may be:
 
-    * A canonical name (``'IndianRed'``, ``'red'``, ``'white smoke'``).
-    * A case-insensitive variant with spaces, dashes, or underscores stripped
-        (``'INDIAN_RED'``, ``'mint-cream'``).
-    * An RGB container expressed as ``'(r, g, b)'`` or ``'[r, g, b]'``.
+    * A canonical name (e.g., "IndianRed", "red", "white smoke").
+    * A case-insensitive variant with spaces, dashes, or underscores stripped (e.g..,
+      "INDIAN_RED", "mint-cream").
+    * An RGB container expressed as "(r, g, b)" or "[r, g, b]", where `r`, `g`, and `b`
+      are integers between 0 and 255.
 
     The class has no instance state; every entry point is a staticmethod.
     """
@@ -784,17 +785,16 @@ class ColorNames:
         """Resolve a color name or RGB expression to a tuple of three RGB values.
 
         Parameters:
-            name (str): Color name or RGB expression of the form ``"(r,g,b)"`` or
-                ``"[r,g,b]"``, where ``r``, ``g``, and ``b``, are integers between 0 and
-                255.
+            name (str): Color name or RGB expression of the form "(r,g,b)" or "[r,g,b]",
+                where `r`, `g`, and `b`, are integers between 0 and 255.
 
         Returns:
-            (tuple[int,int,int]): ``(r, g, b)`` triple with each channel in the range 0
-            to 255.
+            tuple[int,int,int]: (r, g, b) triple with each channel in the range 0 to
+            255.
 
         Raises:
-            TypeError: If ``name`` is not a string.
-            KeyError: If ``name`` matches no known X11 color and no RGB expression in
+            TypeError: If `name` is not a string.
+            KeyError: If `name` matches no known X11 color and no RGB expression in
                 parentheses or square brackets.
             ValueError: If a parsed RGB component exceeds 255.
         """

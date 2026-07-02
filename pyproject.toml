@@ -32,6 +32,7 @@ keywords = [
   "imaging",
   "image conversion",
   "JPEG",
+  "PNG",
   "TIFF",
   "planetary science",
 ]
@@ -170,10 +171,11 @@ module = [
   "astropy.*",
   "PIL.*",
   "scipy.*",
-  "vicar",
   "pdsparser",
   "pdslogger",
   "tabulation",
+  "vax",
+  "vicar",
 ]
 ignore_missing_imports = true
 

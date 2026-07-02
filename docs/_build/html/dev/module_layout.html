@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Module-by-module description &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>Module-by-module description &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
 
@@ -15,7 +15,7 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=10858467"></script>
+        <script src="../_static/documentation_options.js?v=e2a04e36"></script>
         <script src="../_static/doctools.js?v=9a2dae69"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -51,21 +51,25 @@
 <li class="toctree-l2"><a class="reference internal" href="repository_overview.html">Repository overview</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Module-by-module description</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#picmaker-src-picmaker-init-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/__init__.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-cli-src-picmaker-cli-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.cli</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/cli.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-pipeline-src-picmaker-pipeline-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.pipeline</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/pipeline.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-options-src-picmaker-options-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.options</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/options.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-types-src-picmaker-types-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._types</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/_types.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-io-src-picmaker-io-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/io.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-enhance-src-picmaker-enhance-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.enhance</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/enhance.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-geometry-src-picmaker-geometry-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.geometry</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/geometry.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-color-src-picmaker-color-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.color</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/color.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-picmaker-src-picmaker-picmaker-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.picmaker</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/picmaker.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-main-src-picmaker-main-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.main</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/main.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-parser-src-picmaker-parser-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.parser</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/parser.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-control-src-picmaker-control-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.control</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/control.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-slicing-src-picmaker-slicing-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.slicing</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/slicing.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-stretch-src-picmaker-stretch-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.stretch</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/stretch.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-enhancement-src-picmaker-enhancement-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.enhancement</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/enhancement.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-orientation-src-picmaker-orientation-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.orientation</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/orientation.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-sizing-src-picmaker-sizing-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.sizing</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/sizing.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-layout-src-picmaker-layout-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.layout</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/layout.py</span></code>)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#picmaker-pil-utils-src-picmaker-pil-utils-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.pil_utils</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/pil_utils.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-filters-src-picmaker-filters-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._filters</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/_filters.py</span></code>)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#picmaker-rgb-src-picmaker-rgb-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._rgb</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/_rgb.py</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#picmaker-processing-src-picmaker-processing-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.processing</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/processing.py</span></code>)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#picmaker-tiff16-src-picmaker-tiff16-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.tiff16</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/tiff16.py</span></code>)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#picmaker-colornames-src-picmaker-colornames-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.colornames</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/colornames.py</span></code>)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#picmaker-instruments-src-picmaker-instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/instruments/</span></code>)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#picmaker-instruments-shared-src-picmaker-instruments-shared-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._shared</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/instruments/_shared.py</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#picmaker-instruments-fits-support-fits-support-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._fits_support</span></code> (<code class="docutils literal notranslate"><span class="pre">_fits_support.py</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#picmaker-instruments-hst-support-hst-support-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._hst_support</span></code> (<code class="docutils literal notranslate"><span class="pre">_hst_support.py</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#picmaker-instruments-pds3-support-pds3-support-py"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._pds3_support</span></code> (<code class="docutils literal notranslate"><span class="pre">_pds3_support.py</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#per-instrument-reader-modules">Per-instrument reader modules</a></li>
 </ul>
 </li>
 </ul>
@@ -115,192 +119,215 @@ reference for each public symbol.</p>
 <section id="picmaker-src-picmaker-init-py">
 <h2><a class="reference internal" href="../module.html#module-picmaker" title="picmaker"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/__init__.py</span></code>)<a class="headerlink" href="#picmaker-src-picmaker-init-py" title="Link to this heading"></a></h2>
 <p>Top-level package. Re-exports the public API surface from the leaf
-modules, defines <code class="xref py py-data docutils literal notranslate"><span class="pre">__all__</span></code>, and resolves <code class="xref py py-data docutils literal notranslate"><span class="pre">__version__</span></code>
-from <code class="docutils literal notranslate"><span class="pre">importlib.metadata</span></code> (with a fallback to the
+modules (see <code class="xref py py-data docutils literal notranslate"><span class="pre">__all__</span></code>) and resolves <code class="xref py py-data docutils literal notranslate"><span class="pre">__version__</span></code> from
+<code class="docutils literal notranslate"><span class="pre">importlib.metadata</span></code> (with a fallback to the
 <code class="docutils literal notranslate"><span class="pre">setuptools_scm</span></code>-generated <code class="docutils literal notranslate"><span class="pre">_version.py</span></code> when the package is run
-from a source checkout that has not been installed). New code
-should import from here (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">picmaker</span> <span class="pre">import</span> <span class="pre">images_to_pics</span></code>)
-rather than from the individual leaf modules.</p>
+from a source checkout that has not been installed). Private modules
+(those whose names begin with an underscore), the per-instrument
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> subclasses, and ALL-CAPS
+module constants are intentionally not re-exported. New code should
+import from here (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">picmaker</span> <span class="pre">import</span> <span class="pre">picmaker</span></code>) rather than from
+the individual leaf modules.</p>
 </section>
-<section id="picmaker-cli-src-picmaker-cli-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.cli" title="picmaker.cli"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.cli</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/cli.py</span></code>)<a class="headerlink" href="#picmaker-cli-src-picmaker-cli-py" title="Link to this heading"></a></h2>
-<p>The argparse-based command-line entry point. <a class="reference internal" href="../module.html#picmaker.cli.main" title="picmaker.cli.main"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli.main()</span></code></a>
-parses <code class="docutils literal notranslate"><span class="pre">sys.argv</span></code>, dispatches to <a class="reference internal" href="../module.html#picmaker.pipeline.process_images" title="picmaker.pipeline.process_images"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.process_images()</span></code></a>,
-and converts <code class="docutils literal notranslate"><span class="pre">--versions</span> <span class="pre">FILE</span></code> into a list of normalized option
-dicts. Each CLI phase lives in its own private helper:
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_build_parser()</span></code> (argparse setup),
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_separate_files_and_dirs()</span></code> (positional-arg classification),
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_normalize_and_validate()</span></code> (mutex / value-validity checks),
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_collect_option_dicts()</span></code> (<code class="docutils literal notranslate"><span class="pre">--versions</span></code> re-parse loop), and
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_process_directory()</span></code> (per-directory walk). They are
-unit-tested directly in <code class="file docutils literal notranslate"><span class="pre">tests/test_cli_unit.py</span></code> and
-<code class="file docutils literal notranslate"><span class="pre">tests/test_cli_helpers.py</span></code>.</p>
+<section id="picmaker-picmaker-src-picmaker-picmaker-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.picmaker" title="picmaker.picmaker"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.picmaker</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/picmaker.py</span></code>)<a class="headerlink" href="#picmaker-picmaker-src-picmaker-picmaker-py" title="Link to this heading"></a></h2>
+<p>The library entry point and orchestration layer.
+<a class="reference internal" href="../module.html#picmaker.picmaker.validate_options" title="picmaker.picmaker.validate_options"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.validate_options()</span></code></a> converts an argparse
+<code class="docutils literal notranslate"><span class="pre">Namespace</span></code> (or a plain dict) into the normalized <code class="docutils literal notranslate"><span class="pre">options</span></code> dict
+used throughout the package, enforcing the mutex / value-validity
+rules (<code class="docutils literal notranslate"><span class="pre">--band</span></code> vs. <code class="docutils literal notranslate"><span class="pre">--bands</span></code>, <code class="docutils literal notranslate"><span class="pre">--scale</span></code> vs.
+<code class="docutils literal notranslate"><span class="pre">--wscale</span></code>/<code class="docutils literal notranslate"><span class="pre">--hscale</span></code>, <code class="docutils literal notranslate"><span class="pre">--up</span></code> vs. <code class="docutils literal notranslate"><span class="pre">--down</span></code>, <code class="docutils literal notranslate"><span class="pre">--frame</span></code> vs.
+<code class="docutils literal notranslate"><span class="pre">--size</span></code>, <code class="docutils literal notranslate"><span class="pre">--movie</span></code> vs. <code class="docutils literal notranslate"><span class="pre">--versions</span></code>, color-name validation,
+etc.). Options are plain dicts; there is no options dataclass.
+<a class="reference internal" href="../module.html#picmaker.picmaker.get_versions" title="picmaker.picmaker.get_versions"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.get_versions()</span></code></a> reads a <code class="docutils literal notranslate"><span class="pre">--versions</span></code> file and
+returns one option dict per version line, layering each line’s
+overrides onto a copy of the base options.
+<a class="reference internal" href="../module.html#picmaker.picmaker.picmaker" title="picmaker.picmaker.picmaker"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.picmaker()</span></code></a> is the top-level driver: it
+validates options, resolves the input files via
+<a class="reference internal" href="../module.html#picmaker.control.get_filepaths" title="picmaker.control.get_filepaths"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.control.get_filepaths()</span></code></a>, and calls
+<a class="reference internal" href="../module.html#picmaker.picmaker.picmaker1" title="picmaker.picmaker.picmaker1"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.picmaker1()</span></code></a> for each file (once per version, or
+once per frame with a shared stretch in <code class="docutils literal notranslate"><span class="pre">--movie</span></code> mode).
+<a class="reference internal" href="../module.html#picmaker.picmaker.picmaker1" title="picmaker.picmaker.picmaker1"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.picmaker1()</span></code></a> performs the per-image work: read
+→ slice → optional zebra fill → stretch limits → colormap (or mosaic)
+→ rotate → size → convert to PIL → filter → resize → wrap → pad →
+write.</p>
 </section>
-<section id="picmaker-pipeline-src-picmaker-pipeline-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.pipeline" title="picmaker.pipeline"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.pipeline</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/pipeline.py</span></code>)<a class="headerlink" href="#picmaker-pipeline-src-picmaker-pipeline-py" title="Link to this heading"></a></h2>
-<p>The orchestration layer. <a class="reference internal" href="../module.html#picmaker.pipeline.process_images" title="picmaker.pipeline.process_images"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.process_images()</span></code></a>
-walks the input list (with optional <code class="docutils literal notranslate"><span class="pre">--movie</span></code> mode that shares a
-stretch across frames) and dispatches each file to
-<a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.images_to_pics()</span></code></a>. The per-image work is split
-across three module-private helpers:
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_pds3_resolve_pointer()</span></code> (PDS3 <code class="docutils literal notranslate"><span class="pre">.LBL</span></code> pointer resolution),
-<code class="xref py py-func docutils literal notranslate"><span class="pre">_hst_mosaic_rgb()</span></code> (HST ACS/WFC and WFPC2 mosaic assembly,
-with <code class="xref py py-func docutils literal notranslate"><span class="pre">_hst_wfpc2_mosaic()</span></code> and <code class="xref py py-func docutils literal notranslate"><span class="pre">_hst_acs_panel_mosaic()</span></code> as
-geometry sub-helpers), and <code class="xref py py-func docutils literal notranslate"><span class="pre">_process_one_image()</span></code> (the per-file
-read → slice → colormap → write chain). Each helper has direct
-unit-test coverage in <code class="file docutils literal notranslate"><span class="pre">tests/test_pipeline_helpers.py</span></code>.
-<a class="reference internal" href="../module.html#picmaker.pipeline.find_common_path" title="picmaker.pipeline.find_common_path"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.find_common_path()</span></code></a> is a small directory-walking
-helper used to derive the output tree’s root when <code class="docutils literal notranslate"><span class="pre">--recursive</span></code> is
-set.</p>
+<section id="picmaker-main-src-picmaker-main-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.main" title="picmaker.main"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.main</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/main.py</span></code>)<a class="headerlink" href="#picmaker-main-src-picmaker-main-py" title="Link to this heading"></a></h2>
+<p>The console-script entry point (<code class="docutils literal notranslate"><span class="pre">picmaker</span> <span class="pre">=</span> <span class="pre">&quot;picmaker.main:main&quot;</span></code> in
+<code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>). <a class="reference internal" href="../module.html#picmaker.main.main" title="picmaker.main.main"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.main.main()</span></code></a> builds the parser from
+<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.parser.get_parser()</span></code>, parses <code class="docutils literal notranslate"><span class="pre">sys.argv</span></code>, runs the
+options through <a class="reference internal" href="../module.html#picmaker.picmaker.validate_options" title="picmaker.picmaker.validate_options"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.validate_options()</span></code></a>, shifts the
+one-based <code class="docutils literal notranslate"><span class="pre">--samples</span></code> / <code class="docutils literal notranslate"><span class="pre">--lines</span></code> / <code class="docutils literal notranslate"><span class="pre">--bands</span></code> / <code class="docutils literal notranslate"><span class="pre">--obj</span></code>
+command-line indices to zero-based, and calls
+<a class="reference internal" href="../module.html#picmaker.picmaker.picmaker" title="picmaker.picmaker.picmaker"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.picmaker()</span></code></a>. Warnings are promoted to errors
+here (<code class="docutils literal notranslate"><span class="pre">warnings.simplefilter('error')</span></code>).</p>
 </section>
-<section id="picmaker-options-src-picmaker-options-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.options" title="picmaker.options"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.options</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/options.py</span></code>)<a class="headerlink" href="#picmaker-options-src-picmaker-options-py" title="Link to this heading"></a></h2>
-<p><a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a> is the dataclass that owns
-all post-normalization mutex / value-validity invariants. Both
-<code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.cli._normalize_and_validate()</span></code> (early, at CLI parse
-time) and <a class="reference internal" href="../module.html#picmaker.pipeline.images_to_pics" title="picmaker.pipeline.images_to_pics"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pipeline.images_to_pics()</span></code></a> (late, at library
-call time) build a <a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions" title="picmaker.options.PicmakerOptions"><code class="xref py py-class docutils literal notranslate"><span class="pre">PicmakerOptions</span></code></a> from
-their kwargs and call
-<a class="reference internal" href="../module.html#picmaker.options.PicmakerOptions.validate" title="picmaker.options.PicmakerOptions.validate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validate()</span></code></a> so the invariants
-live in exactly one place.</p>
+<section id="picmaker-parser-src-picmaker-parser-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.parser" title="picmaker.parser"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.parser</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/parser.py</span></code>)<a class="headerlink" href="#picmaker-parser-src-picmaker-parser-py" title="Link to this heading"></a></h2>
+<p>The argparse definition. <code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.parser.get_parser()</span></code> builds and
+returns the <a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a> for every <code class="docutils literal notranslate"><span class="pre">picmaker</span></code>
+command-line flag. It is used both by <a class="reference internal" href="../module.html#module-picmaker.main" title="picmaker.main"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.main</span></code></a> (to parse
+<code class="docutils literal notranslate"><span class="pre">sys.argv</span></code>) and by <a class="reference internal" href="../module.html#picmaker.picmaker.get_versions" title="picmaker.picmaker.get_versions"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.get_versions()</span></code></a> (to
+re-parse each line of a <code class="docutils literal notranslate"><span class="pre">--versions</span></code> file).</p>
 </section>
-<section id="picmaker-types-src-picmaker-types-py">
-<h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._types</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/_types.py</span></code>)<a class="headerlink" href="#picmaker-types-src-picmaker-types-py" title="Link to this heading"></a></h2>
-<p>Shared type definitions imported by both <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> and the
-instrument sub-modules. Lives here (rather than in <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a>)
-to break the import cycle that would arise if instrument modules
-imported from <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> while <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> imports from
-<a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code></a>. Defines <a class="reference internal" href="../module.html#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a>
-(a <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.NamedTuple</span></code></a> of <code class="docutils literal notranslate"><span class="pre">(array3d,</span> <span class="pre">default_is_up,</span>
-<span class="pre">image_info)</span></code>), <code class="xref py py-data docutils literal notranslate"><span class="pre">ImageInfo</span></code> (the
-<code class="docutils literal notranslate"><span class="pre">(inst_host,</span> <span class="pre">inst_id,</span> <span class="pre">filter_name)</span></code> triple or <code class="docutils literal notranslate"><span class="pre">None</span></code>), and
-<code class="xref py py-data docutils literal notranslate"><span class="pre">ObjectSelector</span></code> (the <code class="docutils literal notranslate"><span class="pre">obj=</span></code> parameter type
-accepted by file readers).</p>
+<section id="picmaker-control-src-picmaker-control-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.control" title="picmaker.control"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.control</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/control.py</span></code>)<a class="headerlink" href="#picmaker-control-src-picmaker-control-py" title="Link to this heading"></a></h2>
+<p>File-selection and output-path helpers.
+<a class="reference internal" href="../module.html#picmaker.control.get_filepaths" title="picmaker.control.get_filepaths"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.control.get_filepaths()</span></code></a> expands the positional files,
+<code class="docutils literal notranslate"><span class="pre">--directory</span></code>, <code class="docutils literal notranslate"><span class="pre">--recursive</span></code>, and <code class="docutils literal notranslate"><span class="pre">--patterns</span></code> options into the
+ordered list of <code class="docutils literal notranslate"><span class="pre">(infile,</span> <span class="pre">outdir)</span></code> pairs to process.
+<a class="reference internal" href="../module.html#picmaker.control.get_outfile" title="picmaker.control.get_outfile"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.control.get_outfile()</span></code></a> derives the output path for one
+input file, honoring the <code class="docutils literal notranslate"><span class="pre">--replace</span></code> policy
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.control.REPLACE_CHOICES</span></code>).</p>
 </section>
-<section id="picmaker-io-src-picmaker-io-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/io.py</span></code>)<a class="headerlink" href="#picmaker-io-src-picmaker-io-py" title="Link to this heading"></a></h2>
-<p>The file-reader cascade and output-path helpers. The cascade lives in
-<a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a> and tries each known format in
-turn: pickle → numpy <code class="docutils literal notranslate"><span class="pre">.npy</span></code> → per-instrument readers →
-generic VICAR fallback → generic FITS fallback → PIL → PDS3-label.
-The per-instrument step iterates <a class="reference internal" href="../module.html#picmaker.instruments.ALL_INSTRUMENTS" title="picmaker.instruments.ALL_INSTRUMENTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.instruments.ALL_INSTRUMENTS</span></code></a>
-and calls each instrument’s <code class="xref py py-func docutils literal notranslate"><span class="pre">read_file()</span></code>; the first non-<code class="docutils literal notranslate"><span class="pre">None</span></code>
-result wins.  The generic VICAR and FITS fallbacks handle files from
-unrecognized instruments.  The first match returns a
-<a class="reference internal" href="../module.html#picmaker.io.ReadResult" title="picmaker._types.ReadResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadResult</span></code></a>.
-<a class="reference internal" href="../module.html#picmaker.io.read_image_array" title="picmaker.io.read_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_image_array()</span></code></a> is the multi-file variant that
-stacks the per-file results along the band axis.
-<a class="reference internal" href="../module.html#picmaker.io.read_pds_labeled_image_array" title="picmaker.io.read_pds_labeled_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_pds_labeled_image_array()</span></code></a> is the PDS3 label
-parser.
-<a class="reference internal" href="../module.html#picmaker.io.get_outfile" title="picmaker.io.get_outfile"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_outfile()</span></code></a> builds the output path, honoring
-the <code class="docutils literal notranslate"><span class="pre">replace=</span></code> policy.</p>
-<p>The module’s name shadows the stdlib <code class="docutils literal notranslate"><span class="pre">io</span></code>; use absolute imports
-(<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">picmaker.io</span> <span class="pre">import</span> <span class="pre">…</span></code>) and never write <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">io</span></code> inside
-the <code class="docutils literal notranslate"><span class="pre">picmaker</span></code> package. A rename to <code class="docutils literal notranslate"><span class="pre">picmaker.readers</span></code> is tracked
-in <a class="reference external" href="https://github.com/SETI/rms-picmaker/issues/14">issue #14</a>.</p>
+<section id="picmaker-slicing-src-picmaker-slicing-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.slicing" title="picmaker.slicing"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.slicing</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/slicing.py</span></code>)<a class="headerlink" href="#picmaker-slicing-src-picmaker-slicing-py" title="Link to this heading"></a></h2>
+<p>Shape-space selection. <a class="reference internal" href="../module.html#picmaker.slicing.slice_array" title="picmaker.slicing.slice_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.slicing.slice_array()</span></code></a> extracts
+the requested sample / line / band sub-range from the raw 3-D input
+array and returns it together with an optional invalid-pixel mask.</p>
 </section>
-<section id="picmaker-enhance-src-picmaker-enhance-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.enhance" title="picmaker.enhance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.enhance</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/enhance.py</span></code>)<a class="headerlink" href="#picmaker-enhance-src-picmaker-enhance-py" title="Link to this heading"></a></h2>
-<p>Intensity-space operations. <a class="reference internal" href="../module.html#picmaker.enhance.get_limits" title="picmaker.enhance.get_limits"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_limits()</span></code></a>
-chooses the stretch endpoints from the array, optional masks, and the
-<code class="docutils literal notranslate"><span class="pre">--limits</span></code> / <code class="docutils literal notranslate"><span class="pre">--percentiles</span></code> / <code class="docutils literal notranslate"><span class="pre">--trim</span></code> / <code class="docutils literal notranslate"><span class="pre">--footprint</span></code>
-options. <a class="reference internal" href="../module.html#picmaker.enhance.apply_colormap" title="picmaker.enhance.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_colormap()</span></code></a> maps a 2-D array to
-RGB through a named or per-instrument tint.
-<a class="reference internal" href="../module.html#picmaker.enhance.apply_gamma" title="picmaker.enhance.apply_gamma"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_gamma()</span></code></a> is the final power-law
-correction. <a class="reference internal" href="../module.html#picmaker.enhance.fill_zebra_stripes" title="picmaker.enhance.fill_zebra_stripes"><code class="xref py py-func docutils literal notranslate"><span class="pre">fill_zebra_stripes()</span></code></a> is the
-optional pre-stretch cleanup for legacy spacecraft compression
-artifacts.</p>
+<section id="picmaker-stretch-src-picmaker-stretch-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.stretch" title="picmaker.stretch"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.stretch</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/stretch.py</span></code>)<a class="headerlink" href="#picmaker-stretch-src-picmaker-stretch-py" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../module.html#picmaker.stretch.get_limits" title="picmaker.stretch.get_limits"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.stretch.get_limits()</span></code></a> chooses the stretch endpoints from
+the array, the optional invalid mask, and the <code class="docutils literal notranslate"><span class="pre">--limits</span></code> /
+<code class="docutils literal notranslate"><span class="pre">--percentiles</span></code> / <code class="docutils literal notranslate"><span class="pre">--trim</span></code> / <code class="docutils literal notranslate"><span class="pre">--footprint</span></code> options.</p>
 </section>
-<section id="picmaker-geometry-src-picmaker-geometry-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.geometry" title="picmaker.geometry"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.geometry</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/geometry.py</span></code>)<a class="headerlink" href="#picmaker-geometry-src-picmaker-geometry-py" title="Link to this heading"></a></h2>
-<p>Shape-space operations. <a class="reference internal" href="../module.html#picmaker.geometry.slice_array" title="picmaker.geometry.slice_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">slice_array()</span></code></a> selects
-the sample / line / band range from the raw 3-D input.
-<a class="reference internal" href="../module.html#picmaker.geometry.crop_array" title="picmaker.geometry.crop_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">crop_array()</span></code></a> strips constant-valued borders.
-<a class="reference internal" href="../module.html#picmaker.geometry.rotate_array_rgb" title="picmaker.geometry.rotate_array_rgb"><code class="xref py py-func docutils literal notranslate"><span class="pre">rotate_array_rgb()</span></code></a> applies the requested
-flip / rotation. <a class="reference internal" href="../module.html#picmaker.geometry.get_size" title="picmaker.geometry.get_size"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_size()</span></code></a> is the resize
-planner that consumes <code class="docutils literal notranslate"><span class="pre">--size</span></code> / <code class="docutils literal notranslate"><span class="pre">--scale</span></code> / <code class="docutils literal notranslate"><span class="pre">--frame</span></code> /
-<code class="docutils literal notranslate"><span class="pre">--wrap-ratio</span></code> and returns the final dimensions plus wrap geometry.
-<a class="reference internal" href="../module.html#picmaker.geometry.resize_image" title="picmaker.geometry.resize_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">resize_image()</span></code></a>,
-<a class="reference internal" href="../module.html#picmaker.geometry.wrap_image" title="picmaker.geometry.wrap_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">wrap_image()</span></code></a>, and
-<a class="reference internal" href="../module.html#picmaker.geometry.pad_image" title="picmaker.geometry.pad_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">pad_image()</span></code></a> execute the plan against a PIL
-image. <a class="reference internal" href="../module.html#picmaker.geometry.circle_mask" title="picmaker.geometry.circle_mask"><code class="xref py py-func docutils literal notranslate"><span class="pre">circle_mask()</span></code></a> is a small helper used
-by the median-filter footprint option in <a class="reference internal" href="../module.html#module-picmaker.enhance" title="picmaker.enhance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enhance</span></code></a>.</p>
+<section id="picmaker-enhancement-src-picmaker-enhancement-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.enhancement" title="picmaker.enhancement"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.enhancement</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/enhancement.py</span></code>)<a class="headerlink" href="#picmaker-enhancement-src-picmaker-enhancement-py" title="Link to this heading"></a></h2>
+<p>Intensity-to-color mapping. <a class="reference internal" href="../module.html#picmaker.enhancement.apply_colormap" title="picmaker.enhancement.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhancement.apply_colormap()</span></code></a>
+maps a stretched grayscale array (up to three bands) to a 3-D RGB or
+grayscale array scaled zero to one, using a named colormap or the
+reader’s <code class="docutils literal notranslate"><span class="pre">default_tint</span></code>. This is the default implementation that
+each <code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> subclass calls (and may
+override).</p>
 </section>
-<section id="picmaker-color-src-picmaker-color-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker.color" title="picmaker.color"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.color</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/color.py</span></code>)<a class="headerlink" href="#picmaker-color-src-picmaker-color-py" title="Link to this heading"></a></h2>
-<p>Mission-agnostic tint dispatch. <a class="reference internal" href="../module.html#picmaker.color.tinted_colormap" title="picmaker.color.tinted_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">tinted_colormap()</span></code></a>
-takes the <code class="docutils literal notranslate"><span class="pre">image_info</span></code> triple from the reader cascade, normalizes
-the HST <code class="docutils literal notranslate"><span class="pre">CL1</span></code> / <code class="docutils literal notranslate"><span class="pre">CL2</span></code> / <code class="docutils literal notranslate"><span class="pre">CLEAR*</span></code> / <code class="docutils literal notranslate"><span class="pre">N/A</span></code> quirks, then
-delegates to the per-instrument modules in
-<a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code></a>. The wavelength-to-RGB lookup tables
-(<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker._rgb.RGB_BY_NM</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker._rgb.RFUNC</span></code>,
-<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker._rgb.GFUNC</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker._rgb.BFUNC</span></code>) are
-re-exported here for convenience but live in <a class="reference internal" href="../module.html#module-picmaker._rgb" title="picmaker._rgb"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._rgb</span></code></a>.</p>
+<section id="picmaker-orientation-src-picmaker-orientation-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.orientation" title="picmaker.orientation"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.orientation</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/orientation.py</span></code>)<a class="headerlink" href="#picmaker-orientation-src-picmaker-orientation-py" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../module.html#picmaker.orientation.rotate_rgb_array" title="picmaker.orientation.rotate_rgb_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.orientation.rotate_rgb_array()</span></code></a> applies the requested
+flip / rotation to the RGB array, taking the reader’s
+<code class="docutils literal notranslate"><span class="pre">default_upward</span></code> hint and the <code class="docutils literal notranslate"><span class="pre">--up</span></code> / <code class="docutils literal notranslate"><span class="pre">--down</span></code> / <code class="docutils literal notranslate"><span class="pre">--rotate</span></code>
+options (<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.orientation.ROTATE_CHOICES</span></code>) into account.</p>
+</section>
+<section id="picmaker-sizing-src-picmaker-sizing-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.sizing" title="picmaker.sizing"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.sizing</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/sizing.py</span></code>)<a class="headerlink" href="#picmaker-sizing-src-picmaker-sizing-py" title="Link to this heading"></a></h2>
+<p>Resize planning and execution. <a class="reference internal" href="../module.html#picmaker.sizing.get_size" title="picmaker.sizing.get_size"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.sizing.get_size()</span></code></a>
+consumes the array shape plus <code class="docutils literal notranslate"><span class="pre">--size</span></code> / <code class="docutils literal notranslate"><span class="pre">--scale</span></code> / <code class="docutils literal notranslate"><span class="pre">--frame</span></code> /
+<code class="docutils literal notranslate"><span class="pre">--wrap-ratio</span></code> and returns the unwrapped size, wrapped size, section
+count, and wrap axis. <a class="reference internal" href="../module.html#picmaker.sizing.resize_pil_image" title="picmaker.sizing.resize_pil_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.sizing.resize_pil_image()</span></code></a> resizes
+a PIL image (or a list of three 16-bit RGB images) to the planned size.</p>
+</section>
+<section id="picmaker-layout-src-picmaker-layout-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.layout" title="picmaker.layout"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.layout</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/layout.py</span></code>)<a class="headerlink" href="#picmaker-layout-src-picmaker-layout-py" title="Link to this heading"></a></h2>
+<p>Post-resize page layout. <a class="reference internal" href="../module.html#picmaker.layout.wrap_pil_image" title="picmaker.layout.wrap_pil_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.layout.wrap_pil_image()</span></code></a> splits
+a tall or wide image into <code class="docutils literal notranslate"><span class="pre">sections</span></code> panels separated by gaps, and
+<a class="reference internal" href="../module.html#picmaker.layout.pad_pil_image" title="picmaker.layout.pad_pil_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.layout.pad_pil_image()</span></code></a> pads an image out to fill a
+requested <code class="docutils literal notranslate"><span class="pre">--frame</span></code> size.</p>
 </section>
 <section id="picmaker-pil-utils-src-picmaker-pil-utils-py">
 <h2><a class="reference internal" href="../module.html#module-picmaker.pil_utils" title="picmaker.pil_utils"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.pil_utils</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/pil_utils.py</span></code>)<a class="headerlink" href="#picmaker-pil-utils-src-picmaker-pil-utils-py" title="Link to this heading"></a></h2>
 <p>The bridge between numpy arrays and PIL images.
-<a class="reference internal" href="../module.html#picmaker.pil_utils.array_to_pil" title="picmaker.pil_utils.array_to_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">array_to_pil()</span></code></a> converts an
+<a class="reference internal" href="../module.html#picmaker.pil_utils.array_to_pil" title="picmaker.pil_utils.array_to_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pil_utils.array_to_pil()</span></code></a> converts an
 <code class="docutils literal notranslate"><span class="pre">(lines,</span> <span class="pre">samples,</span> <span class="pre">bands)</span></code> array into a PIL image (or a list of three
-PIL images for 16-bit RGB). <a class="reference internal" href="../module.html#picmaker.pil_utils.pil_to_array" title="picmaker.pil_utils.pil_to_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">pil_to_array()</span></code></a>
-is the inverse. <a class="reference internal" href="../module.html#picmaker.pil_utils.write_pil" title="picmaker.pil_utils.write_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">write_pil()</span></code></a> writes a PIL
-image to disk and routes 16-bit output through
-<a class="reference internal" href="../module.html#picmaker.tiff16.write_tiff16" title="picmaker.tiff16.write_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.tiff16.write_tiff16()</span></code></a>.</p>
+PIL images for 16-bit RGB). <a class="reference internal" href="../module.html#picmaker.pil_utils.pil_to_array" title="picmaker.pil_utils.pil_to_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pil_utils.pil_to_array()</span></code></a>
+is the inverse. <a class="reference internal" href="../module.html#picmaker.pil_utils.write_pil" title="picmaker.pil_utils.write_pil"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.pil_utils.write_pil()</span></code></a> writes a PIL image
+to disk, routing 16-bit output through
+<a class="reference internal" href="../module.html#picmaker.tiff16.write_tiff16" title="picmaker.tiff16.write_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.tiff16.write_tiff16()</span></code></a>.
+<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.pil_utils.PIL_EXTENSIONS</span></code> is the set of recognized
+output extensions used by <a class="reference internal" href="../module.html#picmaker.picmaker.validate_options" title="picmaker.picmaker.validate_options"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.picmaker.validate_options()</span></code></a>.</p>
 </section>
-<section id="picmaker-filters-src-picmaker-filters-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker._filters" title="picmaker._filters"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._filters</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/_filters.py</span></code>)<a class="headerlink" href="#picmaker-filters-src-picmaker-filters-py" title="Link to this heading"></a></h2>
-<p>A thin dispatch around PIL’s <a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/ImageFilter.html#module-PIL.ImageFilter" title="(in Pillow (PIL Fork) v12.2.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">PIL.ImageFilter</span></code></a> presets.
-<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker._filters.FILTER_DICT</span></code> maps the case-folded filter
-name to the <code class="docutils literal notranslate"><span class="pre">ImageFilter</span></code> instance;
-<a class="reference internal" href="../module.html#picmaker._filters.filter_image" title="picmaker._filters.filter_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">filter_image()</span></code></a> applies one to a PIL image
-(or raises <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a> for the 16-bit-RGB-as-list path,
-which is not supported).</p>
-</section>
-<section id="picmaker-rgb-src-picmaker-rgb-py">
-<h2><a class="reference internal" href="../module.html#module-picmaker._rgb" title="picmaker._rgb"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker._rgb</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/_rgb.py</span></code>)<a class="headerlink" href="#picmaker-rgb-src-picmaker-rgb-py" title="Link to this heading"></a></h2>
-<p>The wavelength → RGB table that the HST tint inferer uses. Private to
-the package; re-exported via <a class="reference internal" href="../module.html#module-picmaker.color" title="picmaker.color"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.color</span></code></a>.</p>
+<section id="picmaker-processing-src-picmaker-processing-py">
+<h2><a class="reference internal" href="../module.html#module-picmaker.processing" title="picmaker.processing"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.processing</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/processing.py</span></code>)<a class="headerlink" href="#picmaker-processing-src-picmaker-processing-py" title="Link to this heading"></a></h2>
+<p>Optional pixel-level processing.
+<a class="reference internal" href="../module.html#picmaker.processing.filter_pil_image" title="picmaker.processing.filter_pil_image"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.processing.filter_pil_image()</span></code></a> applies a named
+<a class="reference external" href="https://pillow.readthedocs.io/en/stable/reference/ImageFilter.html#module-PIL.ImageFilter" title="(in Pillow (PIL Fork) v12.3.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">PIL.ImageFilter</span></code></a> preset (<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.processing.FILTER_CHOICES</span></code>)
+to a PIL image. <a class="reference internal" href="../module.html#picmaker.processing.fill_zebra_stripes" title="picmaker.processing.fill_zebra_stripes"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.processing.fill_zebra_stripes()</span></code></a> is the
+optional pre-stretch cleanup for legacy spacecraft compression
+artifacts.</p>
 </section>
 <section id="picmaker-tiff16-src-picmaker-tiff16-py">
 <h2><a class="reference internal" href="../module.html#module-picmaker.tiff16" title="picmaker.tiff16"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.tiff16</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/tiff16.py</span></code>)<a class="headerlink" href="#picmaker-tiff16-src-picmaker-tiff16-py" title="Link to this heading"></a></h2>
 <p>Hand-rolled 16-bit TIFF reader and writer. Used because Pillow’s
 16-bit support is uneven across grayscale / RGB / palette modes.
-<a class="reference internal" href="../module.html#picmaker.tiff16.write_tiff16" title="picmaker.tiff16.write_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">write_tiff16()</span></code></a> and
-<a class="reference internal" href="../module.html#picmaker.tiff16.read_tiff16" title="picmaker.tiff16.read_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_tiff16()</span></code></a>.</p>
+<a class="reference internal" href="../module.html#picmaker.tiff16.write_tiff16" title="picmaker.tiff16.write_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.tiff16.write_tiff16()</span></code></a> and
+<a class="reference internal" href="../module.html#picmaker.tiff16.read_tiff16" title="picmaker.tiff16.read_tiff16"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.tiff16.read_tiff16()</span></code></a>.</p>
 </section>
 <section id="picmaker-colornames-src-picmaker-colornames-py">
 <h2><a class="reference internal" href="../module.html#module-picmaker.colornames" title="picmaker.colornames"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.colornames</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/colornames.py</span></code>)<a class="headerlink" href="#picmaker-colornames-src-picmaker-colornames-py" title="Link to this heading"></a></h2>
-<p>The X11 color-name table (~800 entries) plus a normalizing lookup
-helper. Used by the <code class="docutils literal notranslate"><span class="pre">--pad-color</span></code> / <code class="docutils literal notranslate"><span class="pre">--gap-color</span></code> / colormap
-options.</p>
+<p>The X11 color-name table plus a normalizing lookup helper,
+<a class="reference internal" href="../module.html#picmaker.colornames.ColorNames" title="picmaker.colornames.ColorNames"><code class="xref py py-class docutils literal notranslate"><span class="pre">picmaker.colornames.ColorNames</span></code></a>. Used by the colormap,
+<code class="docutils literal notranslate"><span class="pre">--pad-color</span></code>, <code class="docutils literal notranslate"><span class="pre">--gap-color</span></code>, and related color options.</p>
 </section>
 <section id="picmaker-instruments-src-picmaker-instruments">
 <h2><a class="reference internal" href="../module.html#module-picmaker.instruments" title="picmaker.instruments"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments</span></code></a> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/instruments/</span></code>)<a class="headerlink" href="#picmaker-instruments-src-picmaker-instruments" title="Link to this heading"></a></h2>
-<p>Per-mission file readers and tint chains. Each module under this
-subpackage exposes the three-function protocol (<code class="docutils literal notranslate"><span class="pre">read_file</span></code>,
-<code class="docutils literal notranslate"><span class="pre">matches</span></code>, <code class="docutils literal notranslate"><span class="pre">tint_for</span></code>) plus an optional <code class="docutils literal notranslate"><span class="pre">apply_tint</span></code> described in
-<a class="reference internal" href="adding_an_instrument.html"><span class="doc">Adding a new instrument</span></a>.  Each instrument owns its own format
-detection and array extraction inside <code class="xref py py-func docutils literal notranslate"><span class="pre">read_file()</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">read_file</span></code> accepts <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> so that pipeline options relevant only
-to specific instruments can be forwarded without touching every
-instrument module.  The set of options forwarded is controlled by
-<code class="xref py py-data docutils literal notranslate"><span class="pre">picmaker.options.READ_FILE_KWARGS</span></code>; <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> passes the
-assembled dict through unchanged and each instrument extracts only what
-it needs (<code class="docutils literal notranslate"><span class="pre">kwargs.get('key',</span> <span class="pre">default)</span></code>).</p>
-<p><a class="reference internal" href="../module.html#picmaker.instruments.lookup" title="picmaker.instruments.lookup"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.lookup()</span></code></a> picks the right instrument module
-given a host string; <a class="reference internal" href="../module.html#picmaker.instruments.ALL_INSTRUMENTS" title="picmaker.instruments.ALL_INSTRUMENTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALL_INSTRUMENTS</span></code></a> is
-the ordered dispatch list that <a class="reference internal" href="../module.html#picmaker.io.read_one_image_array" title="picmaker.io.read_one_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.io.read_one_image_array()</span></code></a>
-iterates.</p>
-<section id="picmaker-instruments-shared-src-picmaker-instruments-shared-py">
-<h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._shared</span></code> (<code class="docutils literal notranslate"><span class="pre">src/picmaker/instruments/_shared.py</span></code>)<a class="headerlink" href="#picmaker-instruments-shared-src-picmaker-instruments-shared-py" title="Link to this heading"></a></h3>
-<p>Shared format-level utilities for use by instrument modules.
-<code class="xref py py-func docutils literal notranslate"><span class="pre">try_open_vicar()</span></code> wraps
-<code class="xref py py-meth docutils literal notranslate"><span class="pre">vicar.VicarImage.from_file()</span></code> and returns <code class="docutils literal notranslate"><span class="pre">None</span></code> on failure.
-<code class="xref py py-func docutils literal notranslate"><span class="pre">is_fits_file()</span></code> sniffs the FITS
-magic bytes.
-<code class="xref py py-func docutils literal notranslate"><span class="pre">extract_fits_array()</span></code> extracts a 3-D
-array from an open FITS HDU list.  These helpers live here rather than
-in <a class="reference internal" href="../module.html#module-picmaker.io" title="picmaker.io"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.io</span></code></a> to avoid circular imports.</p>
+<p>Per-mission file readers and tint chains. The package <code class="docutils literal notranslate"><span class="pre">__init__</span></code>
+defines the reader cascade and the plug-in machinery:</p>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">picmaker.instruments.ImageData</span></code> is the base class every
+instrument reader subclasses. An instance carries the pixel
+<code class="docutils literal notranslate"><span class="pre">array</span></code>, a <code class="docutils literal notranslate"><span class="pre">default_upward</span></code> orientation hint, and a
+<code class="docutils literal notranslate"><span class="pre">default_tint</span></code> RGB color; its <code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_colormap()</span></code>
+method delegates to <a class="reference internal" href="../module.html#picmaker.enhancement.apply_colormap" title="picmaker.enhancement.apply_colormap"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.enhancement.apply_colormap()</span></code></a> and
+may be overridden per instrument.</p></li>
+<li><p><a class="reference internal" href="../module.html#picmaker.instruments.read_image_array" title="picmaker.instruments.read_image_array"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.read_image_array()</span></code></a> is the public reader.
+For a single path it runs the cascade; for a list of paths it stacks
+the per-file arrays along the band axis. The private
+<code class="docutils literal notranslate"><span class="pre">_read_one_image_array</span></code> tries each format in turn — PDS3 <code class="docutils literal notranslate"><span class="pre">.LBL</span></code>
+label, then VICAR, then FITS, then any other file format — and, for
+each, offers the file to every registered instrument’s
+<code class="docutils literal notranslate"><span class="pre">detect_in_pds3</span></code> / <code class="docutils literal notranslate"><span class="pre">detect_in_vicar</span></code> / <code class="docutils literal notranslate"><span class="pre">detect_in_fits</span></code> /
+<code class="docutils literal notranslate"><span class="pre">detect_in_file</span></code> static method until one returns an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code>.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.register_instrument()</span></code> adds an
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> subclass to the dispatch
+list. Every non-underscore module in the subpackage is imported at
+package load so it can register itself, so a new instrument is picked
+up simply by dropping a module into the package.</p></li>
+<li><p><a class="reference internal" href="../module.html#picmaker.instruments.tint_by_nm" title="picmaker.instruments.tint_by_nm"><code class="xref py py-func docutils literal notranslate"><span class="pre">picmaker.instruments.tint_by_nm()</span></code></a> maps a wavelength in nm to an
+RGB tint via a private wavelength → RGB lookup table. Each reader’s
+<code class="docutils literal notranslate"><span class="pre">default_tint</span></code> is typically computed from its filter’s central
+wavelength through this function; there is no separate colormap
+module.</p></li>
+</ul>
+<p>The support modules hold format-level helpers shared by the readers:</p>
+<section id="picmaker-instruments-fits-support-fits-support-py">
+<h3><a class="reference internal" href="../module.html#module-picmaker.instruments._fits_support" title="picmaker.instruments._fits_support"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._fits_support</span></code></a> (<code class="docutils literal notranslate"><span class="pre">_fits_support.py</span></code>)<a class="headerlink" href="#picmaker-instruments-fits-support-fits-support-py" title="Link to this heading"></a></h3>
+<p>Shared FITS tools: <code class="docutils literal notranslate"><span class="pre">hdu_is_image</span></code>, <code class="docutils literal notranslate"><span class="pre">get_fits_image_hdus</span></code>,
+<code class="docutils literal notranslate"><span class="pre">get_fits_image_hdu</span></code>, and <code class="docutils literal notranslate"><span class="pre">get_fits_array</span></code> for locating and
+extracting image arrays from an open FITS HDU list.</p>
+</section>
+<section id="picmaker-instruments-hst-support-hst-support-py">
+<h3><a class="reference internal" href="../module.html#module-picmaker.instruments._hst_support" title="picmaker.instruments._hst_support"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._hst_support</span></code></a> (<code class="docutils literal notranslate"><span class="pre">_hst_support.py</span></code>)<a class="headerlink" href="#picmaker-instruments-hst-support-hst-support-py" title="Link to this heading"></a></h3>
+<p>Shared HST tools: <code class="docutils literal notranslate"><span class="pre">get_hst_filter_digits</span></code> (parse the numeric
+wavelength out of an HST filter name) and <code class="docutils literal notranslate"><span class="pre">is_science_hdu</span></code>.</p>
+</section>
+<section id="picmaker-instruments-pds3-support-pds3-support-py">
+<h3><a class="reference internal" href="../module.html#module-picmaker.instruments._pds3_support" title="picmaker.instruments._pds3_support"><code class="xref py py-mod docutils literal notranslate"><span class="pre">picmaker.instruments._pds3_support</span></code></a> (<code class="docutils literal notranslate"><span class="pre">_pds3_support.py</span></code>)<a class="headerlink" href="#picmaker-instruments-pds3-support-pds3-support-py" title="Link to this heading"></a></h3>
+<p>Shared PDS3 tools: <code class="docutils literal notranslate"><span class="pre">read_pds3_image_array</span></code> (plus <code class="docutils literal notranslate"><span class="pre">PDS3_METHODS</span></code> /
+<code class="docutils literal notranslate"><span class="pre">DEFAULT_PDS3_METHOD</span></code>) for reading the image object out of a PDS3
+label.</p>
+</section>
+<section id="per-instrument-reader-modules">
+<h3>Per-instrument reader modules<a class="headerlink" href="#per-instrument-reader-modules" title="Link to this heading"></a></h3>
+<p>Each of the following modules defines exactly one
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ImageData</span></code> subclass and registers it:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cassini_iss.py</span></code> — Cassini ISS (PDS3 and VICAR).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">voyager_iss.py</span></code> — Voyager ISS (PDS3 and VICAR).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">galileo_ssi.py</span></code> — Galileo SSI (PDS3 and VICAR).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hst_acs.py</span></code> — HST ACS (FITS).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hst_wfc3.py</span></code> — HST WFC3 (FITS).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hst_wfpc2.py</span></code> — HST WFPC2 (FITS, with optional four-detector
+mosaic assembly).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hst_nicmos.py</span></code> — HST NICMOS (FITS).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nh_lorri.py</span></code> — New Horizons LORRI (PDS3 and FITS).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nh_mvic.py</span></code> — New Horizons MVIC (PDS3 and FITS).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zzz_generic.py</span></code> — the generic fallback reader (PDS3, VICAR, FITS,
+and other raster formats). Named with a <code class="docutils literal notranslate"><span class="pre">zzz</span></code> prefix so it sorts
+last in the dispatch order and only matches when no instrument-
+specific reader claims the file.</p></li>
+</ul>
+<p>See <a class="reference internal" href="adding_an_instrument.html"><span class="doc">Adding a new instrument</span></a> for the full reader protocol.</p>
 </section>
 </section>
 </section>
@@ -316,7 +343,7 @@ in <a class="reference internal" href="../module.html#module-picmaker.io" title=
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

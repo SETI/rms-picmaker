@@ -30,7 +30,7 @@ importable Python library (``import picmaker``). The CLI is the fastest
 way to get a single image converted; the library lets you script
 multi-file pipelines and embed the conversion inside larger tools.
 
-The library entry point is ``images_to_pics``, which accepts the same
+The library entry point is ``picmaker``, which accepts the same
 keyword arguments the CLI binds to, so any CLI invocation is exactly
 equivalent to one library call.
 
@@ -69,12 +69,13 @@ The same operation from Python:
 
 .. code-block:: python
 
-   from picmaker import images_to_pics
+   from picmaker import picmaker
+   from picmaker.parser import get_parser
 
-   images_to_pics(
-       ['tests/fixtures/cassini_iss.vic'],
-       directory='/tmp/out',
+   options = get_parser().parse_args(
+       ['tests/fixtures/cassini_iss.vic', '--directory', '/tmp/out'],
    )
+   picmaker(**vars(options))
 
 
 4. Command-line reference
@@ -89,10 +90,10 @@ Control options
   Required when ``--recursive`` is set.
 * ``-r``, ``--recursive`` — Descend into directory trees, mirroring the
   input layout under ``--directory``.
-* ``--pattern PATTERN`` (default: ``'*'``) — Glob filter applied to file
-  names during recursion.
+* ``--pattern PATTERN [PATTERN ...]`` (default: match every file) — One or
+  more glob filters applied to file names during recursion.
 * ``--movie`` — Share one set of enhancement limits across every input.
-  Incompatible with ``--mosaic``.
+  Incompatible with ``--versions``.
 * ``--versions FILE`` — For each non-blank line in ``FILE``, re-parse
   the command line with that line's tokens appended and run the
   resulting pipeline. Produces one output per non-blank line.
@@ -107,8 +108,8 @@ Control options
 Output options
 ~~~~~~~~~~~~~~
 
-* ``-x EXT``, ``--extension EXT`` (default: ``jpg``, or ``tiff`` if
-  ``--16``) — Output file format. Choices: ``bmp``, ``dib``, ``gif``,
+* ``-x EXT``, ``--extension EXT`` (default: ``jpg``) — Output file format.
+  Choices: ``bmp``, ``dib``, ``gif``,
   ``jpg``, ``jpeg``, ``png``, ``tif``, ``tiff`` (any-case).
 * ``-s STR``, ``--suffix STR`` (default: ``''``) — Inserted between the
   file stem and ``.<ext>``.
@@ -116,18 +117,17 @@ Output options
   remove from the output filename's stem before appending the suffix.
 * ``-q N``, ``--quality N`` (default: ``75``) — JPEG quality, 1-100.
   Ignored for non-JPEG outputs.
-* ``--16`` — Emit a 16-bit grayscale or 16-bit RGB TIFF. Forces
-  ``--extension`` to ``tiff`` when unset. Incompatible with
-  ``--filter`` (16-bit filters are not supported).
+* ``--16`` — Emit a 16-bit grayscale or 16-bit RGB TIFF. Requires
+  ``--extension tiff`` (or ``tif``) to be given explicitly. Incompatible
+  with ``--filter`` (image filters are not supported for 16-bit images).
 
 Selection options
 ~~~~~~~~~~~~~~~~~
 
-* ``-b N``, ``--band N`` (default: ``0``) — Select a single band from a
-  3-D array. Incompatible with ``--bands`` (except when
-  ``band == bands[0] == bands[1]``).
-* ``--bands LO HI`` (default: ``(band, band+1)``) — Average bands
-  ``LO..HI-1`` (half-open range).
+* ``-b N``, ``--band N`` (default: ``1``) — Select a single band from a
+  3-D array (band indices start at 1). Incompatible with ``--bands``.
+* ``--bands LO HI`` — Coadd bands ``LO..HI`` (indices start at 1 and are
+  inclusive of the upper limit). Incompatible with ``--band``.
 * ``--lines L1 L2`` — Sub-region selection by line index (1-based,
   inclusive of the upper limit).
 * ``--samples S1 S2`` — Sub-region selection by sample index (1-based,
@@ -158,10 +158,10 @@ Sizing options
 * ``--crop VALUE`` — Crop outer rows / columns whose every pixel equals
   ``VALUE`` (typically used to trim CCD frames of zeros).
 * ``--frame W H`` — Fit the image inside a ``W x H`` box, preserving
-  aspect ratio. Incompatible with ``--size`` and ``--wrap-ratio``.
+  aspect ratio. Incompatible with ``--size``.
 * ``--pad`` — When set with ``--frame``, pad the output to the full
   frame size; otherwise the output is cropped to content.
-* ``--pad-color NAME`` (default: ``black``) — Padding fill color (any
+* ``--pad-color NAME`` (default: ``gray``) — Padding fill color (any
   X11 color name or ``#RRGGBB``).
 * ``--frame_max PCT`` — When set with ``--frame``, the up-scaling is
   capped at this percentage of the input size (prevents up-scaling a
@@ -172,17 +172,16 @@ Layout options
 
 * ``--wrap`` — Split very elongated images into stacked sections.
 * ``--wrap-ratio R`` — Wrap when ``max(W, H) / min(W, H) > R``.
-  Incompatible with ``--frame``.
-* ``--overlap PCT`` (default: ``0``) — Per-section overlap percentage
-  (single value). Incompatible with ``--overlaps``.
-* ``--overlaps LO HI`` — Range of overlap percentages explored to pick
-  the best fit.
-* ``--gap-size N``, ``--gapsize N`` (default: ``1``) — Width in pixels
-  of the gap drawn between wrapped sections.
-* ``--gap-color NAME``, ``--gapcolor NAME`` (default: ``white``) — Gap
-  color (X11 color name or ``#RRGGBB``).
+* ``--overlap PCT`` — Per-section overlap percentage (single value).
+  Incompatible with ``--overlaps``.
+* ``--overlaps LO HI`` — Minimum and maximum overlap percentages explored
+  to pick the best fit.
+* ``--gap-size N`` (default: ``1``) — Width in pixels of the gap drawn
+  between wrapped sections.
+* ``--gap-color NAME`` (default: ``white``) — Gap color (X11 color name
+  or ``(R,G,B)`` tuple).
 * ``--mosaic`` — Construct a mosaic from all detector panels (currently
-  HST ACS/WFC and WFPC2). Incompatible with ``--band`` / ``--bands`` / ``--movie``.
+  HST ACS/WFC and WFPC2).
 
 Scaling options (histogram and intensity controls)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -197,8 +196,8 @@ Scaling options (histogram and intensity controls)
   not set.
 * ``--trim N`` (default: ``0``) — Pixels at the image edge to ignore
   when computing the histogram.
-* ``--trim-zeros``, ``--trimzeros`` — Ignore exterior rows / columns
-  that are entirely zero (CCD overscan cleanup).
+* ``--trim-zeros`` — Ignore exterior rows / columns that are entirely
+  zero (CCD overscan cleanup).
 * ``--footprint D`` (default: ``0``) — Diameter in pixels of a circular
   median-filter footprint used to compute the histogram.
 * ``--histogram`` — Use a flat-histogram stretch instead of the linear
@@ -207,9 +206,11 @@ Scaling options (histogram and intensity controls)
 Enhancement options
 ~~~~~~~~~~~~~~~~~~~
 
-* ``-c NAME``, ``--colormap NAME`` — Apply a named colormap (e.g.
-  ``black-white``, ``red-blue``, ``black-blue-white``). Names are
-  hyphen-separated lists of X11 color stops.
+* ``-c COLOR [COLOR ...]``, ``--colormap COLOR [COLOR ...]`` — Build a
+  colormap from one or more color stops, e.g.
+  ``--colormap black blue white``. A single color (e.g.
+  ``--colormap blue``) is shorthand for ``black <color> white``. Each
+  stop is an X11 color name or an ``(R,G,B)`` tuple.
 * ``--below COLOR`` — Color used for pixels below the lower limit.
 * ``--above COLOR`` — Color used for pixels above the upper limit.
 * ``--invalid COLOR`` (default: ``black``) — Color used for invalid
@@ -259,7 +260,7 @@ Processing options
   ISS, Galileo SSI). The instrument is recognized automatically from
   the label, which enables instrument-aware tinting (see section 6).
 * **FITS** — including HST (WFC3, ACS, WFPC2, NICMOS) and New
-  Horizons (MVIC). HST mosaics across multiple detector panels are
+  Horizons (LORRI, MVIC). HST mosaics across multiple detector panels are
   reconstructed with ``--mosaic``.
 * **Pickled NumPy arrays** (``.pkl``) and **NumPy** ``.npy`` files.
 * **Common raster formats** — BMP, GIF, JPEG, PNG, plain TIFF.
@@ -371,9 +372,8 @@ their tints:
   produced 3-channel data).
 
 The output filename stem is built as
-``<input-stem><suffix>.<extension>``, with ``--strip`` and
-``--alt-strip`` each removing the first occurrence of their value from
-``<input-stem>``.
+``<input-stem><suffix>.<extension>``, with ``--strip`` removing each of
+its one-or-more substrings from ``<input-stem>``.
 
 
 8. Enhancement controls
@@ -389,13 +389,15 @@ The intensity pipeline runs in this order:
    considered.
 3. ``--histogram`` switches the stretch from linear to
    flat-histogram-equalised.
-4. ``--colormap NAME`` maps the stretched values into RGB. Names are
-   hyphen-separated lists of X11 color names. ``--tint`` overrides this
-   step with the per-instrument tint from section 6.
-5. ``--below``, ``--above``, ``--invalid`` override the colors used for
+4. ``--gamma G`` applies a power-law correction to the stretched
+   grayscale (``out = in ** G``) before the colormap is applied. Values
+   ``> 1`` darken the midtones; values ``< 1`` brighten them.
+5. ``--colormap COLOR ...`` maps the stretched values into RGB. Supply
+   one or more X11 color names (or ``(R,G,B)`` tuples) as separate color
+   stops. ``--tint`` overrides this step with the per-instrument tint
+   from section 6.
+6. ``--below``, ``--above``, ``--invalid`` override the colors used for
    the three special cases.
-6. ``--gamma G`` applies a final power-law correction
-   (``out = in ** (1 / G)``).
 
 
 9. Geometry controls
@@ -444,40 +446,48 @@ invalid version doesn't abort the others (when combined with
 ----------------------
 
 The library mirrors the CLI: every flag binds to a keyword argument of
-``images_to_pics``.
+``picmaker``. The most robust way to assemble a complete set of options
+is to let the argument parser fill in all of the defaults, then pass the
+resulting namespace straight through:
 
 .. code-block:: python
 
-   from picmaker import images_to_pics
+   from picmaker import picmaker
+   from picmaker.parser import get_parser
 
    # Convert one file with a percentile stretch and a colormap.
-   images_to_pics(
-       ['data/cassini.vic'],
-       directory='/tmp/out',
-       percentiles=(5.0, 95.0),
-       colormap='black-blue-white',
-       extension='png',
-   )
+   options = get_parser().parse_args([
+       'data/cassini.vic',
+       '--directory', '/tmp/out',
+       '--percentiles', '5', '95',
+       '--colormap', 'black', 'blue', 'white',
+       '--extension', 'png',
+   ])
+   picmaker(**vars(options))
 
-   # Re-use the same stretch across a sequence of frames (movie mode).
-   limits, _, _ = images_to_pics(['frame_001.vic'], directory='/tmp/out')
-   for n in range(2, 100):
-       images_to_pics(
-           [f'frame_{n:03d}.vic'],
-           directory='/tmp/out',
-           limits=limits,
-       )
+   # Re-use one set of enhancement limits across a sequence of frames by
+   # passing every frame at once with ``--movie``.
+   options = get_parser().parse_args([
+       'frame_001.vic', 'frame_002.vic', 'frame_003.vic',
+       '--directory', '/tmp/out',
+       '--movie',
+   ])
+   picmaker(**vars(options))
 
-Lower-level helpers are re-exported on the top-level package:
+Lower-level helpers are re-exported on the top-level package. For example,
+``read_image_array`` reads a file into an ``ImageData`` object whose
+``.array`` holds the raw pixels:
 
 .. code-block:: python
 
    from picmaker import (
-       read_one_image_array,
-       tinted_colormap,
+       read_image_array,
        apply_colormap,
        array_to_pil,
    )
+
+   image_data = read_image_array('data/cassini.vic')
+   pixels = image_data.array
 
 See :doc:`module` for the full API reference.
 
@@ -485,26 +495,20 @@ See :doc:`module` for the full API reference.
 12. Troubleshooting
 -------------------
 
-* ``Unrecognized image file format`` — None of the supported readers
+* ``unrecognized file format in <path>`` — None of the supported readers
   recognized the file. Check the file is not truncated and that its
   magic bytes match one of the supported formats.
-* ``Unknown HST filter: <inst> <name>`` — HST wavelength inference
-  failed for this filter; no tint is applied and the existing colormap
-  is preserved.
-* ``mosaic and band options are incompatible`` — ``--mosaic`` consumes
-  every detector panel, so it cannot be combined with ``--band`` or
-  ``--bands``.
-* ``band and bands options are incompatible`` — ``--band`` and
-  ``--bands`` were both given with mismatched values. Use one or the
-  other.
-* ``scale and wscale options are incompatible`` — ``--scale`` sets both
-  axes; use ``--wscale`` / ``--hscale`` instead for per-axis control.
-* ``frame and size options are incompatible`` — ``--frame`` and
+* When HST wavelength inference fails for a filter, no tint is applied
+  and the existing colormap is preserved.
+* ``--band and --bands options are incompatible`` — ``--band`` and
+  ``--bands`` were both given. Use one or the other.
+* ``--scale and --wscale options are incompatible`` (likewise
+  ``--scale and --hscale``) — ``--scale`` sets both axes; use
+  ``--wscale`` / ``--hscale`` instead for per-axis control.
+* ``--frame and --size options are incompatible`` — ``--frame`` and
   ``--size`` both specify the output dimensions and can't be combined.
-* ``frame and wrap_ratio options are incompatible`` — ``--frame`` and
-  ``--wrap-ratio`` produce conflicting layout decisions.
-* ``only tiffs can be written in 16-bit mode`` — ``--16`` requires
-  ``--extension tiff``.
-* ``16-bit filter options are not supported`` — The Pillow filter
-  presets only work on 8-bit images; drop ``--filter`` when using
+* ``only tiffs can be written in 16-bit mode`` — ``--16`` requires an
+  explicit ``--extension tiff`` (or ``tif``).
+* ``image filters are not supported for 2-byte images`` — The Pillow
+  filter presets only work on 8-bit images; drop ``--filter`` when using
   ``--16``.

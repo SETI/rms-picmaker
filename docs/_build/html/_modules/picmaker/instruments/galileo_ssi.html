@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>picmaker.instruments.galileo_ssi &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>picmaker.instruments.galileo_ssi &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
 
@@ -14,7 +14,7 @@
   
         <script src="../../../_static/jquery.js?v=5d32c60e"></script>
         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../../_static/documentation_options.js?v=10858467"></script>
+        <script src="../../../_static/documentation_options.js?v=e2a04e36"></script>
         <script src="../../../_static/doctools.js?v=9a2dae69"></script>
         <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
@@ -512,196 +512,96 @@ window.runMermaid = runMermaid;</script>
            <div itemprop="articleBody">
              
   <h1>Source code for picmaker.instruments.galileo_ssi</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Galileo SSI detection and tint.&quot;&quot;&quot;</span>
+<span></span><span class="c1">##########################################################################################</span>
+<span class="c1"># picmaker/instruments/galileo_ssi.py</span>
+<span class="c1">##########################################################################################</span>
+<span class="sd">&quot;&quot;&quot;Galileo SSI detector and reader.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">register_instrument</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments._pds3_support</span> <span class="kn">import</span> <span class="n">read_pds3_image_array</span>
 
-<span class="kn">import</span> <span class="nn">pdsparser</span>
-<span class="kn">from</span> <span class="nn">vicar</span> <span class="kn">import</span> <span class="n">VicarError</span>
-
-<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
-<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">_shared</span>
-
-<span class="n">FILTER_NAMES</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;CLEAR&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;GREEN&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;RED&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;VIOLET&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;IR-7560&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;IR-9680&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;IR-7270&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;IR-8890&#39;</span><span class="p">,</span>
-<span class="p">]</span>
-
-<span class="n">FILTER_DICT</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;CLEAR&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
-    <span class="s1">&#39;RED&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">190</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
-    <span class="s1">&#39;GREEN&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">190</span><span class="p">,</span> <span class="mi">110</span><span class="p">),</span>
-    <span class="s1">&#39;VIOLET&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">160</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span>
+<span class="n">_FILTER_NAMES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;CLEAR&#39;</span><span class="p">,</span> <span class="s1">&#39;GREEN&#39;</span><span class="p">,</span> <span class="s1">&#39;RED&#39;</span><span class="p">,</span> <span class="s1">&#39;VIOLET&#39;</span><span class="p">,</span> <span class="s1">&#39;IR-7560&#39;</span><span class="p">,</span> <span class="s1">&#39;IR-9680&#39;</span><span class="p">,</span> <span class="s1">&#39;IR-7270&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;IR-8890&#39;</span><span class="p">]</span>
+<span class="n">_FILTER_TINTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;RED&#39;</span>    <span class="p">:</span> <span class="p">(</span><span class="mi">190</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+    <span class="s1">&#39;GREEN&#39;</span>  <span class="p">:</span> <span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">190</span><span class="p">,</span> <span class="mi">110</span><span class="p">),</span>
+    <span class="s1">&#39;VIOLET&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="mi">160</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span>
     <span class="s1">&#39;IR-7270&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
-    <span class="s1">&#39;IR-7560&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">210</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
-    <span class="s1">&#39;IR-8890&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">220</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
-    <span class="s1">&#39;IR-9680&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">230</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span>
+    <span class="s1">&#39;IR-7560&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">210</span><span class="p">,</span>  <span class="mi">80</span><span class="p">,</span>  <span class="mi">80</span><span class="p">),</span>
+    <span class="s1">&#39;IR-8890&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">220</span><span class="p">,</span>  <span class="mi">60</span><span class="p">,</span>  <span class="mi">60</span><span class="p">),</span>
+    <span class="s1">&#39;IR-9680&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">230</span><span class="p">,</span>  <span class="mi">40</span><span class="p">,</span>  <span class="mi">40</span><span class="p">),</span>
 <span class="p">}</span>
+<span class="n">_DEFAULT_UPWARD</span> <span class="o">=</span> <span class="kc">False</span>
 
 
-<span class="k">def</span> <span class="nf">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract Galileo SSI metadata from an open :class:`vicar.VicarImage`.</span>
+<div class="viewcode-block" id="Galileo_SSI">
+<a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.Galileo_SSI">[docs]</a>
+<span class="k">class</span> <span class="nc">Galileo_SSI</span><span class="p">(</span><span class="n">ImageData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Galileo SSI detector and reader.&quot;&quot;&quot;</span>
 
-<span class="sd">    Two label conventions are tried in order: the ``MISSION`` keyword</span>
-<span class="sd">    with a numeric ``FILTER`` index into</span>
-<span class="sd">    :data:`picmaker.instruments.galileo_ssi.FILTER_NAMES`, then a</span>
-<span class="sd">    ``GLL/SSI`` prefix in ``LAB01`` with ``FILTER=&lt;digit&gt;`` somewhere</span>
-<span class="sd">    in ``LAB03``.</span>
+<div class="viewcode-block" id="Galileo_SSI.detect_in_pds3">
+<a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.Galileo_SSI.detect_in_pds3">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_pds3</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract Galileo SSI data from a parsed Pds3Label.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">        vic: A :class:`vicar.VicarImage` instance.</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">            label (Pds3Label): A parsed PDS3 label.</span>
+<span class="sd">            filepath (str or Path): The path to this PDS3 label.</span>
+<span class="sd">            **kwargs: Additional input options, ignored here.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        ``(&#39;GALILEO&#39;, &#39;SSI&#39;, filter_name)`` if the label identifies a</span>
-<span class="sd">        Galileo SSI image, ``None`` otherwise.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;MISSION&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;GALILEO&#39;</span><span class="p">:</span>
-            <span class="n">filtno</span> <span class="o">=</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;FILTER&#39;</span><span class="p">]</span>
-            <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;GALILEO&#39;</span><span class="p">,</span> <span class="s1">&#39;SSI&#39;</span><span class="p">,</span> <span class="n">FILTER_NAMES</span><span class="p">[</span><span class="n">filtno</span><span class="p">])</span>
-    <span class="k">except</span> <span class="p">(</span><span class="n">VicarError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
-        <span class="k">pass</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;LAB01&#39;</span><span class="p">][:</span><span class="mi">7</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;GLL/SSI&#39;</span><span class="p">:</span>
-            <span class="n">filtno</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vic</span><span class="p">[</span><span class="s1">&#39;LAB03&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s1">&#39;FILTER=&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;GALILEO&#39;</span><span class="p">,</span> <span class="s1">&#39;SSI&#39;</span><span class="p">,</span> <span class="n">FILTER_NAMES</span><span class="p">[</span><span class="n">filtno</span><span class="p">])</span>
-    <span class="k">except</span> <span class="p">(</span><span class="n">VicarError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-        <span class="k">pass</span>
-    <span class="k">return</span> <span class="kc">None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Galileo_SSI or None: Instrument subclass if `label` describes a Galileo SSI</span>
+<span class="sd">            product; None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
-
-<span class="k">def</span> <span class="nf">_detect_pds3</span><span class="p">(</span><span class="n">label</span><span class="p">:</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract Galileo SSI metadata from a PDS3 label.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        label: A parsed :class:`pdsparser.Pds3Label`.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ``(&#39;GALILEO&#39;, &#39;SSI&#39;, filter_name)`` if the label identifies a</span>
-<span class="sd">        Galileo SSI image, ``None`` otherwise.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;SPACECRAFT_NAME&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;GALILEO ORBITER&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;SPACECRAFT_NAME&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;GALILEO ORBITER&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_NAME&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;SOLID STATE IMAGING SYSTEM&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;INSTRUMENT_ID&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;SSI&#39;</span><span class="p">):</span>
+
+        <span class="n">array</span> <span class="o">=</span> <span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">filter_name</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Galileo_SSI</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">_DEFAULT_UPWARD</span><span class="p">,</span> <span class="n">_FILTER_TINTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filter_name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Galileo_SSI.detect_in_vicar">
+<a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.Galileo_SSI.detect_in_vicar">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract Galileo SSI data from an open VicarImage.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            vic (VicarImage): A VicarImage object.</span>
+<span class="sd">            filepath (str or Path): The path to this Vicar file.</span>
+<span class="sd">            **kwargs: Additional input options, ignored here.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Galileo_SSI or None: Instrument subclass if `vic` describes a Galileo SSI</span>
+<span class="sd">            product; None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;MISSION&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;GALILEO&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">vic</span><span class="p">[</span><span class="s1">&#39;SENSOR&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;SSI&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="s1">&#39;FILTER_NAME&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
-            <span class="n">filter_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;FILTER_NAME&#39;</span><span class="p">])</span>
-        <span class="k">elif</span> <span class="s1">&#39;FILTER_NUMBER&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
-            <span class="n">filter_name</span> <span class="o">=</span> <span class="n">FILTER_NAMES</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;FILTER_NUMBER&#39;</span><span class="p">])]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">filter_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;GALILEO&#39;</span><span class="p">,</span> <span class="s1">&#39;SSI&#39;</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">)</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
 
-
-<div class="viewcode-block" id="read_file">
-<a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.read_file">[docs]</a>
-<span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">,</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to detect and read a Galileo SSI image.</span>
-
-<span class="sd">    Accepts either a file path (VICAR format) or a pre-parsed</span>
-<span class="sd">    :class:`pdsparser.Pds3Label`.  Returns ``None`` if the file is not</span>
-<span class="sd">    recognized as a Galileo SSI image.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        filename: Path to the candidate file, or a parsed PDS3 label.</span>
-<span class="sd">        obj: Ignored (VICAR files contain a single array).</span>
-<span class="sd">        **kwargs: Accepted but ignored; Galileo files need no</span>
-<span class="sd">            instrument-specific options.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        :class:`~picmaker._types.ReadResult` on success, ``None`` if</span>
-<span class="sd">        the file is not recognized as a Galileo SSI image.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">):</span>
-        <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_pds3</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
-
-    <span class="n">vic</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">try_open_vicar</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">vic</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_vicar</span><span class="p">(</span><span class="n">vic</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">_shared</span><span class="o">.</span><span class="n">ensure_3d</span><span class="p">(</span><span class="n">vic</span><span class="o">.</span><span class="n">data_3d</span><span class="p">),</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span></div>
+        <span class="n">ifilter</span> <span class="o">=</span> <span class="n">vic</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">filter_name</span> <span class="o">=</span> <span class="n">_FILTER_NAMES</span><span class="p">[</span><span class="n">ifilter</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">Galileo_SSI</span><span class="p">(</span><span class="n">vic</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">_DEFAULT_UPWARD</span><span class="p">,</span> <span class="n">_FILTER_TINTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filter_name</span><span class="p">))</span></div>
+</div>
 
 
 
-<div class="viewcode-block" id="matches">
-<a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.matches">[docs]</a>
-<span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicate identifying the Galileo SSI camera, the instrument this module tints.</span>
+<span class="n">register_instrument</span><span class="p">(</span><span class="n">Galileo_SSI</span><span class="p">)</span>
 
-<span class="sd">    Both the host and the instrument id must agree: a Galileo host alone</span>
-<span class="sd">    is not enough, since other Galileo instruments (PPR, ...) must not be</span>
-<span class="sd">    picked up for SSI tinting. The ``inst_id`` test mirrors the SSI gate</span>
-<span class="sd">    in :func:`tint_for`.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        inst_host: Instrument host string.</span>
-<span class="sd">        inst_id: Instrument id (e.g. ``&#39;SSI&#39;``).</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ``True`` for a Galileo host whose ``inst_id`` names the SSI camera</span>
-<span class="sd">        (``&#39;SSI&#39;`` or a ``&#39;SOLID&#39;``-prefixed variant).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">inst_host</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;GALILEO&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-        <span class="n">inst_id</span> <span class="o">==</span> <span class="s1">&#39;SSI&#39;</span> <span class="ow">or</span> <span class="n">inst_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;SOLID&#39;</span><span class="p">)</span>
-    <span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="tint_for">
-<a class="viewcode-back" href="../../../module.html#picmaker.instruments.galileo_ssi.tint_for">[docs]</a>
-<span class="k">def</span> <span class="nf">tint_for</span><span class="p">(</span><span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the full ``[black, tint, white]`` colormap for a Galileo filter.</span>
-
-<span class="sd">    Only the SSI camera and the ``SOLID``-prefixed variants get a colored tint; every</span>
-<span class="sd">    other Galileo instrument falls through to the 2-element ``[black, white]`` colormap.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        inst_id: Instrument id.</span>
-<span class="sd">        filter_name: A key into :data:`picmaker.instruments.galileo_ssi.FILTER_DICT`.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ``[(0, 0, 0), tint, (255, 255, 255)]`` for an SSI filter or</span>
-<span class="sd">        ``[(0, 0, 0), (255, 255, 255)]`` otherwise.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        KeyError: If ``filter_name`` is not in</span>
-<span class="sd">            :data:`picmaker.instruments.galileo_ssi.FILTER_DICT` and</span>
-<span class="sd">            ``inst_id`` selects the SSI path.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">inst_id</span> <span class="o">==</span> <span class="s1">&#39;SSI&#39;</span> <span class="ow">or</span> <span class="n">inst_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;SOLID&#39;</span><span class="p">)):</span>
-        <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FILTER_DICT</span><span class="p">[</span><span class="n">filter_name</span><span class="p">],</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)]</span></div>
-
-
-
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;FILTER_DICT&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;FILTER_NAMES&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;matches&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;read_file&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;tint_for&#39;</span><span class="p">,</span>
-<span class="p">]</span>
+<span class="c1">##########################################################################################</span>
 </pre></div>
 
            </div>
@@ -711,7 +611,7 @@ window.runMermaid = runMermaid;</script>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

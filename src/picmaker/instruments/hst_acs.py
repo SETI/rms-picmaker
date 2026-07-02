@@ -5,7 +5,6 @@
 
 import re
 
-import astropy.io.fits as pyfits  # noqa
 import numpy as np
 
 from picmaker.instruments import ImageData, register_instrument, tint_by_nm
@@ -27,11 +26,11 @@ class HST_ACS(ImageData):
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, pointers=None, retint=None,
                        mosaic=False, **kwargs):
-        """Extract HST ACS data from an open :class:`pyfits.HDUList`.
+        """Extract HST ACS data from an open HDUList.
 
         Parameters:
-            hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
-            filepath (str or pathlib.Path): The path to this FITS file.
+            hdulist (HDUList): The HDUList of the FITS file.
+            filepath (str or Path): The path to this FITS file.
             obj (int, optional): The HDU index (starting at 0) of the image array. If not
                 specified, the first image array in the file is used.
             pointers (str or list[str], optional): Name or alternative list of names of
@@ -43,8 +42,8 @@ class HST_ACS(ImageData):
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (HST_ACS or None): Instrument subclass if the file describes an HST ACS
-            product; ``None`` otherwise.
+            HST_ACS or None: Instrument subclass if the file describes an HST ACS product;
+            None otherwise.
         """
 
         def get_lambda_nm(hdulist):
@@ -115,13 +114,13 @@ class HST_ACS(ImageData):
         """Assemble ACS/WFC's two CCDs (WFC2 above, WFC1 below) into a mosaic.
 
         Parameters:
-            arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (usually length 2),
-                each indexed ``(lines, samples, color)``.
+            arrays_rgb (list[array]): Per-detector RGB arrays (usually length 2), each
+                indexed (lines, samples, color).
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (np.ndarray): The assembled mosaic, with shape ``(2*lines, samples, colors)``
-            for WFC. HRC and SBC images are not mosaicked.
+            array: The assembled mosaic, with shape (2*lines, samples, colors) for WFC.
+            HRC and SBC images are not mosaicked.
         """
 
         # Only WFC has two CCDs to stack; HRC and SBC are single-detector.

@@ -23,27 +23,26 @@ def write_tiff16(filepath, array, palette=None, up=False, byteorder='native',
     Three TIFF formats are supported: grayscale, RGB, and palette.
 
     Parameters:
-        filepath (str or pathlib.Path): The name of the file to write.
-        array (np.ndarray): A Numpy 2-D or 3-D array containing the image pixels. Values
-            are converted to unsigned 16-bit if they are not already in that format.
-            Indices are ``(line, sample, band)``; the third axis is optional. If present
-            with size ``>= 3`` and no ``palette`` is provided, ``array[:, :, 0:3]`` is
-            interpreted as the ``(R, G, B)`` values for each pixel.
-        palette (np.ndarray, optional): ``(65536, 3)`` array. When provided, the 0th band
-            of ``array`` indexes into the palette to derive each pixel's ``(R, G, B)``
-            triple.
+        filepath (str or Path): The name of the file to write.
+        array (array): A Numpy 2-D or 3-D array containing the image pixels. Values are
+            converted to unsigned 16-bit if they are not already in that format. Indices
+            are (line, sample, band); the third axis is optional. If present with size >=
+            3 and no `palette` is provided, array[:,:,0:3] is interpreted as the (R, G, B)
+            values for each pixel.
+        palette (array, optional): (65536, 3) array. When provided, the 0th band of
+            `array` indexes into the palette to derive each pixel's (R, G, B) triple.
         up (bool, optional): True for line numbers to increase upward; False (default) for
             downward.
-        byteorder (str, optional): One of ``'native'``, ``'little'``, or ``'big'``.
+        byteorder (str, optional): One of "native", "little", or "big".
         translate (bool, optional): True to translate a palette image to RGB on write,
             because many TIFF readers do not support 16-bit palettes. False writes the
             palette index plus the palette table.
         transpose (Image.Transpose, optional): Optional geometric transformation before
-            writing. Choices are ``FLIP_LEFT_RIGHT``, ``FLIP_TOP_BOTTOM``, ``ROTATE_90``,
-            ``ROTATE_180``, ``ROTATE_270``.
+            writing. Choices are FLIP_LEFT_RIGHT, FLIP_TOP_BOTTOM, ROTATE_90, ROTATE_180,
+            or ROTATE_270.
 
     Raises:
-        ValueError: If ``byteorder`` is not ``'native'``, ``'little'``, or ``'big'``.
+        ValueError: If `byteorder` is not "native", "little", or "big".
     """
 
     # Open the output file
@@ -202,21 +201,21 @@ def read_tiff16(filepath, up=False, transpose=None):
     No other TIFF file formats are supported.
 
     Parameters:
-        filepath (str or pathlib.Path): The name of the file to read.
+        filepath (str or Path): The name of the file to read.
         up (bool, optional): True for line numbers to increase upward; False for
             downward.
         transpose (Image.Transpose, optional): Optional geometric transformation to undo
-            on the image before returning. Choices are ``FLIP_LEFT_RIGHT``,
-            ``FLIP_TOP_BOTTOM``, ``ROTATE_90``, ``ROTATE_180``, ``ROTATE_270``.
+            on the image before returning. Choices are Choices are FLIP_LEFT_RIGHT,
+            FLIP_TOP_BOTTOM, ROTATE_90, ROTATE_180, or ROTATE_270.
 
     Returns:
-        ``(array, palette)``:
+        tuple: `(array, palette)`, where:
 
-        * ``array`` — a numpy 2-D or 3-D ``uint16`` array indexed ``(line, sample,
-          band)``. The third axis is present only for RGB inputs (``size >= 3``).
-        * ``palette`` — an optional ``(65536, 3)`` array. When present, the 0th band of
-          ``array`` indexes into the palette to derive each pixel's ``(R, G, B)`` triple.
-          ``None`` for non-palette inputs.
+        * `array` is a 2-D or 3-D "uint16" array indexed (line, sample, band). The third
+          axis is present only for RGB inputs (size >= 3).
+        * `palette` is an optional (65536, 3) array. When present, the 0th band of `array`
+          indexes into the palette to derive each pixel's (R, G, B) triple. None for
+          non-palette inputs.
 
     Raises:
         OSError: If the file is not a TIFF16 file written by :func:`write_tiff16`.

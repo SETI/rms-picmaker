@@ -62,7 +62,7 @@ See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 We follow these standards for all code contributions:
 
 * **Python Style**: Follow PEP 8
-* **Type Hints**: Use type hints for all function parameters and return values
+* **Type Hints**: Required in `tests/` (checked by mypy); the `src/picmaker/` package is intentionally untyped and excluded from mypy
 * **Docstrings**: Document all classes and methods with docstrings following the Google style
 * **Testing**: Include unit tests for new functionality
 * **Compatibility**: Ensure compatibility with Python 3.11+

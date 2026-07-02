@@ -13,40 +13,40 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
 
     Parameters:
         array_rgb_shape (tuple[int, ...]): The 2-D or 3-D shape of the source numpy array.
-            The index order is ``(lines, samples)`` or ``(lines, samples, channels)``.
-        size (int or tuple[int, int], optional): A tuple of dimensions ``(width,
-            height)``. Use a single value for a square image, or None to preserve the
-            given array size.
+            The index order is (lines, samples) or (lines, samples, channels).
+        size (int or tuple[int, int], optional): A tuple of dimensions (width, height).
+            Use a single value for a square image, or None to preserve the given array
+            size.
         scale (float or tuple[float, float], optional): Scale factor as a percentage to
-            apply. A scalar applies to both axes; pass two values ``(width, height)`` to
-            scale the width and height independently. Note that the resulting size may
-            still be constrained by ``size``, ``frame``, or ``frame_max``.
-        frame (int or tuple[int, int], optional): The firm outer limit on the ``(width,
-            height)`` size of the output image. If the result of the above parameters
+            apply. A scalar applies to both axes; pass two values (width, height) to scale
+            the width and height independently. Note that the resulting size may still be
+            constrained by `size`, `frame`, or `frame_max`.
+        frame (int or tuple[int, int], optional): The firm outer limit on the (width,
+            height) size of the output image. If the result of the above parameters
             exceeds the frame in either dimension, the image is scaled down proportionally
             to fit inside the frame. A single value implies a square frame; a tuple can be
-            used to specify each dimension; ``None`` implies no frame constraint.
+            used to specify each dimension; None implies no frame constraint.
         wrap (bool, optional): True to consider wrapping the image to reduce distortion.
-        wrap_ratio (float, optional): Wrap the sections of the image if the width:height
-            or height:width ratio exceeds this value.
-        overlaps (tuple[float, float], optional): ``(min, max)`` percentages of allowed
+        wrap_ratio (float, optional): Wrap the sections of the image if the width/height
+            or height/width ratio exceeds this value.
+        overlaps (tuple[float, float], optional): (min, max) percentages of allowed
             overlap between the end of one wrapped section and the beginning of the next.
             For example, (5,10) means that between 5% and 10% of the last pixels in one
             section may overlap the first pixels of the next section.
         gap_size (int, optional): The size of the gap between wrap sections in pixels.
-        frame_max (float, optional): Maximum percentage scale applied when ``frame`` is
-            set and ``wrap`` is False.
+        frame_max (float, optional): Maximum percentage scale applied when `frame` is
+            set and `wrap` is False.
         **kwargs: Additional input options, ignored here.
 
     Returns:
-        (tuple): ``(unwrapped_size, wrapped_size, sections, wrap_axis)``:
+        tuple: `(unwrapped_size, wrapped_size, sections, wrap_axis)`:
 
-        * ``unwrapped_size`` (tuple[int, int]): The ``(w,h)`` size of the PIL image before
-          wrapping but after any re-scaling.
-        * ``wrapped_size`` (tuple[int, int]): The ``(w,h)`` size of the PIL image after
-          wrapping.
-        * ``sections`` (int): The number of sections to wrap.
-        * ``wrap_axis`` (int): 0 to wrap horizontally, 1 to wrap vertically.
+        * `unwrapped_size` (tuple[int, int]): The (width, height) size of the PIL image
+          before wrapping but after any re-scaling.
+        * `wrapped_size` (tuple[int, int]): The (width, height) size of the PIL image
+          after wrapping.
+        * `sections` (int): The number of sections to wrap.
+        * `wrap_axis` (int): 0 to wrap horizontally, 1 to wrap vertically.
     """
 
     # Normalize inputs
@@ -188,20 +188,20 @@ def _get_size_for_size(array_size, size, axis, expand_min, expand_max):
     area.
 
     Parameters:
-        array_size (tuple[int, int]): ``(w,h)`` of the image array.
-        size (tuple[int, int]): ``(w,h)`` of the available pixels.
+        array_size (tuple[int, int]): (width, height) of the image array.
+        size (tuple[int, int]): (width, height) of the available pixels.
         axis (int): The axis being wrapped: 0 for width; 1 for height.
         expand_min (float): Minimum allowed expansion factor on the specified axis.
         expand_max (float): Maximum allowed expansion factor on the specified axis.
 
     Returns:
-        (tuple): ``(unexpanded_size, quality, expand)``, where:
+        tuple: `(unexpanded_size, quality, expand)`, where:
 
-        * ``unexpanded_size`` (tuple[int, int]): The exact ``(w,h)`` size of the image to
-          insert into the pixel area before expansion.
-        * ``quality`` (float): Quality metric, which is maximized when the image has the
+        * `unexpanded_size` (tuple[int, int]): The exact (width, height) size of the image
+          to insert into the pixel area before expansion.
+        * `quality` (float): Quality metric, which is maximized when the image has the
           least distortion.
-        * ``expand`` (float): Expansion factor to use along the specified axis.
+        * `expand` (float): Expansion factor to use along the specified axis.
     """
 
     # Derive the (w,h) scale factors required to fit the image array into the
@@ -249,22 +249,22 @@ def _get_size_for_frame(array_size, frame, axis, expand_min, expand_max):
     pixel frame.
 
     Parameters:
-        array_size (tuple[int, int]): ``(w,h)`` of the image array.
-        frame (tuple[int, int]): ``(w,h)`` of the available frame.
+        array_size (tuple[int, int]): (width, height) of the image array.
+        frame (tuple[int, int]): (width, height) of the available frame.
         axis (int): The axis being wrapped: 0 for width; 1 for height.
         expand_min (float): Minimum allowed expansion factor on the specified axis.
         expand_max (float): Maximum allowed expansion factor on the specified axis.
 
     Returns:
-        (tuple): ``(unexpanded_size, expanded_size, quality, expand)``, where:
+        tuple: `(unexpanded_size, expanded_size, quality, expand)`, where:
 
-        * ``unexpanded_size`` (tuple[int, int]): The exact ``(w,h)`` size of the image to
-          insert into the pixel frame before expansion.
-        * ``expanded_size`` (tuple[int, int]): The exact ``(w,h)`` size of the image after
-          expansion.
-        * ``quality`` (float): Quality metric, which is maximized when the image has the
+        * ``unexpanded_size`` (tuple[int, int]): The exact (width, height) size of the
+          image to insert into the pixel frame before expansion.
+        * ``expanded_size`` (tuple[int, int]): The exact (width, height)` size of the
+          image after expansion.
+        * `quality` (float): Quality metric, which is maximized when the image has the
           least distortion.
-        * ``expand`` (float): Expansion factor to use along the specified axis.
+        * `expand` (float): Expansion factor to use along the specified axis.
     """
 
     # Determine optimal image size inside the frame, assuming minimal expansion
@@ -305,12 +305,12 @@ def resize_pil_image(image, new_size):
     """Resize a PIL image or a list of three PIL images.
 
     Parameters:
-        image (:class:`PIL.Image` or list): A single PIL image or, for 16-bit RGB, a list
-            of three PIL images.
-        new_size (tuple[int, int]): New ``(width, height)`` of the output.
+        image (PIL.Image or list of three): A single PIL image or a list of three for
+            16-bit RGB.
+        new_size (tuple[int, int]): New (width, height) of the output.
 
     Returns:
-        (:class:`PIL.Image` or list): The resized image or list of images.
+        PIL.Image or list of three: The resized image or list of images.
     """
 
     # If the size is unchanged, just return
@@ -332,11 +332,11 @@ def _resize_one_image(image, new_size):
     """Resize a single PIL image. Upscales with NEAREST, downscales with LANCZOS.
 
     Parameters:
-        image (:class:`PIL.Image`): A PIL image.
-        new_size (tuple[int, int]): New ``(width, height)`` of the output.
+        image (PIL.Image): A PIL image.
+        new_size (tuple[int, int]): New (width, height) of the output.
 
     Returns:
-        (:class:`PIL.Image`): Resized image.
+        (PIL.Image): Resized image.
     """
 
     # Scale up if necessary using NEAREST

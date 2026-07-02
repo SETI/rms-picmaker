@@ -31,10 +31,10 @@ def _register_all_instruments():
     """Import every instrument submodule so that each registers itself.
 
     Any module in this package whose name does not begin with an underscore is imported
-    for its side effects: defining an :class:`ImageData` subclass and calling
-    :func:`register_instrument`. Support modules (``_pds3_support``, ``_fits_support``,
-    etc.) are skipped. A new instrument is picked up automatically by dropping
-    a module into this package.
+    for its side effects: defining an ImageData subclass and calling
+    `register_instrument`. Support modules (`_pds3_support`, `_fits_support`, etc.) are
+    skipped. A new instrument is picked up automatically by dropping a module into this
+    package.
     """
 
     for module_info in pkgutil.iter_modules(__path__):
@@ -52,22 +52,22 @@ class ImageData:
         """Apply a colormap to up to three grayscale images.
 
         Produces a 3-D array with one band (grayscale) or three bands (RGB), in axis order
-        ``(line, sample, channel)``. Values are scaled zero to one.
+        (line, sample, channel). Values are scaled zero to one.
 
         This is overridden by instruments that require a special method for applying a
         colormap. Here, the default procedure is called.
 
         Parameters:
-            array (np.ndarray): The image array, after slicing and "zebra" operations.
+            array (array): The image array, after slicing and "zebra" operations.
             valid_limits (tuple[float, float]): The values that correspond to the minimum
                 and maximum of the mapping.
-            invalid_mask (np.ndarray[bool], optional): Boolean mask of invalid pixels.
+            invalid_mask (array[bool], optional): Boolean mask of invalid pixels.
             **kwargs: Additional input options, forwarded to the default procedure.
 
         Returns:
-            (np.ndarray[float]): A 3-D array in axis order ``(line, sample, channel)``
-            scaled zero to one. For a grayscale image, the last axis has length 1;
-            otherwise, it has length 3.
+            array[float]: A 3-D array in axis order (line, sample, channel) scaled zero to
+            one. For a grayscale image, the last axis has length 1; otherwise, it has
+            length 3.
         """
 
         return default_apply_colormap(array, valid_limits, invalid_mask,
@@ -78,12 +78,12 @@ def read_image_array(filepath, **kwargs):
     """Read one or more image files and return a stacked 3-D array.
 
     Parameters:
-        filepath (str, pathlib.Path, or list): One or more input file paths.
-        **kwargs: Instrument-specific options.
+        filepath (str, Path, or list[str or Path]): One or more input file paths.
+        **kwargs: Additoinal input options.
 
     Returns:
-        (:class:`ImageData`): The image data. When multiple files are given, their arrays
-        are stacked along the leading band axis.
+        ImageData: The ImageData subclass associated with the file(s). When multiple files
+        are given, their arrays are stacked along the leading band axis.
     """
 
     if isinstance(filepath, (str, pathlib.Path)):
@@ -101,17 +101,17 @@ def _read_one_image_array(filepath, **kwargs):
     """Read a single image array, trying each known format in turn.
 
     Parameters:
-        filepath (str or pathlib.Path): Path to the input file.
+        filepath (str or Path): Path to the input file.
         **kwargs: Instrument-specific options.
 
     Returns:
-        (:class:`ImageData`): The image data from the first reader that recognizes the
+        ImageData or None: The ImageData subclass from the reader that recognized the
         file.
 
     Raises:
         FileNotFoundError: If the file does not exist.
         IsADirectoryError: If the path refers to a directory.
-        OSError: If none of the format readers succeed.
+        OSError: If none of the format readers recognized the file.
     """
 
     filepath = pathlib.Path(filepath)

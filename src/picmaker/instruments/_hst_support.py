@@ -9,7 +9,7 @@ _FILTER_PATTERN = re.compile(r'[A-Z]+(\d\d\d+)[A-Z]+')
 
 
 def get_hst_filter_digits(filter_name):
-    """The integer embedded within the given filter name; ``None`` otherwise."""
+    """The integer embedded within the given filter name; None otherwise."""
 
     match = _FILTER_PATTERN.fullmatch(filter_name)
     if match:

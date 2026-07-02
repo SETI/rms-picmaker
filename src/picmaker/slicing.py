@@ -10,30 +10,30 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
     """Return the requested slice of an array.
 
     Parameters:
-        array (np.array): A 2-D or 3-D image array. It is indexed ``(lines, samples)`` if
-            2-D, ``(bands, lines, samples)`` if 3-D.
-        samples (tuple[int, int], optional): Sample limits ``(s0, s1)``; ``None`` to
-            preserve all samples.
-        lines (tuple[int, int], optional): Line limits ``(l0, l1)``; ``None`` to preserve
-            all lines.
-        bands (tuple[int, int], optional): Band limits ``(b0, b1)`` for defining a range
-            of bands to coadd; ``None`` for all bands.
-        valid (tuple[float, float], optional): The value range ``(vmin, vmax)`` in the
-            array to be considered valid; ``None`` treats all values as valid.
+        array (array): A 2-D or 3-D image array. It is indexed (lines, samples) if
+            2-D, (bands, lines, samples) if 3-D.
+        samples (tuple[int, int], optional): Sample limits (s0, s1); None to preserve all
+            samples.
+        lines (tuple[int, int], optional): Line limits (l0, l1); None to preserve all
+            lines.
+        bands (tuple[int, int], optional): Band limits (b0, b1) for defining a range of
+            bands to coadd; None for all bands.
+        valid (tuple[float, float], optional): The value range (vmin, vmax) in the
+            array to be considered valid; None treats all values as valid.
         crop (float, optional): Numeric value to crop from the border of the image (e.g.
-            0 to crop zero-valued rows and columns). ``None`` disables cropping.
+            0 to crop zero-valued rows and columns). None disables cropping.
         **kwargs: Additional input options, ignored here.
 
     Returns:
-        (tuple): ``(sliced_array, invalid_mask)``, where
+        tuple: `(sliced_array, invalid_mask)`, where
 
-        * ``sliced_array`` is a 2-D band-averaged array if ``bands`` were specified.
+        * `sliced_array` is a 2-D band-averaged array if `bands` were specified.
           Otherwise, the number of dimensions in the original array is preserved. Under
           most circumstances, this matches the dimensionality of the input array (a
           singleton band axis is collapsed, so a 3-D input with one band returns 2-D).
-        * ``invalid_mask`` is the mask array; it may be ``None`` if no pixels are masked.
+        * `invalid_mask``is the mask array; it may be None if no pixels are masked.
           Values of NaN are always masked. The shape of this mask always matches that of
-          ``sliced_array``.
+          `sliced_array`.
 
     Raises:
         ValueError: If the requested slice has size zero.
@@ -89,13 +89,13 @@ def _crop_array(array, crop=0., *, mask=None):
     """Crop constant-valued borders from a 2-D array.
 
     Parameters:
-        array (np.ndarray): A 2-D or 3-D image.
+        array (array): A 2-D or 3-D image.
         crop (float): A constant pixel value to trim from the border.
-        mask (np.ndarray[bool], optional): Mask array.
+        mask (array[bool], optional): Mask array.
 
     Returns:
-        (tuple): (``array``, ``mask``), where ``array`` is the cropped array and ``mask``
-        is the cropped mask.
+        tuple: `(array, mask)`, where `array` is the cropped array and `mask` is the
+        cropped mask.
     """
 
     if mask is not None:

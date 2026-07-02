@@ -14,72 +14,64 @@ Public API
 Every name listed below is re-exported from the top-level :mod:`picmaker`
 package, so callers should import from there::
 
-    from picmaker import images_to_pics, read_one_image_array, PicmakerOptions
+    from picmaker import picmaker, read_image_array, validate_options
 
 The per-leaf-module sections after this one are the authoritative
 documentation for each symbol; the entries here are short pointers
 arranged by topic.
 
-**Top-level pipeline and CLI**
+**Top-level pipeline**
 
-.. autofunction:: picmaker.images_to_pics
-.. autofunction:: picmaker.process_images
-.. autofunction:: picmaker.find_common_path
-.. autofunction:: picmaker.main
-.. autoclass:: picmaker.PicmakerOptions
-   :no-members:
+.. autofunction:: picmaker.picmaker
+.. autofunction:: picmaker.picmaker1
+.. autofunction:: picmaker.validate_options
+.. autofunction:: picmaker.get_versions
 
-**Image I/O**
+The command-line entry point (:func:`picmaker.main.main`) and its
+argument parser (:func:`picmaker.parser.get_parser`) are documented in
+the CLI sections below; they are not re-exported from the top-level
+package.
+
+**Image reading and I/O**
 
 .. autofunction:: picmaker.read_image_array
-.. autofunction:: picmaker.read_one_image_array
-.. autofunction:: picmaker.read_pds_labeled_image_array
-.. autofunction:: picmaker.read_pil
-.. autofunction:: picmaker.read_array
+.. autofunction:: picmaker.get_filepaths
 .. autofunction:: picmaker.get_outfile
 .. autofunction:: picmaker.write_pil
-.. autoclass:: picmaker.ReadResult
-   :no-members:
-   :no-index:
+.. autofunction:: picmaker.read_tiff16
+.. autofunction:: picmaker.write_tiff16
 
-The :data:`~picmaker.ImageInfo` type alias is documented in the I/O
-section below.
-
-**Enhancement**
+**Enhancement and stretch**
 
 .. autofunction:: picmaker.get_limits
-.. autofunction:: picmaker.apply_gamma
 .. autofunction:: picmaker.apply_colormap
-.. autofunction:: picmaker.fill_zebra_stripes
-.. autofunction:: picmaker.tinted_colormap
 
-**Geometry**
+**Geometry and layout**
 
-.. autofunction:: picmaker.crop_array
 .. autofunction:: picmaker.slice_array
-.. autofunction:: picmaker.wrap_image
-.. autofunction:: picmaker.pad_image
-.. autofunction:: picmaker.resize_image
-.. autofunction:: picmaker.rotate_array_rgb
-.. autofunction:: picmaker.circle_mask
 .. autofunction:: picmaker.get_size
+.. autofunction:: picmaker.resize_pil_image
+.. autofunction:: picmaker.rotate_rgb_array
+.. autofunction:: picmaker.pad_pil_image
+.. autofunction:: picmaker.wrap_pil_image
 
-**Filters and conversion**
+**Processing and conversion**
 
-.. autofunction:: picmaker.filter_image
+.. autofunction:: picmaker.fill_zebra_stripes
+.. autofunction:: picmaker.filter_pil_image
 .. autofunction:: picmaker.array_to_pil
 .. autofunction:: picmaker.pil_to_array
 
-**Re-exported constants**
+**Instruments and color**
 
-The following module-level data names are re-exported from
-:mod:`picmaker` and documented in their leaf-module sections below
-(`Color` and `Filters`):
-
-* :data:`picmaker.color.RGB_BY_NM`
-* :data:`picmaker.color.RFUNC`, :data:`picmaker.color.GFUNC`,
-  :data:`picmaker.color.BFUNC`
-* :data:`picmaker._filters.FILTER_DICT`
+.. autofunction:: picmaker.register_instrument
+.. autofunction:: picmaker.tint_by_nm
+.. autoclass:: picmaker.ImageData
+   :no-members:
+   :no-index:
+.. autoclass:: picmaker.ColorNames
+   :no-members:
+   :no-index:
 
 Package
 -------
@@ -88,68 +80,92 @@ Source: `src/picmaker/__init__.py
 
 .. automodule:: picmaker
 
-Backward-compatibility shim
----------------------------
+Core
+----
 Source: `src/picmaker/picmaker.py
 <https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/picmaker.py>`__.
 
 .. automodule:: picmaker.picmaker
-
-Wavelength → RGB tables
------------------------
-Source: `src/picmaker/_rgb.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/_rgb.py>`__.
-
-.. automodule:: picmaker._rgb
    :members:
 
-Pipeline
---------
-Source: `src/picmaker/pipeline.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/pipeline.py>`__.
+CLI entry point
+---------------
+Source: `src/picmaker/main.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/main.py>`__.
 
-.. automodule:: picmaker.pipeline
-   :members:
-   :private-members: _pds3_resolve_pointer, _hst_mosaic_rgb, _hst_wfpc2_mosaic, _hst_acs_panel_mosaic, _process_one_image
-
-Options
--------
-Source: `src/picmaker/options.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/options.py>`__.
-
-.. automodule:: picmaker.options
+.. automodule:: picmaker.main
    :members:
 
-I/O
----
-Source: `src/picmaker/io.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/io.py>`__.
+Argument parser
+---------------
+Source: `src/picmaker/parser.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/parser.py>`__.
 
-.. automodule:: picmaker.io
+.. automodule:: picmaker.parser
+   :members:
+
+File control and I/O
+--------------------
+Source: `src/picmaker/control.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/control.py>`__.
+
+.. automodule:: picmaker.control
    :members:
 
 Enhancement
 -----------
-Source: `src/picmaker/enhance.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/enhance.py>`__.
+Source: `src/picmaker/enhancement.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/enhancement.py>`__.
 
-.. automodule:: picmaker.enhance
+.. automodule:: picmaker.enhancement
    :members:
 
-Geometry
---------
-Source: `src/picmaker/geometry.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/geometry.py>`__.
+Stretch
+-------
+Source: `src/picmaker/stretch.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/stretch.py>`__.
 
-.. automodule:: picmaker.geometry
+.. automodule:: picmaker.stretch
    :members:
 
-Color
------
-Source: `src/picmaker/color.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/color.py>`__.
+Processing
+----------
+Source: `src/picmaker/processing.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/processing.py>`__.
 
-.. automodule:: picmaker.color
+.. automodule:: picmaker.processing
+   :members:
+
+Sizing
+------
+Source: `src/picmaker/sizing.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/sizing.py>`__.
+
+.. automodule:: picmaker.sizing
+   :members:
+
+Slicing
+-------
+Source: `src/picmaker/slicing.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/slicing.py>`__.
+
+.. automodule:: picmaker.slicing
+   :members:
+
+Layout
+------
+Source: `src/picmaker/layout.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/layout.py>`__.
+
+.. automodule:: picmaker.layout
+   :members:
+
+Orientation
+-----------
+Source: `src/picmaker/orientation.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/orientation.py>`__.
+
+.. automodule:: picmaker.orientation
    :members:
 
 PIL utilities
@@ -160,23 +176,21 @@ Source: `src/picmaker/pil_utils.py
 .. automodule:: picmaker.pil_utils
    :members:
 
-Filters
+TIFF 16
 -------
-Source: `src/picmaker/_filters.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/_filters.py>`__.
+Source: `src/picmaker/tiff16.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/tiff16.py>`__.
 
-.. automodule:: picmaker._filters
+.. automodule:: picmaker.tiff16
    :members:
-   :private-members:
 
-CLI
----
-Source: `src/picmaker/cli.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/cli.py>`__.
+Color names
+-----------
+Source: `src/picmaker/colornames.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/colornames.py>`__.
 
-.. automodule:: picmaker.cli
+.. automodule:: picmaker.colornames
    :members:
-   :private-members: _build_parser, _separate_files_and_dirs, _normalize_and_validate, _collect_option_dicts, _process_directory
 
 Instruments
 -----------
@@ -185,6 +199,33 @@ Source: `src/picmaker/instruments/
 
 .. automodule:: picmaker.instruments
    :members:
+
+FITS support
+~~~~~~~~~~~~
+Source: `src/picmaker/instruments/_fits_support.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/_fits_support.py>`__.
+
+.. automodule:: picmaker.instruments._fits_support
+   :members:
+   :private-members:
+
+HST support
+~~~~~~~~~~~
+Source: `src/picmaker/instruments/_hst_support.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/_hst_support.py>`__.
+
+.. automodule:: picmaker.instruments._hst_support
+   :members:
+   :private-members:
+
+PDS3 support
+~~~~~~~~~~~~
+Source: `src/picmaker/instruments/_pds3_support.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/_pds3_support.py>`__.
+
+.. automodule:: picmaker.instruments._pds3_support
+   :members:
+   :private-members:
 
 Cassini ISS
 ~~~~~~~~~~~
@@ -210,12 +251,36 @@ Source: `src/picmaker/instruments/galileo_ssi.py
 .. automodule:: picmaker.instruments.galileo_ssi
    :members:
 
-HST
-~~~
-Source: `src/picmaker/instruments/hst.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/hst.py>`__.
+HST ACS
+~~~~~~~
+Source: `src/picmaker/instruments/hst_acs.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/hst_acs.py>`__.
 
-.. automodule:: picmaker.instruments.hst
+.. automodule:: picmaker.instruments.hst_acs
+   :members:
+
+HST WFC3
+~~~~~~~~
+Source: `src/picmaker/instruments/hst_wfc3.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/hst_wfc3.py>`__.
+
+.. automodule:: picmaker.instruments.hst_wfc3
+   :members:
+
+HST WFPC2
+~~~~~~~~~
+Source: `src/picmaker/instruments/hst_wfpc2.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/hst_wfpc2.py>`__.
+
+.. automodule:: picmaker.instruments.hst_wfpc2
+   :members:
+
+HST NICMOS
+~~~~~~~~~~
+Source: `src/picmaker/instruments/hst_nicmos.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/hst_nicmos.py>`__.
+
+.. automodule:: picmaker.instruments.hst_nicmos
    :members:
 
 New Horizons LORRI
@@ -234,18 +299,10 @@ Source: `src/picmaker/instruments/nh_mvic.py
 .. automodule:: picmaker.instruments.nh_mvic
    :members:
 
-TIFF 16
--------
-Source: `src/picmaker/tiff16.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/tiff16.py>`__.
+Generic reader
+~~~~~~~~~~~~~~
+Source: `src/picmaker/instruments/zzz_generic.py
+<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/instruments/zzz_generic.py>`__.
 
-.. automodule:: picmaker.tiff16
-   :members:
-
-Color names
------------
-Source: `src/picmaker/colornames.py
-<https://github.com/SETI/rms-picmaker/blob/main/src/picmaker/colornames.py>`__.
-
-.. automodule:: picmaker.colornames
+.. automodule:: picmaker.instruments.zzz_generic
    :members:

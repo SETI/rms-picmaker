@@ -3,35 +3,35 @@
 ##########################################################################################
 """Complete ``picmaker`` functionality in a single function call."""
 
-# ruff: noqa: I001
 import argparse
+import logging
 
 import numpy as np
+from pdslogger import PdsLogger
 
-from picmaker.colornames  import ColorNames
-from picmaker.control     import get_filepaths, get_outfile
+from picmaker.colornames import ColorNames
+from picmaker.control import get_filepaths, get_outfile
 from picmaker.instruments import read_image_array
-from picmaker.layout      import wrap_pil_image, pad_pil_image
+from picmaker.layout import pad_pil_image, wrap_pil_image
 from picmaker.orientation import rotate_rgb_array
-from picmaker.pil_utils   import array_to_pil, write_pil, PIL_EXTENSIONS
-from picmaker.processing  import fill_zebra_stripes, filter_pil_image
-from picmaker.sizing      import get_size, resize_pil_image
-from picmaker.slicing     import slice_array
-from picmaker.stretch     import get_limits
+from picmaker.pil_utils import PIL_EXTENSIONS, array_to_pil, write_pil
+from picmaker.processing import fill_zebra_stripes, filter_pil_image
+from picmaker.sizing import get_size, resize_pil_image
+from picmaker.slicing import slice_array
+from picmaker.stretch import get_limits
 
 
 def validate_options(options, *, logger=None, _versions_validated=None):
-    """Convert an argparse Namespace to a dict if necessary and validate values.
+    """Convert an Namespace to a dict if necessary and validate values.
 
     Parameters:
-        options (argparse.Namespace or dict): Picmaker inputs.
-        logger (:class:`pdslogger.PdsLogger`, optional): Optional PdsLogger.
+        options (Namespace or dict): Picmaker inputs.
+        logger (PdsLogger, optional): Logger to use.
         _versions_validated (str, optional): A version file already validated; this is
             used to prevent recursive version files.
 
     Returns:
-        (dict): Dictionary of all input options. These are used as ``**kwargs`` input to
-        many functions.
+        dict: Dictionary of all input options.
 
     Raises:
         ValueError: If any parameter has an invalid or contradictory value.
@@ -151,7 +151,16 @@ def validate_options(options, *, logger=None, _versions_validated=None):
 
 
 def get_versions(versions=None, **kwargs):
-    """Read the versions file and return a list of options dictionaries."""
+    """Read the versions file and return a list of options dictionaries.
+
+    Parameters:
+        versions (str or Path, optional): Path to a "versions" file with alternative sets
+            of command-line options, one set per row.
+        **kwargs: Additional picmaker input parameters.
+
+    Returns:
+        list[dict]: One or more dictionaries of alternative input parameters.
+    """
 
     if not versions:
         return [kwargs]
@@ -187,9 +196,16 @@ def get_versions(versions=None, **kwargs):
 def picmaker(logger=None, **options):
     """Validate options, resolve the input files, and drive :func:`picmaker1` over each.
 
-    In ``--movie`` mode, common enhancement limits are computed across all images before
+    Parameters:
+        logger (Logger or PdsLogger, optional): Logger to use.
+        **options: The dictionary of command options.
+
+    In "--movie" mode, common enhancement limits are computed across all images before
     writing; otherwise each input file is processed once per version.
     """
+
+    if type(logger) is logging.Logger:
+        logger = PdsLogger(logger)
 
     log_level = options.get('logging', 'info')
     logger and logger.set_level(log_level)
@@ -263,17 +279,17 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
     """Write one picmaker image.
 
     Parameters:
-        infile (str or pathlib.Path): Input data file path.
-        outfile (str or pathlib.Path): Output file path.
+        infile (str or Path): Input data file path.
+        outfile (str or Path): Output file path.
         options (dict): Dictionary of all input parameters.
-        image_data (:class:`ImageData`): ImageData object if `infile` was already read;
-            None otherwise.
+        image_data (ImageData): ImageData object if `infile` was already read; None
+            otherwise.
         return_limits (bool, optional): Return limits tuple along with image_data
 
     Returns:
-        (:class:`ImageData` or ``(image_data, (min_limit, max_limit))``): The ImageData
-        object from ``infile``. If ``return_limits`` is True, also include the minimum and
-        maximum limits obtained, and do not save a file.
+        ImageData or tuple[ImageData, tuple[float, float]]: The ImageData object from
+        `infile`. If `return_limits` is True, also include the minimum and maximum limits
+        obtained, and do not save a file.
     """
 
     logger = options.get('logger', None)

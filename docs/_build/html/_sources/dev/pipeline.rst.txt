@@ -17,82 +17,71 @@ zoom controls to read the labels at any size.
    :align: center
 
    flowchart TD
-       A[picmaker CLI<br/>argv] --> B[cli.main]
-       B --> C[_build_parser<br/>argparse]
-       B --> D[_separate_files_and_dirs]
-       B --> CO[_collect_option_dicts]
-       CO --> E[_normalize_and_validate<br/>per --versions line]
-       E --> F[PicmakerOptions.validate]
-       B --> PD[_process_directory<br/>per dirpath, recursive or not]
-       F --> G[process_images<br/>per directory]
-       PD --> G
-       G -->|movie=True| H[images_to_pics<br/>pass 1: collect limits]
-       H --> I[images_to_pics<br/>pass 2: shared stretch]
-       G -->|movie=False| J[images_to_pics<br/>per file]
-       I --> K[_process_one_image]
-       J --> K
-       K --> L[get_outfile]
-       L -->|skip if replace='none'| M[Done]
-       L --> N[read_image_array]
-       N --> O[read_one_image_array<br/>format cascade]
-       O -->|.LBL / Pds3Label| NPI[instrument cascade<br/>PDS3-aware read_file]
-       NPI -->|unrecognized label| NPF[read_pds3_image_array<br/>generic PDS3 fallback]
-       O -->|other paths| P[pickle / numpy]
-       P --> PI[instrument cascade<br/>read_file per ALL_INSTRUMENTS]
-       PI --> PF[generic VICAR fallback]
-       PF --> PG[generic FITS fallback]
-       PG --> PH[PIL / 16-bit TIFF<br/>PDS3 auto-detect]
-       PH --> Q[ReadResult<br/>array3d, default_is_up, image_info]
-       NPI --> Q
-       NPF --> Q
-       PI --> Q
-       PF --> Q
-       PG --> Q
-       Q --> TINT{tint=True AND<br/>instrument has apply_tint?}
-       TINT -->|yes| ATC[apply_tint<br/>custom RGB]
-       TINT -->|no| MOS{mosaic=True AND<br/>instrument has apply_mosaic?}
-       MOS -->|yes| AMC[apply_mosaic<br/>panel assembly RGB]
-       MOS -->|no| T[slice_array]
-       T --> U[fill_zebra_stripes<br/>optional]
-       U --> V[get_limits]
-       V --> W[apply_colormap]
-       ATC --> X[rotate_array_rgb]
-       AMC --> X
-       W --> X
-       X --> Y[apply_gamma]
-       Y --> Z[get_size + array_to_pil]
-       Z --> AA[filter_image]
-       AA --> BB[resize_image]
-       BB --> CC{sections > 1?}
-       CC -->|yes| DD[wrap_image]
-       CC -->|no| EE[skip wrap]
-       DD --> FF{pad?}
-       EE --> FF
-       FF -->|yes| GG[pad_image]
-       FF -->|no| HH[skip pad]
-       GG --> II[write_pil]
-       HH --> II
-       II --> M
+       A[picmaker CLI<br/>argv] --> B[main.main]
+       B --> C[get_parser<br/>argparse]
+       B --> D[validate_options]
+       D --> E[get_versions<br/>validate --versions lines]
+       B --> F[picmaker<br/>orchestrator]
+       F --> DV[validate_options<br/>again, for library callers]
+       F --> G[get_filepaths<br/>resolve files + outdirs]
+       G --> MV{movie mode?}
+       MV -->|yes| P1A[pass 1: picmaker1<br/>return_limits=True]
+       P1A --> SH[shared limits =<br/>min/max across frames]
+       SH --> GO
+       MV -->|no| VER[get_versions<br/>option dict per version]
+       VER --> GO[get_outfile<br/>skip if replace='none']
+       GO --> P1[picmaker1<br/>infile, outfile]
+       P1A -. reads each file .-> P1
+       P1 --> RD[read_image_array<br/>if not cached]
+       RD --> RO[_read_one_image_array<br/>format cascade]
+       RO -->|suffix .lbl| NPI[detect_in_pds3<br/>per instrument]
+       RO -->|VICAR open OK| NV[detect_in_vicar<br/>per instrument]
+       RO -->|FITS open OK| NF[detect_in_fits<br/>per instrument]
+       RO -->|otherwise| NG[detect_in_file<br/>per instrument]
+       NPI --> Q[ImageData subclass<br/>array, default_upward, default_tint]
+       NV --> Q
+       NF --> Q
+       NG --> Q
+       Q --> SL[slice_array]
+       SL --> ZB[fill_zebra_stripes<br/>optional]
+       ZB --> MOS{mosaic AND ndim==3 AND<br/>image_data.apply_mosaic?}
+       MOS -->|yes| GLB[get_limits per band]
+       GLB --> ACB[apply_colormap per band]
+       ACB --> AM[apply_mosaic<br/>panel assembly RGB]
+       MOS -->|no| GL[get_limits]
+       GL --> AC[apply_colormap]
+       AM --> RR[rotate_rgb_array]
+       AC --> RR
+       RR --> GS[get_size]
+       GS --> AP[array_to_pil]
+       AP --> FI[filter_pil_image]
+       FI --> RS[resize_pil_image]
+       RS --> CC{sections > 1?}
+       CC -->|yes| WR[wrap_pil_image]
+       CC -->|no| SKW[skip wrap]
+       WR --> PD[pad_pil_image]
+       SKW --> PD
+       PD --> WP[write_pil]
+       WP --> M[Done]
 
 Three short observations on the diagram:
 
-* The ``movie=True`` branch runs :func:`~picmaker.pipeline.images_to_pics`
-  twice. The first pass computes the per-frame limits, the second
-  pass uses the median of those limits so every frame shares one
-  stretch.
-* The ``apply_tint`` branch fires only when ``--tint`` is set and the
-  instrument module defines :func:`!apply_tint`; it produces the final
-  RGB array directly, bypassing :func:`~picmaker.enhance.apply_colormap`.
-* The ``apply_mosaic`` branch fires only when ``--mosaic`` is set and
-  the instrument module defines :func:`!apply_mosaic`; it handles
-  multi-detector panel assembly (currently HST ACS/WFC two-panel and
-  WFPC2 quad-panel composites).  Array extraction is split: the raw
-  per-detector data is gathered by :func:`picmaker.instruments.hst.read_file`
-  via its private :func:`!_extract_hst_array` helper, and
-  :func:`!apply_mosaic` handles panel layout and colormap application.
-* Both instrument hooks are checked after the ``apply_tint`` gate so
-  that ``apply_tint`` takes priority when both are defined; the standard
-  ``_band_to_rgb`` path runs when neither hook fires.
+* The ``movie=True`` branch runs :func:`~picmaker.picmaker.picmaker1`
+  twice. The first pass reads each file and computes its limits with
+  ``return_limits=True`` (no file is written); the orchestrator then
+  sets ``options['limits']`` to the ``(min, max)`` across all frames
+  and the second pass writes each frame with that shared stretch,
+  reusing the already-read ``image_data``.
+* The ``apply_mosaic`` branch fires only when ``--mosaic`` is set, the
+  sliced array is still 3-D, and the resolved
+  :class:`~picmaker.instruments.ImageData` subclass defines
+  :func:`!apply_mosaic` (currently HST ACS/WFC two-panel and WFPC2
+  quad-panel composites). In that branch the colormap is applied to
+  each band *before* the panels are assembled; the standard path
+  applies the colormap once to the band-merged array.
+* Gamma is no longer a separate stage: it is one of the keyword
+  arguments consumed inside
+  :func:`~picmaker.enhancement.apply_colormap`.
 
 
 Major functions
@@ -106,294 +95,283 @@ and source code (via :mod:`sphinx.ext.viewcode`).
 CLI entry point
 ~~~~~~~~~~~~~~~
 
-:func:`picmaker.cli.main` is the function bound to the ``picmaker``
-console script. It builds the argparse parser, splits ``args.files``
-into files and directories with
-:func:`!picmaker.cli._separate_files_and_dirs`, and delegates the two
-remaining phases to two private helpers:
-:func:`!picmaker.cli._collect_option_dicts` (the ``--versions FILE``
-re-parse loop, returning one normalized option_dict per line) and
-:func:`!picmaker.cli._process_directory` (the per-directory walk in
-recursive or non-recursive mode). Each helper is unit-tested directly
-in :file:`tests/test_cli_helpers.py`.
+:func:`picmaker.main.main` is the function bound to the ``picmaker``
+console script (``picmaker = "picmaker.main:main"``). It promotes all
+warnings to errors, builds the argparse parser with
+:func:`picmaker.parser.get_parser`, parses ``sys.argv``, normalizes
+the result with :func:`picmaker.picmaker.validate_options`, shifts the
+1-based ``--samples`` / ``--lines`` / ``--bands`` / ``--obj`` indices
+to 0-based, and calls the orchestrator
+:func:`picmaker.picmaker.picmaker` with the validated option dict as
+``**kwargs``. There is no ``cli.py``; the two responsibilities are
+split between :mod:`picmaker.parser` (parser construction) and
+:mod:`picmaker.main` (wiring).
 
-The library equivalent of "run the CLI from Python" is to import
-:func:`picmaker.pipeline.images_to_pics` directly; the kwarg names
-match the CLI flags one-to-one. The CLI does no I/O of its own —
-every file operation flows through :mod:`picmaker.io`.
+The library equivalent of "run the CLI from Python" is to call
+:func:`picmaker.picmaker.picmaker` directly with keyword arguments; the
+kwarg names match the CLI flags one-to-one, and the orchestrator runs
+:func:`~picmaker.picmaker.validate_options` itself so callers do not
+have to.
 
 Option validation
 ~~~~~~~~~~~~~~~~~
 
-:class:`picmaker.options.PicmakerOptions` is a frozen-by-convention
-dataclass that holds the ~45 post-normalization knobs that drive the
-pipeline. Its :meth:`~picmaker.options.PicmakerOptions.validate`
-method runs every mutex / value-validity check that does not depend
-on raw argparse fields:
+:func:`picmaker.picmaker.validate_options` accepts either an argparse
+:class:`argparse.Namespace` or a plain ``dict`` and returns a plain
+``dict`` of normalized options. There is no ``PicmakerOptions`` class;
+options are passed around as dictionaries and consumed by downstream
+functions as ``**options`` / ``**kwargs``. The function runs every
+mutex / value-validity check and collapses alternative spellings of the
+same knob:
 
-* ``mosaic`` + ``bands`` is rejected (mosaic mode consumes every
-  detector panel).
-* ``frame`` + ``size`` is rejected (both specify output dimensions).
-* ``frame`` + ``wrap_ratio`` is rejected (incompatible layout
-  decisions).
-* ``display_upward`` + ``display_downward`` is rejected.
-* ``twobytes`` requires a TIFF extension and rejects any
-  ``filter_name`` other than ``'NONE'``.
-* ``pds3_method`` must be one of the values in
-  :data:`~picmaker.options.PDS3_METHODS`
-  (``'strict'``, ``'loose'``, ``'compound'``, ``'fast'``); the value is
-  forwarded as :class:`pdsparser.Pds3Label`'s ``method=`` argument when
-  a PDS3 ``.LBL`` is parsed.
+* ``--band`` collapses into ``bands = (band, band)``; supplying both
+  ``--band`` and ``--bands`` is rejected.
+* ``--scale`` is expanded to a ``(wscale, hscale)`` pair; ``--scale``
+  together with ``--wscale`` or ``--hscale`` is rejected.
+* ``--overlap`` collapses into ``overlaps = (overlap, overlap)``;
+  ``--overlap`` together with an explicit ``--overlaps`` is rejected.
+* ``--down`` collapses into ``display_upward = not display_downward``;
+  ``--up`` together with ``--down`` is rejected.
+* ``--frame`` together with ``--size`` is rejected.
+* ``--twobytes`` requires a TIFF extension.
+* ``--movie`` together with ``--versions`` is rejected.
+* ``--obj`` together with ``--pointers`` is rejected.
+* Every color name (the ``colormap`` list plus ``below_color``,
+  ``above_color``, ``invalid_color``, ``gap_color``, ``pad_color``) is
+  validated through :meth:`picmaker.colornames.ColorNames.lookup`.
 
-The CLI's :func:`!picmaker.cli._normalize_and_validate` does a few
-more checks that are CLI-specific (band/bands mismatch,
-``--scale`` + ``--wscale``, ``--overlap`` + ``--overlaps``,
-``--movie`` + ``--versions``) because those operate on raw flags that
-get collapsed before the dataclass is built. Adding a new mutex rule
-that applies to both surfaces should go in
-:meth:`~picmaker.options.PicmakerOptions.validate`.
+When a ``--versions`` file is present, ``validate_options`` calls
+:func:`picmaker.picmaker.get_versions`, which re-parses each line of
+the file (layering its overrides onto a fresh copy of the base
+namespace via :func:`picmaker.parser.get_parser`) and recursively
+validates each resulting option dict. Recursive ``--versions`` files
+are rejected via the ``_versions_validated`` guard.
 
-The reader cascade
-~~~~~~~~~~~~~~~~~~
+The orchestrator
+~~~~~~~~~~~~~~~~
 
-:func:`picmaker.io.read_one_image_array` is the single-file reader.
-It returns a :class:`~picmaker._types.ReadResult` triple on the first
-format match and has two top-level branches depending on the input type.
+:func:`picmaker.picmaker.picmaker` is the top-level driver. It:
 
-**PDS3 label branch** — taken when *filename* is a
-:class:`pdsparser.Pds3Label` object, or a path whose extension is
-``.LBL`` / ``.lbl`` (auto-parsed at the top of the function).  The
-cascade within this branch is:
+1. Sets the logger level from the ``logging`` option and re-runs
+   :func:`~picmaker.picmaker.validate_options` (so library callers who
+   bypass the CLI are still validated).
+2. Resolves the input files with :func:`picmaker.control.get_filepaths`,
+   which walks any input directories (honoring ``--recursive`` and the
+   ``--pattern`` globs) and returns a list of ``(infile, outdir)``
+   tuples. An empty result raises ``ValueError``.
+3. Deletes the options that are fully handled at this level (``files``,
+   ``directory``, ``recursive``, ``patterns``, ``movie``, ``logging``,
+   ``versions``) so the remaining dict is safe to forward as
+   ``**options``.
+4. Dispatches to one of two modes.
 
-1. **Per-instrument readers (PDS3-aware)** — iterates
-   :data:`picmaker.instruments.ALL_INSTRUMENTS` and calls each
-   instrument's :func:`!read_file` with the label object, ``obj``, and
-   ``**kwargs``.  Instruments that support PDS3 (Cassini ISS, Voyager
-   ISS, Galileo SSI, NH LORRI) detect the label's metadata and extract
-   the data file; unrecognised instruments return ``None`` safely.
-2. **Generic PDS3 fallback** —
-   :func:`~picmaker.instruments._shared.read_pds3_image_array`, for
-   labels not matched by any instrument.  Resolves the ``^IMAGE``
-   pointer and reads via VICAR or FITS.  Returns ``image_info=None``.
+**Movie mode** (``--movie``) runs :func:`~picmaker.picmaker.picmaker1`
+twice per file. The first pass calls
+``picmaker1(infile, '', options, return_limits=True)`` to read the
+array and compute its limits without writing; the returned
+``image_data`` is cached. After the loop the orchestrator sets
+``options['limits']`` to the overall ``(min, max)`` and
+``options['percentiles'] = None`` so every frame shares one stretch,
+then loops again calling :func:`picmaker.control.get_outfile` and
+``picmaker1(infile, outfile, options, image_data=image_data)`` to write
+each frame from the cached read.
 
-**Non-label cascade** — taken for all other paths.  Stages are tried in
-order; each catches its specific exception type so an unrecognized file
-falls through to the next:
+**Per-version mode** (the default) calls
+:func:`~picmaker.picmaker.get_versions` to expand ``--versions`` into a
+list of option dicts (a single-element list when no versions file is
+given). For each input file it loops over the versions, calling
+:func:`picmaker.control.get_outfile` and then
+:func:`~picmaker.picmaker.picmaker1`. The ``image_data`` returned by
+one version is threaded into the next so the file is read from disk only
+once.
 
-1. **pickle** — :func:`pickle.load`, catches any exception.
-2. **numpy** — :func:`numpy.load`, catches :class:`OSError` /
-   :class:`ValueError`.
-3. **per-instrument readers** — iterates
-   :data:`picmaker.instruments.ALL_INSTRUMENTS` and calls each
-   instrument's :func:`!read_file` as
-   ``instrument.read_file(filename, obj, **kwargs)``.  The ``kwargs``
-   dict is assembled in :func:`picmaker.pipeline._process_one_image`
-   from the :class:`~picmaker.options.PicmakerOptions` fields named in
-   :data:`picmaker.options.READ_FILE_KWARGS` (currently ``mosaic`` and
-   ``pds3_method``).  Each instrument handles its own format
-   detection (VICAR magic, FITS magic, file-extension heuristic, etc.)
-   and returns :class:`~picmaker._types.ReadResult` on success or
-   ``None`` to pass to the next instrument.  Shared format utilities
-   live in :mod:`picmaker.instruments._shared`.
-4. **generic VICAR fallback** — :meth:`vicar.VicarImage.from_file` with
-   ``strict=False``, for VICAR files from instruments not yet in
-   :data:`~picmaker.instruments.ALL_INSTRUMENTS`.  Returns
-   ``image_info=None``.
-5. **generic FITS fallback** — sniffs the first 9 bytes for
-   ``b'SIMPLE  ='`` before calling :func:`astropy.io.fits.open`, for
-   FITS files from unrecognized instruments.  Warnings from astropy are
-   promoted to exceptions by :class:`warnings.catch_warnings` +
-   ``filterwarnings('error')`` and swallowed at the branch boundary.
-   Returns ``image_info=None``.
-6. **PIL / 16-bit TIFF** — :func:`~picmaker.io.read_array`.
-7. **PDS3 auto-detection** —
-   :func:`~picmaker.io.read_pds_labeled_image_array` tries to parse the
-   input file itself as a PDS3 label; if that fails and the extension is
-   not ``.lbl``, it also checks for a sibling ``.lbl`` / ``.LBL`` file
-   next to the data file.  Returns ``None`` (falls through to the final
-   :class:`OSError`) if no parseable label is found.
-
-The cascade-end :class:`OSError` is chained from an
-:class:`ExceptionGroup` that carries every per-reader failure for
-diagnostic purposes.
-
-:func:`picmaker.io.read_image_array` is the multi-file wrapper: it
-delegates to :func:`~picmaker.io.read_one_image_array` per file and
-stacks the resulting arrays along the band axis with
-:func:`numpy.vstack`. The combined result inherits the
-``default_is_up`` and ``image_info`` of the first file.
-
-:func:`picmaker.io.read_pds_labeled_image_array` handles the PDS3
-label / detached-data case. Pointer resolution lives here:
-``^IMAGE = 2`` (attached integer offset), ``^IMAGE = "data.dat"``
-(detached, full file), and ``^IMAGE = ("data.dat", 3)`` (detached
-with record offset) are all distinct branches.
-
-:func:`picmaker.io.read_pil` and :func:`picmaker.io.read_array` are
-the Pillow-side helpers used by PIL-readable inputs and by
-:func:`~picmaker.io.read_one_image_array`'s PIL branch.
+Both modes honor ``--proceed``: an exception on one file is logged and
+skipped instead of aborting the run.
 
 Path planning
 ~~~~~~~~~~~~~
 
-:func:`picmaker.io.get_outfile` derives the output file path for one
-input. It honors four ``replace=`` policies (``'all'`` — silent
-overwrite; ``'none'`` — return ``''`` to signal the loop should
-skip; ``'warn'`` — overwrite and emit :class:`UserWarning`;
-``'error'`` — raise :class:`OSError`). It creates the parent
-directory tree if it does not already exist.
+:func:`picmaker.control.get_filepaths` resolves the input arguments
+into ``(infile, outdir)`` pairs. Bare files map to their own parent
+directory (or to ``--directory`` when given); directories are expanded,
+recursively when ``--recursive`` is set, with basenames filtered by the
+``--pattern`` globs (dot-files are always skipped). When ``--directory``
+is given, the output tree mirrors the input subdirectory structure
+underneath it.
 
-:func:`picmaker.pipeline.find_common_path` derives the recursive
-output tree's root by calling :func:`os.path.commonpath` over the
-input directories. The legacy hand-rolled version of this function
-used ``/`` as a literal separator and was wrong on Windows; the
-current implementation handles platform separators correctly and
-returns ``''`` when the inputs share only the root.
+:func:`picmaker.control.get_outfile` derives the output file path for
+one input. It applies ``--strip`` / ``--suffix`` / ``--extension`` and
+honors four ``replace=`` policies (``'all'`` — silent overwrite;
+``'none'`` — return ``''`` to signal the loop should skip; ``'warn'`` —
+overwrite and warn; ``'error'`` — raise :class:`OSError`). It creates
+the parent directory tree if it does not already exist.
 
 Per-image pipeline
 ~~~~~~~~~~~~~~~~~~
 
-:func:`picmaker.pipeline.images_to_pics` runs the per-image pipeline
-shown in the flowchart above. The body is now a thin loop that builds
-a :class:`~picmaker.options.PicmakerOptions`, backfills the legacy
-``None``-means-default kwargs, and delegates each filename to
-:func:`!picmaker.pipeline._process_one_image`. That helper runs the
-following phases for one input file:
+:func:`picmaker.picmaker.picmaker1` processes one input file into one
+output image, running the phases shown in the flowchart:
 
-1. Build the output path (:func:`~picmaker.io.get_outfile`); skip if
-   ``replace='none'`` returned ``''``.
-2. Read the array (:func:`~picmaker.io.read_image_array`).  Paths
-   ending in ``.LBL`` are auto-parsed inside
-   :func:`~picmaker.io.read_one_image_array` and dispatched to the PDS3
-   label branch of the reader cascade.  The caller's ``reuse`` tuple
-   short-circuits the read for the single-file batches that
-   :func:`process_images` builds per ``option_dict``.
-3. Resolve the colormap: if ``tint=True``, ask
-   :func:`picmaker.color.tinted_colormap` for a filter-specific colormap
-   override; otherwise use the user's ``colormap`` option.
-4. Run the instrument hooks, in priority order:
+1. If no cached ``image_data`` was passed, read the array with
+   :func:`picmaker.instruments.read_image_array` (see the reader cascade
+   below).
+2. Slice out the region of interest with
+   :func:`picmaker.slicing.slice_array`, which returns the 2-D or 3-D
+   array plus an optional invalid-pixel mask.
+3. Optionally fill zebra stripes with
+   :func:`picmaker.processing.fill_zebra_stripes` when ``--zebra`` is
+   set.
+4. Choose the colormap path:
 
-   a. If ``tint=True`` and the instrument module defines
-      :func:`!apply_tint`, call it with ``(array3d, image_info,
-      options)``.  A non-``None`` return is the final RGB array.
-   b. Else if ``mosaic=True`` and the instrument module defines
-      :func:`!apply_mosaic`, call it with ``(array3d, image_info,
-      options, default_is_up=…, colormap=…, imagefile=…)``.  A
-      non-``None`` return is the final RGB array and orientation is
-      treated as already-baked (``this_display_upward`` is set to
-      ``False``).
-   c. Otherwise: slice (:func:`~picmaker.geometry.slice_array`),
-      optionally fill zebra stripes
-      (:func:`~picmaker.enhance.fill_zebra_stripes`), compute limits
-      (:func:`~picmaker.enhance.get_limits`), apply the colormap
-      (:func:`~picmaker.enhance.apply_colormap`).
-5. Apply the orientation override
-   (:func:`~picmaker.geometry.rotate_array_rgb`) and gamma
-   (:func:`~picmaker.enhance.apply_gamma`).
-6. Convert to a PIL image (:func:`~picmaker.pil_utils.array_to_pil`),
-   apply the PIL filter (:func:`~picmaker._filters.filter_image`),
-   resize (:func:`~picmaker.geometry.resize_image`), optionally wrap
-   (:func:`~picmaker.geometry.wrap_image`), optionally pad
-   (:func:`~picmaker.geometry.pad_image`).
-7. Write (:func:`~picmaker.pil_utils.write_pil`), which dispatches
-   16-bit output to :func:`picmaker.tiff16.write_tiff16` and
+   a. **Mosaic path** — when ``--mosaic`` is set, the sliced array is
+      still 3-D, and the ``image_data`` object defines
+      :func:`!apply_mosaic`: compute limits per band with
+      :func:`picmaker.stretch.get_limits`, apply the colormap per band
+      with :meth:`ImageData.apply_colormap
+      <picmaker.instruments.ImageData.apply_colormap>`, take the
+      combined ``(min, max)`` across bands, and (unless
+      ``return_limits`` short-circuits) assemble the panels with the
+      instrument's :func:`!apply_mosaic`.
+   b. **Standard path** — otherwise compute one set of limits with
+      :func:`picmaker.stretch.get_limits` and apply the colormap once
+      with :meth:`ImageData.apply_colormap
+      <picmaker.instruments.ImageData.apply_colormap>`.
+
+   In either path, when ``return_limits=True`` the function returns
+   ``(image_data, limits)`` before writing anything — this is how the
+   movie first pass collects limits.
+5. Apply the display orientation with
+   :func:`picmaker.orientation.rotate_rgb_array`, passing the
+   instrument's ``default_upward`` and any ``--up`` / ``--rotation``
+   override.
+6. Plan the output size with :func:`picmaker.sizing.get_size`, convert
+   to a PIL image with :func:`picmaker.pil_utils.array_to_pil`, apply
+   the PIL filter with :func:`picmaker.processing.filter_pil_image`,
+   resize with :func:`picmaker.sizing.resize_pil_image`, wrap with
+   :func:`picmaker.layout.wrap_pil_image` when ``sections > 1``, and pad
+   with :func:`picmaker.layout.pad_pil_image`.
+7. Write the file with :func:`picmaker.pil_utils.write_pil`, which
+   dispatches 16-bit output to :func:`picmaker.tiff16.write_tiff16` and
    everything else to :meth:`PIL.Image.Image.save`.
 
-The function returns ``(low, high, reuse)`` so callers (or the
-``--movie`` second pass) can either consume the limits or replay the
-read.
+The function returns the ``image_data`` object (so the caller can reuse
+the read), or ``(image_data, limits)`` when ``return_limits=True``.
 
-The HST mosaic path (step 4b) delegates the panel-assembly geometry to
-two private helpers in :mod:`picmaker.instruments.hst`:
-:func:`!_wfpc2_mosaic` (four detectors, PC1/WF2/WF3/WF4 in a 2×2
-quadrant) and :func:`!_acs_panel_mosaic` (two detectors, WFC1 above
-and WFC2 below).  Both helpers are unit-tested directly in
-:file:`tests/test_pipeline_helpers.py`.
+The reader cascade
+~~~~~~~~~~~~~~~~~~
 
-:func:`picmaker.pipeline.process_images` is the thin loop that drives
-:func:`~picmaker.pipeline.images_to_pics` per file; its only real
-job is the movie-mode two-pass dance described above.
+:func:`picmaker.instruments.read_image_array` is the entry point. Given
+a single path it delegates to the private
+:func:`!picmaker.instruments._read_one_image_array`; given a list of
+paths it reads each one and stacks the arrays along the leading band
+axis with :func:`numpy.vstack`, inheriting the ``default_upward`` and
+``default_tint`` of the first file.
+
+:func:`!picmaker.instruments._read_one_image_array` tries each format in
+turn against every registered instrument. Instruments live in the
+``_INSTRUMENTS`` list, kept sorted by class name by
+:func:`picmaker.instruments.register_instrument`; the always-accepting
+fallback :class:`!picmaker.instruments.zzz_generic.ZZZ_Generic` sorts
+last so it is only reached when no real instrument claims the file. The
+stages are:
+
+1. **PDS3 label** — taken when the path's suffix is ``.lbl``. The label
+   is parsed with :class:`pdsparser.Pds3Label` (using the
+   ``pds3_method`` option), then each instrument's
+   :func:`!detect_in_pds3(label, filepath, **kwargs)` is tried.
+2. **VICAR** — if :meth:`vicar.VicarImage.from_file` succeeds, each
+   instrument's :func:`!detect_in_vicar(vic, filepath, **kwargs)` is
+   tried.
+3. **FITS** — if :func:`astropy.io.fits.open` succeeds, each
+   instrument's :func:`!detect_in_fits(hdulist, filepath, **kwargs)` is
+   tried. The pixels are copied out of the memory-mapped HDU before the
+   enclosing ``with`` closes the file.
+4. **Other formats** — each instrument's
+   :func:`!detect_in_file(filepath, **kwargs)` is tried. The generic
+   fallback handles attached-label PDS3 files, pickle, ``.npy``, 16-bit
+   TIFF, and any PIL-readable image here.
+
+Each ``detect_*`` method returns an
+:class:`~picmaker.instruments.ImageData` subclass instance on a match or
+``None`` to pass to the next instrument. If every stage is exhausted the
+cascade raises :class:`OSError`.
+
+The image container
+~~~~~~~~~~~~~~~~~~~
+
+:class:`picmaker.instruments.ImageData` is the base class every
+instrument subclasses. It is constructed as
+``ImageData(array, default_upward, default_tint)`` and carries the raw
+pixel array, the display-direction default, and the per-image default
+tint color. Its :meth:`~picmaker.instruments.ImageData.apply_colormap`
+method forwards to :func:`picmaker.enhancement.apply_colormap` with the
+instrument's ``default_tint``; an instrument overrides it only for a
+non-standard colormap policy. Instruments that assemble multi-detector
+mosaics additionally define an :func:`!apply_mosaic` method, checked via
+:func:`hasattr` in :func:`~picmaker.picmaker.picmaker1`.
+
+:func:`picmaker.instruments.tint_by_nm` maps a wavelength in nanometers
+to an RGB tint via a tabulated color ramp; the HST readers use it to
+derive a default tint from filter-name digits.
 
 Enhancement helpers
 ~~~~~~~~~~~~~~~~~~~
 
-:func:`picmaker.enhance.get_limits` is the most option-heavy function
-in the codebase. It supports four ways of choosing the stretch range
-that can be combined:
+:func:`picmaker.stretch.get_limits` chooses the stretch range. It
+supports several strategies that can be combined:
 
 * Explicit ``limits=(lo, hi)`` — passed through unchanged.
 * ``percentiles=(lo%, hi%)`` — uses :func:`numpy.histogram` over the
   valid pixels and linear interpolation to find the corresponding DN
   values.
 * ``trim=N`` — drop ``N`` pixels from each edge before computing.
-* ``trim_zeros=True`` — peel all-zero exterior rows and columns
-  before computing.
-* ``footprint=D`` — apply a circular median filter (footprint
-  diameter ``D``) and tighten the limits to the filter output.
+* ``trim_zeros`` — peel all-zero exterior rows and columns before
+  computing.
+* ``footprint=D`` — apply a circular median filter (footprint diameter
+  ``D``) and tighten the limits to the filter output.
 
-:func:`picmaker.enhance.apply_colormap` maps a 2-D stretched array to
-a 3-D RGB array using either a named hyphen-separated colormap (e.g.
-``'red-blue'``), a list of ``(R, G, B)`` tuples, or the per-instrument
-tint from :func:`picmaker.color.tinted_colormap`. It also handles the
-out-of-range and invalid-pixel highlight colors.
+:func:`picmaker.enhancement.apply_colormap` maps a stretched array to an
+RGB (or single-channel grayscale) array using either a named
+hyphen-separated colormap, a list of ``(R, G, B)`` tuples, or the
+instrument's ``default_tint`` when ``tint=True`` and no explicit
+colormap is given. It also applies the ``gamma`` power-law correction
+and the out-of-range / invalid-pixel highlight colors.
 
-:func:`picmaker.enhance.apply_gamma` is the final power-law correction
-(``array ** gamma``).
+:func:`picmaker.processing.fill_zebra_stripes` cleans up leading- and
+trailing-zero artifacts in compressed spacecraft images.
 
-:func:`picmaker.enhance.fill_zebra_stripes` cleans up leading- and
-trailing-zero artifacts in compressed spacecraft images. The
-implementation is currently a Python pixel loop; vectorization is
-tracked in `issue #18
-<https://github.com/SETI/rms-picmaker/issues/18>`__.
+Geometry and layout helpers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Geometry helpers
-~~~~~~~~~~~~~~~~
+:func:`picmaker.slicing.slice_array` takes the raw
+``(bands, lines, samples)`` array (or a 2-D array) and returns the
+band-selected / band-merged array plus an optional invalid-pixel mask.
+It honors the ``samples``, ``lines``, ``bands``, ``valid``, and
+``crop`` slice arguments.
 
-:func:`picmaker.geometry.slice_array` takes the raw 3-D
-``(bands, lines, samples)`` array and returns a 2-D band-averaged
-array plus an optional invalid-pixel mask. It honors ``samples``,
-``lines``, ``bands``, ``valid``, and ``crop`` slice arguments.
+:func:`picmaker.orientation.rotate_rgb_array` applies the
+``--rotation`` choice and the ``--up`` / ``--down`` override on top of
+the instrument's ``default_upward``.
 
-:func:`picmaker.geometry.crop_array` strips constant-value borders
-(typically ``crop=0`` for zero-padded fields). It returns the input
-unchanged if the whole array equals the crop value.
+:func:`picmaker.sizing.get_size` is the resize planner. It returns
+``(unwrapped_size, wrapped_size, sections, wrap_axis)``; the caller uses
+``unwrapped_size`` to resize and the remaining fields to wrap (when
+``sections > 1``).
 
-:func:`picmaker.geometry.rotate_array_rgb` applies the
-``--rotate {fliplr,fliptb,rot90,rot180,rot270}`` choice and the
-``display_upward`` override.
+:func:`picmaker.sizing.resize_pil_image`,
+:func:`picmaker.layout.wrap_pil_image`, and
+:func:`picmaker.layout.pad_pil_image` execute the plan against a PIL
+image.
 
-:func:`picmaker.geometry.get_size` is the resize planner. It returns
-``(unwrapped_size, wrapped_size, sections, wrap_axis)``; the caller
-uses ``unwrapped_size`` to resize the image and the remaining three
-fields to wrap it (when ``sections > 1``).
-
-:func:`picmaker.geometry.resize_image`,
-:func:`picmaker.geometry.wrap_image`, and
-:func:`picmaker.geometry.pad_image` execute the plan against a PIL
-image. :func:`~picmaker.geometry.resize_image` upscales with
-``NEAREST`` and downscales with ``LANCZOS`` so the output is
-pixel-art-friendly for small inputs and Lanczos-smoothed for large
-ones.
-
-Color, filter, and PIL bridges
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:func:`picmaker.color.tinted_colormap` is the entry point for
-per-filter tinting. It normalizes HST's ``CL1`` / ``CL2`` /
-``CLEAR*`` / ``N/A`` filter-tuple quirks, picks the right instrument
-module via :func:`picmaker.instruments.lookup`, and delegates to its
-``tint_for`` callable (e.g.
-:func:`picmaker.instruments.cassini.tint_for`).
-
-:func:`picmaker._filters.filter_image` applies one of the
-:data:`picmaker._filters.FILTER_DICT` PIL presets to a PIL image,
-or raises :class:`KeyError` if the case-folded filter name is not in
-the dict.
+PIL bridges
+~~~~~~~~~~~
 
 :func:`picmaker.pil_utils.array_to_pil`,
 :func:`picmaker.pil_utils.pil_to_array`, and
-:func:`picmaker.pil_utils.write_pil` are the three numpy ↔ PIL
-bridges. :func:`~picmaker.pil_utils.write_pil` dispatches 16-bit
-output (list-of-three ``'I'``-mode images, or a single ``'I'``-mode
-image) through :func:`picmaker.tiff16.write_tiff16` and the 8-bit
-path through :meth:`PIL.Image.Image.save`.
+:func:`picmaker.pil_utils.write_pil` are the numpy ↔ PIL bridges.
+:func:`~picmaker.pil_utils.write_pil` dispatches 16-bit output through
+:func:`picmaker.tiff16.write_tiff16` and the 8-bit path through
+:meth:`PIL.Image.Image.save`. :func:`picmaker.processing.filter_pil_image`
+applies one of the named PIL filter presets to a PIL image.
+</content>
+</invoke>

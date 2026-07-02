@@ -16,7 +16,7 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
     """Return the image array described by a PDS3 label.
 
     Parameters:
-        label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
+        label (Pds3Label): A parsed PDS3 label.
         obj (int, optional): An object index within the file, needed if the label
             describes more than one image object.
         pointers (list[str], optional): Alternative list of names of the IMAGE object
@@ -24,14 +24,14 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
-        (np.ndarray): a NumPy array containing the pixel values. The array is 3-D if the
-        IMAGE object specifies BANDS and 2-D otherwise. The axes are always ordered as
-        BANDS (if present), then LINES and SAMPLES. The array preserves the data type and
-        byte size of the samples in the file, but has been converted to native byte order.
+        array: a NumPy array containing the pixel values. The array is 3-D if the IMAGE
+        object specifies BANDS and 2-D otherwise. The axes are always ordered as BANDS (if
+        present), then LINES and SAMPLES. The array preserves the data type and byte size
+        of the samples in the file, but has been converted to native byte order.
 
     Raises:
-        KeyError: If ``pointers`` is provided but no named pointer is found in the label.
-        IndexError: If ``obj`` is provided but is out of range for the label.
+        KeyError: If `pointers` is provided but no named pointer is found in the label.
+        IndexError: If `obj` is provided but is out of range for the label.
         ValueError: If the label does not describe a readable IMAGE object, lacks a
             pointer, or the data file is shorter than the label describes.
         FileNotFoundError: If the detached data file cannot be found.
@@ -306,10 +306,10 @@ def _resolve_pds3_filename(base_dir, name):
         name (str): The file name as recorded in the label.
 
     Returns:
-        (pathlib.Path): Path of the first matching file that exists.
+        Path: Path of the first matching file that exists.
 
     Raises:
-        FileNotFoundError: If no matching file is found in ``base_dir``.
+        FileNotFoundError: If no matching file is found in `base_dir`.
     """
 
     for candidate in (name, name.upper(), name.lower()):

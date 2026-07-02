@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to the Documentation for rms-picmaker! &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>Welcome to the Documentation for rms-picmaker! &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -15,7 +15,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=10858467"></script>
+        <script src="_static/documentation_options.js?v=e2a04e36"></script>
         <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -85,7 +85,7 @@ VICAR images, and FITS images — into JPEG, TIFF, PNG, or other popular display
 formats. It is used by the PDS Ring-Moon Systems Node (SETI Institute) for image
 preview generation.</p>
 <p>It ships both as a command-line tool (<code class="docutils literal notranslate"><span class="pre">picmaker</span></code>) and as an importable Python
-library (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">picmaker.picmaker</span> <span class="pre">import</span> <span class="pre">images_to_pics</span></code>). Features include
+library (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">picmaker</span> <span class="pre">import</span> <span class="pre">picmaker</span></code>). Features include
 percentile stretching, gamma correction, histogram equalization, colormap and
 filter-aware tinting, cropping, resizing, padding, and 16-bit TIFF output.</p>
 </section>
@@ -111,15 +111,18 @@ stretch and a gamma of 0.7:</p>
 </pre></div>
 </div>
 <p>Use as a library:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker.picmaker</span> <span class="kn">import</span> <span class="n">images_to_pics</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">picmaker</span> <span class="kn">import</span> <span class="n">picmaker</span>
+<span class="kn">from</span> <span class="nn">picmaker.parser</span> <span class="kn">import</span> <span class="n">get_parser</span>
 
-<span class="n">images_to_pics</span><span class="p">(</span>
-    <span class="p">[</span><span class="s1">&#39;input.IMG&#39;</span><span class="p">],</span>
-    <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;out/&#39;</span><span class="p">,</span>
-    <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;jpg&#39;</span><span class="p">,</span>
-    <span class="n">percentiles</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">99.0</span><span class="p">),</span>
-    <span class="n">gamma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="c1"># Let the argument parser fill in every default, then run the pipeline.</span>
+<span class="n">options</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span><span class="o">.</span><span class="n">parse_args</span><span class="p">([</span>
+    <span class="s1">&#39;input.IMG&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--directory&#39;</span><span class="p">,</span> <span class="s1">&#39;out/&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--extension&#39;</span><span class="p">,</span> <span class="s1">&#39;jpg&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--percentiles&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;99&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;--gamma&#39;</span><span class="p">,</span> <span class="s1">&#39;0.7&#39;</span><span class="p">,</span>
+<span class="p">])</span>
+<span class="n">picmaker</span><span class="p">(</span><span class="o">**</span><span class="nb">vars</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
 </pre></div>
 </div>
 <blockquote>
@@ -178,20 +181,21 @@ arbitrary code from the file.</p>
 <li class="toctree-l1"><a class="reference internal" href="module.html"><code class="docutils literal notranslate"><span class="pre">picmaker</span></code> Module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="module.html#public-api">Public API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="module.html#package">Package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#backward-compatibility-shim">Backward-compatibility shim</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#wavelength-rgb-tables">Wavelength → RGB tables</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#pipeline">Pipeline</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#options">Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#i-o">I/O</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#core">Core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#cli-entry-point">CLI entry point</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#argument-parser">Argument parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#file-control-and-i-o">File control and I/O</a></li>
 <li class="toctree-l2"><a class="reference internal" href="module.html#enhancement">Enhancement</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#geometry">Geometry</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#color">Color</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#stretch">Stretch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#processing">Processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#sizing">Sizing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#slicing">Slicing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#layout">Layout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#orientation">Orientation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="module.html#pil-utilities">PIL utilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#filters">Filters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#cli">CLI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="module.html#instruments">Instruments</a></li>
 <li class="toctree-l2"><a class="reference internal" href="module.html#tiff-16">TIFF 16</a></li>
 <li class="toctree-l2"><a class="reference internal" href="module.html#color-names">Color names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="module.html#instruments">Instruments</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
@@ -237,7 +241,7 @@ arbitrary code from the file.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

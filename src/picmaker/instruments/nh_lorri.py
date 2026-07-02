@@ -17,16 +17,16 @@ class NH_LORRI(ImageData):
 
     @staticmethod
     def detect_in_pds3(label, filepath, **kwargs):
-        """Extract New Horizons LORRI data from a parsed :class:`pdsparser.Pds3Label`.
+        """Extract New Horizons LORRI data from a parsed Pds3Label.
 
         Parameters:
-            label (:class:`pdsparser.Pds3Label`): A parsed PDS3 label.
-            filepath (str or pathlib.Path): The path to this PDS3 label.
+            label (Pds3Label): A parsed PDS3 label.
+            filepath (str or Path): The path to this PDS3 label.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (NH_LORRI or None): Instrument subclass if ``label`` describes a New Horizons
-            LORRI product; ``None`` otherwise.
+            NH_LORRI or None: Instrument subclass if `label` describes a New Horizons
+            LORRI product; None otherwise.
         """
 
         try:
@@ -42,16 +42,16 @@ class NH_LORRI(ImageData):
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, **kwargs):
-        """Extract New Horizons LORRI data from an open :class:`pyfits.HDUList`.
+        """Extract New Horizons LORRI data from an open HDUList.
 
         Parameters:
-            hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
-            filepath (str or pathlib.Path): The path to this FITS file.
+            hdulist (HDUList): The HDUList of an opened FITS file.
+            filepath (str or Path): The path to this FITS file.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (NH_LORRI or None): Instrument subclass if ``hdulist`` describes a New
-            Horizons LORRI product; ``None`` otherwise.
+            NH_LORRI or None: Instrument subclass if `hdulist` describes a New Horizons
+            LORRI product; None otherwise.
         """
 
         try:

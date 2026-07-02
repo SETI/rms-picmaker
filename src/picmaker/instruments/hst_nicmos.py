@@ -3,9 +3,7 @@
 ##########################################################################################
 """HST NICMOS detector and reader."""
 
-import astropy.io.fits as pyfits  # noqa
-
-from picmaker.instruments import ImageData, tint_by_nm, register_instrument
+from picmaker.instruments import ImageData, register_instrument, tint_by_nm
 from picmaker.instruments._fits_support import get_fits_image_hdu
 from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
 
@@ -18,11 +16,11 @@ class HST_NICMOS(ImageData):
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, pointers=None, retint=None, **kwargs):
-        """Extract HST NICMOS data from an open :class:`pyfits.HDUList`.
+        """Extract HST NICMOS data from an open HDUList.
 
         Parameters:
-            hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
-            filepath (str or pathlib.Path): The path to this FITS file.
+            hdulist (HDUList): The HDUList of the FITS file.
+            filepath (str or Path): The path to this FITS file.
             obj (int, optional): The HDU index (starting at 0) of the image array. If not
                 specified, the first image array in the file is used.
             pointers (str or list[str], optional): Name or alternative list of names of
@@ -32,8 +30,8 @@ class HST_NICMOS(ImageData):
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (HST_NICMOS or None): Instrument subclass if the file describes an HST NICMOS
-            product; ``None`` otherwise.
+            HST_NICMOS or None: Instrument subclass if the file describes an HST NICMOS
+            product; None otherwise.
         """
 
         try:

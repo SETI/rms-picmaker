@@ -3,8 +3,8 @@
 ##########################################################################################
 """PIL image read/write support.
 
-These functions wrap ``PIL.Image`` so callers can move between numpy arrays and PIL images
-and write JPEG / TIFF / 16-bit TIFF without owning the mode-specific details themselves.
+These functions wrap PIL.Image so callers can move between numpy arrays and PIL images and
+write JPEG/TIFF/16-bit TIFF without owning the mode-specific details themselves.
 """
 
 import pathlib
@@ -24,15 +24,15 @@ def array_to_pil(array, twobytes=False, rescale=True):
     (one per channel).
 
     Parameters:
-        array (np.ndarray): Image array containing one band of grayscale or three bands
+        array (array): Image array containing one band of grayscale or three bands
             if RGB.
         twobytes (bool, optional): True for 16-bit images, False for 8-bit.
         rescale (bool, optional): True to scale values from unity; False to leave them
             alone.
 
     Returns:
-        (:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a list of
-        three PIL images.
+        (PIL.Image or list of three): A PIL image or, for 16-bit RGB, a list of three PIL
+        images.
     """
 
     # Get the array size in image ordering
@@ -89,20 +89,19 @@ def array_to_pil(array, twobytes=False, rescale=True):
 def pil_to_array(image, rescale=True):
     """Convert a PIL image (or list of RGB images) to a Numpy array.
 
-    The shape of the returned array is ``(height, width, channel)`` for an RGB image or
-    ``(height, width)`` for a grayscale image.
+    The shape of the returned array is (height, width, channel) for an RGB image or
+    (height, width) for a grayscale image.
 
     Parameters:
-        image (:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a
-            list of three PIL images.
+        image (PIL.Image or list of three): A PIL image or a list of three for 16-bit RGB.
         rescale (bool, optional): True to scale values to the range 0-1; False to leave
             them alone.
 
     Returns:
-        (np.ndarray): 2-D or 3-D image array.
+        (array): 2-D or 3-D image array.
 
     Raises:
-        OSError: If a PIL image has an unsupported mode (not ``'I'``, ``'L'``, or RGB).
+        OSError: If a PIL image has an unsupported mode (not "I", "L", or RGB).
     """
 
     # Determine if it's a triple
@@ -159,9 +158,8 @@ def write_pil(image, outfile, quality=75):
     """Write a PIL image (or list of RGB images) to a file.
 
     Parameters:
-        image (:class:`PIL.Image` or list of three): A PIL image or, for 16-bit RGB, a
-            list of three PIL images.
-        outfile (str or pathlib.Path): The output file to write.
+        image (PIL.Image or list of three): A PIL image or a list of three for 16-bit RGB.
+        outfile (str or Path): The output file to write.
         quality (float): Quality factor 0-100 to use for JPEG output.
 
     Raises:

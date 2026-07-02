@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>picmaker.instruments.nh_mvic &mdash; rms-picmaker 1.1.1.dev2 documentation</title>
+  <title>picmaker.instruments.nh_mvic &mdash; rms-picmaker 1.1.1.dev47 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
 
@@ -14,7 +14,7 @@
   
         <script src="../../../_static/jquery.js?v=5d32c60e"></script>
         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../../_static/documentation_options.js?v=10858467"></script>
+        <script src="../../../_static/documentation_options.js?v=e2a04e36"></script>
         <script src="../../../_static/doctools.js?v=9a2dae69"></script>
         <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
@@ -512,155 +512,93 @@ window.runMermaid = runMermaid;</script>
            <div itemprop="articleBody">
              
   <h1>Source code for picmaker.instruments.nh_mvic</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;New Horizons MVIC detection and tint.</span>
+<span></span><span class="c1">##########################################################################################</span>
+<span class="c1"># picmaker/instruments/nh_mvic.py</span>
+<span class="c1">##########################################################################################</span>
+<span class="sd">&quot;&quot;&quot;New Horizons MVIC detector and reader.&quot;&quot;&quot;</span>
 
-<span class="sd">MVIC is the color imager; its FITS products carry a ``FILTER`` keyword</span>
-<span class="sd">that drives the per-filter tint in :func:`tint_for`. LORRI (the</span>
-<span class="sd">panchromatic camera) lives in :mod:`picmaker.instruments.nh_lorri`.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">pdsparser</span>                <span class="c1"># noqa</span>
+<span class="kn">import</span> <span class="nn">astropy.io.fits</span> <span class="k">as</span> <span class="nn">pyfits</span>  <span class="c1"># noqa</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">ImageData</span><span class="p">,</span> <span class="n">register_instrument</span>
+<span class="kn">from</span> <span class="nn">picmaker.instruments._pds3_support</span> <span class="kn">import</span> <span class="n">read_pds3_image_array</span>
 
-<span class="kn">import</span> <span class="nn">astropy.io.fits</span> <span class="k">as</span> <span class="nn">pyfits</span>
-<span class="kn">import</span> <span class="nn">pdsparser</span>
-
-<span class="kn">from</span> <span class="nn">picmaker._types</span> <span class="kn">import</span> <span class="n">ObjectSelector</span><span class="p">,</span> <span class="n">ReadResult</span>
-<span class="kn">from</span> <span class="nn">picmaker.instruments</span> <span class="kn">import</span> <span class="n">_shared</span>
-
-<span class="n">FILTER_DICT</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">_FILTER_TINTS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;BLUE&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">210</span><span class="p">),</span>
-    <span class="s1">&#39;RED&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">190</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
-    <span class="s1">&#39;NIR&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">210</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span>
-    <span class="s1">&#39;CH4&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">230</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">35</span><span class="p">),</span>
+    <span class="s1">&#39;RED&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="mi">190</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+    <span class="s1">&#39;NIR&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="mi">210</span><span class="p">,</span>  <span class="mi">65</span><span class="p">,</span>  <span class="mi">45</span><span class="p">),</span>
+    <span class="s1">&#39;CH4&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="mi">230</span><span class="p">,</span>  <span class="mi">35</span><span class="p">,</span>  <span class="mi">35</span><span class="p">),</span>
 <span class="p">}</span>
+<span class="n">_DEFAULT_UPWARD</span> <span class="o">=</span> <span class="kc">True</span>
 
 
-<span class="k">def</span> <span class="nf">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract New Horizons MVIC metadata from an open ``astropy.io.fits`` HDU list.</span>
+<div class="viewcode-block" id="NH_MVIC">
+<a class="viewcode-back" href="../../../module.html#picmaker.instruments.nh_mvic.NH_MVIC">[docs]</a>
+<span class="k">class</span> <span class="nc">NH_MVIC</span><span class="p">(</span><span class="n">ImageData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;New Horizons MVIC detector and reader.&quot;&quot;&quot;</span>
 
-<span class="sd">    The ``HOSTNAME`` keyword identifies the host and ``INSTRU`` the</span>
-<span class="sd">    instrument; the filter name comes from ``FILTER`` when present. Only</span>
-<span class="sd">    MVIC (``INSTRU`` of ``&#39;MVIC&#39;`` / ``&#39;MVI&#39;``) is claimed here — other</span>
-<span class="sd">    New Horizons instruments are left for their own readers.</span>
+<div class="viewcode-block" id="NH_MVIC.detect_in_pds3">
+<a class="viewcode-back" href="../../../module.html#picmaker.instruments.nh_mvic.NH_MVIC.detect_in_pds3">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_pds3</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract New Horizons MVIC data from a parsed Pds3Label.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">        hdulist: An ``astropy.io.fits`` HDU list.</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">            label (Pds3Label): A parsed PDS3 label.</span>
+<span class="sd">            filepath (str or Path): The path to this PDS3 label.</span>
+<span class="sd">            **kwargs: Additional input options, ignored here.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        ``(inst_host, inst_id, filter_name)`` if the file is an NH MVIC</span>
-<span class="sd">        FITS image, ``None`` otherwise. ``filter_name`` may be ``None`` if</span>
-<span class="sd">        no ``FILTER`` keyword is present.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">inst_host</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;HOSTNAME&#39;</span><span class="p">]</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">inst_id</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;INSTRU&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">inst_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;MVIC&#39;</span><span class="p">,</span> <span class="s1">&#39;MVI&#39;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            NH_MVIC or None: Instrument subclass if `label` describes a New Horizons MVIC</span>
+<span class="sd">            product; None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
-    <span class="n">filter_name</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">filter_name</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;FILTER&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="n">filter_name</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">inst_host</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_HOST_ID&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;NH&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="s1">&#39;INSTRUMENT_ID&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MVIC&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">array</span> <span class="o">=</span> <span class="n">read_pds3_image_array</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">filter_name</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">NH_MVIC</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">_DEFAULT_UPWARD</span><span class="p">,</span> <span class="n">_FILTER_TINTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filter_name</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="read_file">
-<a class="viewcode-back" href="../../../module.html#picmaker.instruments.nh_mvic.read_file">[docs]</a>
-<span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">,</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">ObjectSelector</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to detect and read a New Horizons MVIC FITS image.</span>
+<div class="viewcode-block" id="NH_MVIC.detect_in_fits">
+<a class="viewcode-back" href="../../../module.html#picmaker.instruments.nh_mvic.NH_MVIC.detect_in_fits">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">detect_in_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract New Horizons MVIC data from an open HDUList.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">        filename: Path to the candidate file. A parsed</span>
-<span class="sd">            :class:`pdsparser.Pds3Label` is not an MVIC product and yields</span>
-<span class="sd">            ``None``.</span>
-<span class="sd">        obj: HDU index, name, or list/tuple of indices to stack.</span>
-<span class="sd">        **kwargs: Accepted but ignored; MVIC files need no</span>
-<span class="sd">            instrument-specific options.</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">            hdulist (HDUList): The HDUList of an opened FITS file.</span>
+<span class="sd">            filepath (str or Path): The path to this FITS file.</span>
+<span class="sd">            **kwargs: Additional input options, ignored here.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        :class:`~picmaker._types.ReadResult` on success, ``None`` if the</span>
-<span class="sd">        file is not recognized as a New Horizons MVIC FITS image.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">pdsparser</span><span class="o">.</span><span class="n">Pds3Label</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_shared</span><span class="o">.</span><span class="n">is_fits_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># Set the error filter BEFORE entering pyfits.open() so warnings</span>
-        <span class="c1"># emitted while parsing the FITS headers (during __enter__) are also</span>
-        <span class="c1"># promoted to exceptions, not just those raised during HDU access.</span>
-        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">)</span>
-            <span class="k">with</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span> <span class="k">as</span> <span class="n">hdulist</span><span class="p">:</span>
-                <span class="n">_fitsobj</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># IndexError / KeyError if not valid FITS</span>
-                <span class="n">image_info</span> <span class="o">=</span> <span class="n">_detect_fits</span><span class="p">(</span><span class="n">hdulist</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">image_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="kc">None</span>
-                <span class="n">array3d</span> <span class="o">=</span> <span class="n">_shared</span><span class="o">.</span><span class="n">extract_fits_array</span><span class="p">(</span><span class="n">hdulist</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-                <span class="k">return</span> <span class="n">ReadResult</span><span class="p">(</span><span class="n">array3d</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">image_info</span><span class="p">)</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">UserWarning</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span></div>
+<span class="sd">        Returns:</span>
+<span class="sd">            NH_MVIC or None: Instrument subclass if `hdulist` describes a New Horizons</span>
+<span class="sd">            MVIC product; None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;HOSTNAME&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;NEW HORIZONS&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;INSTRU&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;mvi&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">filter_name</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FILTER&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">NH_MVIC</span><span class="p">(</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">_DEFAULT_UPWARD</span><span class="p">,</span> <span class="n">_FILTER_TINTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">filter_name</span><span class="p">))</span></div>
+</div>
 
 
 
-<div class="viewcode-block" id="matches">
-<a class="viewcode-back" href="../../../module.html#picmaker.instruments.nh_mvic.matches">[docs]</a>
-<span class="k">def</span> <span class="nf">matches</span><span class="p">(</span><span class="n">inst_host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predicate identifying the New Horizons MVIC camera, the instrument this module tints.</span>
+<span class="n">register_instrument</span><span class="p">(</span><span class="n">NH_MVIC</span><span class="p">)</span>
 
-<span class="sd">    Both the host and the instrument id must agree: a New Horizons host</span>
-<span class="sd">    alone is not enough. The ``inst_id`` test mirrors the MVIC gate in</span>
-<span class="sd">    :func:`tint_for`.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        inst_host: Instrument host string.</span>
-<span class="sd">        inst_id: Instrument id (``&#39;MVIC&#39;`` / ``&#39;MVI&#39;``).</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ``True`` for a New Horizons host whose ``inst_id`` names the MVIC</span>
-<span class="sd">        camera.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">inst_host</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;NEW HORIZONS&#39;</span><span class="p">,</span> <span class="s1">&#39;NH&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">inst_id</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;MVIC&#39;</span><span class="p">,</span> <span class="s1">&#39;MVI&#39;</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="tint_for">
-<a class="viewcode-back" href="../../../module.html#picmaker.instruments.nh_mvic.tint_for">[docs]</a>
-<span class="k">def</span> <span class="nf">tint_for</span><span class="p">(</span><span class="n">inst_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the full ``[black, tint, white]`` colormap for an MVIC filter.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        inst_id: Instrument id (``&#39;MVIC&#39;`` / ``&#39;MVI&#39;``).</span>
-<span class="sd">        filter_name: A key into :data:`picmaker.instruments.nh_mvic.FILTER_DICT`.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ``[(0, 0, 0), tint, (255, 255, 255)]`` for an MVIC filter, or</span>
-<span class="sd">        ``[(0, 0, 0), (255, 255, 255)]`` when ``inst_id`` is not MVIC.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        KeyError: If ``filter_name`` is not in</span>
-<span class="sd">            :data:`picmaker.instruments.nh_mvic.FILTER_DICT` and ``inst_id``</span>
-<span class="sd">            selects the MVIC path.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">inst_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;MVIC&#39;</span><span class="p">,</span> <span class="s1">&#39;MVI&#39;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FILTER_DICT</span><span class="p">[</span><span class="n">filter_name</span><span class="p">],</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)]</span></div>
-
-
-
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;FILTER_DICT&#39;</span><span class="p">,</span> <span class="s1">&#39;matches&#39;</span><span class="p">,</span> <span class="s1">&#39;read_file&#39;</span><span class="p">,</span> <span class="s1">&#39;tint_for&#39;</span><span class="p">]</span>
+<span class="c1">##########################################################################################</span>
 </pre></div>
 
            </div>
@@ -670,7 +608,7 @@ window.runMermaid = runMermaid;</script>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, SETI Institute.</p>
+    <p>&#169; Copyright 2026, SETI Institute.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

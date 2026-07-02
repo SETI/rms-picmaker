@@ -18,13 +18,13 @@ class TestGetOutfile:
         result = get_outfile(str(infile), outdir=str(tmp_path), replace='all')
         assert result == out_existing
 
-    def test_replace_none_returns_empty_when_exists(self, tmp_path: Path) -> None:
+    def test_replace_none_returns_none_when_exists(self, tmp_path: Path) -> None:
         infile = tmp_path / 'image.IMG'
         infile.write_bytes(b'')
         out_existing = tmp_path / 'image.jpg'
         out_existing.write_bytes(b'')
 
-        assert get_outfile(str(infile), outdir=str(tmp_path), replace='none') == ''
+        assert get_outfile(str(infile), outdir=str(tmp_path), replace='none') is None
 
     def test_replace_warn_warns_and_returns_path(self, tmp_path: Path) -> None:
         infile = tmp_path / 'image.IMG'
