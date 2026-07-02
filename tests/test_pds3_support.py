@@ -16,7 +16,7 @@ from picmaker.instruments._pds3_support import (
 )
 
 
-class FakeLabel(dict):
+class FakeLabel(dict[str, Any]):
     """Dict-like stand-in for pdsparser.Pds3Label (adds the ._filepath attr)."""
 
     def __init__(self, data: dict[str, Any], filepath: str = '') -> None:

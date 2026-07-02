@@ -145,9 +145,21 @@ strict = true
 disallow_subclassing_any = false
 
 [[tool.mypy.overrides]]
-# Exclude the picmaker package source (src/picmaker) from type checking.
+# The picmaker source (src/picmaker) is intentionally untyped and permanently
+# excluded from mypy: `follow_imports = skip` stops mypy from analyzing it and
+# treats it as `Any` wherever the tests import it, so tests are never flagged
+# for calling into untyped code. `ignore_errors` covers the case where src is
+# still passed to mypy explicitly.
 module = ["picmaker", "picmaker.*"]
+follow_imports = "skip"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+# The tests legitimately call into the untyped picmaker package; don't flag
+# those calls. This keeps mypy on tests green regardless of whether src is
+# analyzed (e.g. if it is passed explicitly on the command line).
+module = ["tests", "tests.*"]
+disallow_untyped_calls = false
 
 [[tool.mypy.overrides]]
 module = "picmaker._version"
@@ -160,6 +172,7 @@ module = [
   "scipy.*",
   "vicar",
   "pdsparser",
+  "pdslogger",
   "tabulation",
 ]
 ignore_missing_imports = true

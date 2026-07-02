@@ -40,7 +40,7 @@ def generate_previews(input_path: Path, out_dir: Path,
     if versions_path is not None:
         args += ['--versions', str(versions_path)]
     options = vars(get_parser().parse_args(args))
-    picmaker(**options)  # type: ignore[no-untyped-call]  # untyped public entry point
+    picmaker(**options)
 
 
 def render_snapshot(input_path: Path, out_dir: Path, slug: str,
@@ -57,7 +57,7 @@ def render_snapshot(input_path: Path, out_dir: Path, slug: str,
     options['suffix'] = f'--{slug}'
     options['extension'] = extension
     options.update(option_overrides)
-    picmaker(**options)  # type: ignore[no-untyped-call]  # untyped public entry point
+    picmaker(**options)
 
 
 def assert_preview_matches(produced_path: Path, reference_path: Path) -> None:

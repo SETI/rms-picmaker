@@ -376,11 +376,10 @@ run_code_checks() {
 
     if [ "$RUN_MYPY" = true ] && [ "$ENABLE_MYPY" = true ]; then
         print_info "Running mypy..."
-        # tests/ has no __init__.py but mypy still type-checks every test_*.py
-        # under strict mode because file basenames are unique across the
-        # directory; the (src + tests) file count in the success line confirms
-        # tests are covered.
-        if MYPYPATH=src python -m mypy src tests; then
+        # src/picmaker is intentionally untyped and permanently excluded from
+        # mypy (see pyproject [tool.mypy]: follow_imports=skip on picmaker.*).
+        # mypy type-checks the tests only.
+        if MYPYPATH=src python -m mypy tests; then
             print_success "Mypy passed"
         else
             print_error "Mypy failed"

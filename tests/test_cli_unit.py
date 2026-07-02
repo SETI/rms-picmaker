@@ -123,7 +123,8 @@ def test_get_filepaths_empty() -> None:
 
 
 def _vo(*args: str) -> dict[str, Any]:
-    return validate_options(get_parser().parse_args(list(args)))
+    options: dict[str, Any] = validate_options(get_parser().parse_args(list(args)))
+    return options
 
 
 def test_validate_band_bands_incompatible() -> None:

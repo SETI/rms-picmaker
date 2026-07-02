@@ -98,7 +98,7 @@ def wrap_pil_image(image, wrapped_size, sections, wrap_axis=0, gap_size=1,
     return array_to_pil(buffer, two_bytes, rescale=False)
 
 
-def pad_pil_image(image, frame=None, pad=False, pad_color='gray', **kargs):
+def pad_pil_image(image, frame=None, pad=False, pad_color='gray', **kwargs):
     """Pad a PIL image to fill a target frame size.
 
     Parameters:

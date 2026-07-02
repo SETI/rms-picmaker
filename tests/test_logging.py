@@ -7,6 +7,7 @@ to a real :class:`pdslogger.PdsLogger` and asserting on the emitted records.
 
 import logging
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,8 @@ from pdslogger import PdsLogger
 
 from picmaker.parser import get_parser
 from picmaker.picmaker import picmaker, validate_options
+
+CapturedLogger = tuple[PdsLogger, list[logging.LogRecord]]
 
 
 class _ListHandler(logging.Handler):
@@ -28,7 +31,7 @@ class _ListHandler(logging.Handler):
 
 
 @pytest.fixture
-def captured_logger(request: pytest.FixtureRequest):
+def captured_logger(request: pytest.FixtureRequest) -> Iterator[CapturedLogger]:
     """A real PdsLogger (uniquely named per test) plus its captured records."""
     handler = _ListHandler()
     logger = PdsLogger.get_logger(f'pds.picmaker.test.{request.node.name}', level='debug')
@@ -50,7 +53,7 @@ def _run(logger: PdsLogger, *argv: str) -> None:
     picmaker(**options)
 
 
-def test_no_input_files_logs_error(captured_logger) -> None:
+def test_no_input_files_logs_error(captured_logger: CapturedLogger) -> None:
     """An empty input set logs an ERROR before raising."""
     logger, records = captured_logger
     with pytest.raises(ValueError, match='no input files identified'):
@@ -58,7 +61,7 @@ def test_no_input_files_logs_error(captured_logger) -> None:
     assert any('no input files identified' in m for m in _messages(records, 'ERROR'))
 
 
-def test_validation_error_is_logged(captured_logger) -> None:
+def test_validation_error_is_logged(captured_logger: CapturedLogger) -> None:
     """A validation conflict is logged (as an exception) before raising."""
     logger, records = captured_logger
     with pytest.raises(ValueError, match='--band and --bands'):
@@ -72,7 +75,7 @@ def test_validation_error_is_logged(captured_logger) -> None:
 
 
 def test_proceed_after_error_logs_info(
-    captured_logger, fixtures_dir: Path, tmp_path: Path
+    captured_logger: CapturedLogger, fixtures_dir: Path, tmp_path: Path
 ) -> None:
     """``--proceed`` logs an INFO record and keeps processing later files."""
     logger, records = captured_logger
@@ -86,7 +89,7 @@ def test_proceed_after_error_logs_info(
 
 
 def test_successful_run_logs_writing(
-    captured_logger, fixtures_dir: Path, tmp_path: Path
+    captured_logger: CapturedLogger, fixtures_dir: Path, tmp_path: Path
 ) -> None:
     """A normal run logs the output file it writes."""
     logger, records = captured_logger

@@ -39,11 +39,9 @@ class TestNegativeLookups:
         assert '#ff8800' in str(excinfo.value)
 
     def test_non_string_raises_typeerror(self) -> None:
-        # Deliberately passing an int to exercise the TypeError branch — mypy
-        # flags this correctly, which is why we suppress the arg-type warning
-        # here only.
+        # Deliberately passing an int to exercise the TypeError branch.
         with pytest.raises(TypeError) as excinfo:
-            ColorNames.lookup(42)  # type: ignore[arg-type]
+            ColorNames.lookup(42)
         assert 'Colorname must be a string' in str(excinfo.value)
 
 

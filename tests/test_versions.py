@@ -14,7 +14,8 @@ from picmaker.picmaker import get_versions, validate_options
 
 
 def _base(*args: str) -> dict[str, Any]:
-    return validate_options(get_parser().parse_args(list(args)))
+    options: dict[str, Any] = validate_options(get_parser().parse_args(list(args)))
+    return options
 
 
 def test_no_versions_returns_single_options_dict() -> None:

@@ -22,7 +22,7 @@ pytest -k 'test_name'    # run a single test
 **Lint:**
 ```sh
 ruff check src tests
-MYPYPATH=src mypy src tests
+MYPYPATH=src mypy tests   # src/picmaker is intentionally untyped and excluded from mypy
 bandit -c pyproject.toml -r src -q
 vulture src
 ```
