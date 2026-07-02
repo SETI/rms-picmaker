@@ -1,8 +1,8 @@
 """Read/render check of the bundled HST NICMOS sample.
 
 The committed reference jpgs were produced by the old tool from the PDS3-labeled
-``RAW_TIFF_DOCUMENT`` / ``MOS_JPEG_DOCUMENT`` browse products named in
-``HSTN_previews.txt``; those source documents are not bundled here (only the
+``RAW_TIFF_DOCUMENT`` / ``MOS_JPEG_DOCUMENT`` browse products of the original
+NICMOS preview recipe; those source documents are not bundled here (only the
 multi-extension FITS is), and the recipe used ``--pointer`` / ``--alt_pointer``
 options the current tool no longer has. The references are therefore not
 reproducible pixel-for-pixel from this FITS.
@@ -25,7 +25,7 @@ from tests import generate_previews
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_nicmos'
 IMAGE = DATA_DIR / 'nb06030a0_mos.fits'
 
-# Base options from HSTN_previews.sh; each version adds its own overrides.
+# Base options from the original NICMOS preview recipe; each version adds its own overrides.
 BASE_ARGS = ('--percentiles', '0.02', '99.98', '--gamma', '0.5', '--extension', 'jpg')
 
 # (suffix, per-version args, reference jpg, expected PIL mode). The tinted
