@@ -97,7 +97,7 @@ class HST_WFPC2(ImageData):
 
         Parameters:
             arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (usually length 4),
-                each indexed``(lines, samples, 3)``.
+                each indexed ``(lines, samples, color)``.
             **kwargs: Additional input options, ignored here.
 
         Returns:

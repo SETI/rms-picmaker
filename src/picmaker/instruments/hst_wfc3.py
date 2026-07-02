@@ -1,5 +1,5 @@
 ##########################################################################################
-# picmaker/instruments/hst_acs.py
+# picmaker/instruments/hst_wfc3.py
 ##########################################################################################
 """HST ACS detector and reader."""
 
@@ -13,18 +13,18 @@ from picmaker.instruments._fits_support import (get_fits_image_hdu, get_fits_ima
                                                 hdu_is_image)
 from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
 
-_IS_UNDIAGNOSTIC = re.compile(r'(|CLEAR.*|POL.*|G800L|N/A)$')
+_IS_UNDIAGNOSTIC = re.compile(r'(F200LP|F350LP)$')
 _DEFAULT_UPWARD = True
-_DEFAULT_SBC_RETINT = 3.
+_DEFAULT_IR_RETINT = 0.4
 
 
-class HST_ACS(ImageData):
-    """HST ACS detector and reader."""
+class HST_WFC3(ImageData):
+    """HST WFC3 detector and reader."""
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, pointers=[], retint=None,
                        mosaic=False, **kwargs):
-        """Extract HST ACS data from an open :class:`pyfits.HDUList`.
+        """Extract HST WFC3 data from an open :class:`pyfits.HDUList`.
 
         Parameters:
             hdulist (:class:`pyfits.HDUList`): The HDUList of an opened FITS file.
@@ -36,39 +36,28 @@ class HST_ACS(ImageData):
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
             mosaic (bool, optional): True to enable the construction of a mosaic from the
-                two WFC frames; ignored for ACS and SBC.
+                two UVIS frames.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            (HST_ACS or None): Instrument subclass if the file describes an HST ACS
+            (HST_WFC3 or None): Instrument subclass if the file describes an HST WFC3
             product; ``None`` otherwise.
         """
-
-        def get_lambda_nm(hdulist):
-            hdu = hdulist[0]
-            filters = [hdu.header.get('FILTER1', ''), hdu.header.get('FILTER2', '')]
-            filters = [f for f in filters if not _IS_UNDIAGNOSTIC.match(f)]
-            lambda_nms = [get_hst_filter_digits(name) for name in filters]
-            lambda_nms = [l for l in lambda_nms if l]
-            if lambda_nms:
-                return np.mean(lambda_nms)
-            else:
-                return None
 
         try:
             if hdulist[0].header['TELESCOP'] != 'HST':
                 return None
-            if hdulist[0].header['INSTRUME'] != 'ACS':
+            if hdulist[0].header['INSTRUME'] != 'WFC3':
                 return None
         except (KeyError, IndexError):
             return None
 
         # Determine whether this file can be mosaicked
         detector = hdulist[0].header['DETECTOR']
-        # "ERR" HDUs only appear in WFC files that have not been drizzled. After drizzle,
+        # "ERR" HDUs only appear in UVIS files that have not been drizzled. After drizzle,
         # the data from both chips has been combined into a single array, so no mosaicking
         # can be performed.
-        use_mosaic = detector == 'WFC' and obj is None and mosaic and 'ERR' in hdulist
+        use_mosaic = detector == 'UVIS' and obj is None and mosaic and 'ERR' in hdulist
         if len([hdu for hdu in hdulist[1:] if hdu.header['EXTNAME'] == 'SCI']) == 1:
             use_mosaic = False
 
@@ -76,21 +65,24 @@ class HST_ACS(ImageData):
         hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers)
         default_tint = None
         if is_science_hdu(hdu):
-            lambda_nm = get_lambda_nm(hdulist)
-            if lambda_nm:
-                retint = retint or (_DEFAULT_SBC_RETINT if detector == 'SBC' else 1.)
-                default_tint = tint_by_nm(lambda_nm * retint)
+            filter_name = hdulist[0].header['FILTER']
+            if not _IS_UNDIAGNOSTIC.fullmatch(filter_name):
+                digits = get_hst_filter_digits(filter_name)
+                if detector == 'UVIS':
+                    default_tint = tint_by_nm(digits * (retint or 1))
+                else:
+                    default_tint = tint_by_nm(digits/10. * (retint or _DEFAULT_IR_RETINT))
 
         # Handle the non-mosaicked case
         if not use_mosaic:
-            return HST_ACS(hdu.data, _DEFAULT_UPWARD, default_tint)
+            return HST_WFC3(hdu.data, _DEFAULT_UPWARD, default_tint)
 
-        # Determine the first CCD chip in the file. Should be 2 but could be 1 if only one
+        # Determine the first chip in the file. Should be 2 but could be 1 if only one
         # detector was used.
         ccds = [hdu.header.get('CCDCHIP') for hdu in hdulist[1:]]
         ccds = [ccd for ccd in ccds if ccd is not None]
         if not ccds:
-            raise ValueError(f'Unrecognized ACS/WFC image file structure {filepath}')
+            raise ValueError(f'Unrecognized WFC3 image file structure {filepath}')
         first_ccd = ccds[0]
 
         # Select the HDUs
@@ -105,15 +97,15 @@ class HST_ACS(ImageData):
         array[first_ccd - 1] = hdus[0].data
         if len(hdus) > 1:
             array[2 - first_ccd] = hdus[1].data
-        return HST_ACS(array, _DEFAULT_UPWARD, default_tint)
+        return HST_WFC3(array, _DEFAULT_UPWARD, default_tint)
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):
-        """Assemble ACS/WFC's two CCDs (WFC1 above, WFC2 below) into a mosaic.
+        """Assemble WFC3's two IR or UVIS CCDs into a mosaic.
 
         Parameters:
             arrays_rgb (list[np.ndarray]): Per-detector RGB arrays (usually length 2),
-                each indexed``(lines, samples, color)``.
+                each indexed ``(lines, samples, color)``.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -133,6 +125,6 @@ class HST_ACS(ImageData):
         return mosaic
 
 
-register_instrument(HST_ACS)
+register_instrument(HST_WFC3)
 
 ##########################################################################################
