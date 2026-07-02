@@ -17,7 +17,7 @@ from picmaker.instruments.hst_acs import HST_ACS
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_acs'
 DRZ = DATA_DIR / 'j96o01010_drz_small.fits'   # drizzled WFC: single SCI, no ERR HDUs
-FLT = DATA_DIR / 'j96o01ipq_flt_small.fits'   # calibrated WFC: two SCI chips + ERR/DQ data
+FLT = DATA_DIR / 'j96o01ipq_flt_small.fits'   # calibrated WFC: two SCI chips + ERR/DQ
 RAW = DATA_DIR / 'j96o01ipq_raw_small.fits'   # raw WFC: two SCI chips, ERR/DQ HDUs empty
 
 

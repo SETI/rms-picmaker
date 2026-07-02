@@ -8,9 +8,12 @@ import re
 import astropy.io.fits as pyfits  # noqa
 import numpy as np
 
-from picmaker.instruments import ImageData, tint_by_nm, register_instrument
-from picmaker.instruments._fits_support import (get_fits_image_hdu, get_fits_image_hdus,
-                                                hdu_is_image)
+from picmaker.instruments import ImageData, register_instrument, tint_by_nm
+from picmaker.instruments._fits_support import (
+    get_fits_image_hdu,
+    get_fits_image_hdus,
+    hdu_is_image,
+)
 from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
 
 _IS_UNDIAGNOSTIC = re.compile(r'(F200LP|F350LP)$')
@@ -22,7 +25,7 @@ class HST_WFC3(ImageData):
     """HST WFC3 detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, obj=None, pointers=[], retint=None,
+    def detect_in_fits(hdulist, filepath, obj=None, pointers=None, retint=None,
                        mosaic=False, **kwargs):
         """Extract HST WFC3 data from an open :class:`pyfits.HDUList`.
 
@@ -72,7 +75,8 @@ class HST_WFC3(ImageData):
                     default_tint = tint_by_nm(digits * (retint or 1))
                 else:
                     # IR filter names encode wavelength/10 (F160W -> 1600 nm).
-                    default_tint = tint_by_nm(digits * 10. * (retint or _DEFAULT_IR_RETINT))
+                    default_tint = tint_by_nm(
+                        digits * 10. * (retint or _DEFAULT_IR_RETINT))
 
         # Handle the non-mosaicked case
         if not use_mosaic:

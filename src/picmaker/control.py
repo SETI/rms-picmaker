@@ -6,12 +6,11 @@
 import pathlib
 import warnings
 from fnmatch import fnmatch
-from pdslogger import PdsLogger
 
 REPLACE_CHOICES = ['all', 'none', 'warn', 'error']
 
 
-def get_filepaths(files, directory=None, recursive=False, patterns=[], logger=None,
+def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=None,
                   **kwargs):
     """Get a complete list of all filepaths to process.
 
@@ -89,7 +88,7 @@ def get_filepaths(files, directory=None, recursive=False, patterns=[], logger=No
     return info
 
 
-def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
+def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
                 replace='all', logger=None, **kwargs):
     """Derive the output filepath for one input path.
 
@@ -137,6 +136,8 @@ def get_outfile(inpath, outdir=None, *, strip=[], suffix='', extension='jpg',
                 strip = [strip]
             for substring in strip:
                 stem = stem.replace(substring, '')
+        else:
+            strip = []
 
         if suffix:
             stem += suffix

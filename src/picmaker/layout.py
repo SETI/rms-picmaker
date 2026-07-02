@@ -3,7 +3,6 @@
 ##########################################################################################
 
 import numpy as np
-from PIL import Image
 
 from picmaker.colornames import ColorNames
 from picmaker.pil_utils import array_to_pil, pil_to_array
@@ -70,7 +69,7 @@ def wrap_pil_image(image, wrapped_size, sections, wrap_axis=0, gap_size=1,
         float_s0 = 0.5
         float_ds = (image.size[0] - wrapped_size[0]) / (sections - 1.)
         j0 = int((wrapped_size[1] - dj * sections - gap_size)/2. + 0.5)
-        for k in range(sections):
+        for _k in range(sections):
             s0 = int(float_s0)
             s1 = s0 + di
             j1 = j0 + dl
@@ -86,7 +85,7 @@ def wrap_pil_image(image, wrapped_size, sections, wrap_axis=0, gap_size=1,
         float_l0 = 0.5
         float_dl = (image.size[1] - wrapped_size[1]) / (sections - 1.)
         i0 = int((wrapped_size[0] - di * sections - gap_size)/2. + 0.5)
-        for k in range(sections):
+        for _k in range(sections):
             l0 = int(float_l0)
             l1 = l0 + dj
             i1 = i0 + ds
@@ -166,6 +165,6 @@ def pad_pil_image(image, frame=None, pad=False, pad_color='gray', **kwargs):
     return array_to_pil(buffer, two_bytes, rescale=False)
 
 
-__all__ = ['wrap_pil_image', 'pad_pil_image']
+__all__ = ['pad_pil_image', 'wrap_pil_image']
 
 ##########################################################################################

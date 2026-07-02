@@ -19,7 +19,7 @@ from picmaker.instruments.hst_wfc3 import HST_WFC3
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_wfc3'
 DRZ = DATA_DIR / 'iepl0j020_drz_small.fits'   # drizzled UVIS: single SCI, no ERR HDUs
-FLT = DATA_DIR / 'iepl0jltq_flt_small.fits'   # calibrated UVIS: two SCI chips + ERR/DQ data
+FLT = DATA_DIR / 'iepl0jltq_flt_small.fits'   # calibrated UVIS: two SCI chips + ERR/DQ
 RAW = DATA_DIR / 'iepl0jltq_raw_small.fits'   # raw UVIS: two SCI chips, ERR/DQ HDUs empty
 
 # All three samples were taken through F606W (606 nm); UVIS tints at that
@@ -152,7 +152,8 @@ def test_mosaic_raises_without_ccdchip_headers() -> None:
             HST_WFC3.detect_in_fits(hdulist, str(FLT), mosaic=True)
 
 
-def test_mosaic_raises_when_selected_hdu_not_image(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_mosaic_raises_when_selected_hdu_not_image(
+        monkeypatch: pytest.MonkeyPatch) -> None:
     """Defensive guard on the mosaic path: a selected non-IMAGE HDU is rejected.
     Normal input can't reach this (``get_fits_image_hdu`` validates the HDU
     first), so it is forced by making ``get_fits_image_hdus`` yield a table."""

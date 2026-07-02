@@ -197,8 +197,15 @@ def tint_by_nm(wavelength):
     return (r, g, b)
 
 
-__all__ = ['ImageData', 'PDS3_METHODS', 'DEFAULT_PDS3_METHOD',
-           'read_image_array', 'read_pds3_image_array', 'get_fits_array', 'tint_by_nm']
+__all__ = [
+    'DEFAULT_PDS3_METHOD',
+    'PDS3_METHODS',
+    'ImageData',
+    'get_fits_array',
+    'read_image_array',
+    'read_pds3_image_array',
+    'tint_by_nm',
+]
 
 # Discover and import the instrument modules so each registers itself.
 _register_all_instruments()

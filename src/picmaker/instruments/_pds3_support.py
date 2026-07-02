@@ -12,7 +12,7 @@ PDS3_METHODS = ['fast', 'strict', 'loose', 'compound']
 DEFAULT_PDS3_METHOD = 'fast'
 
 
-def read_pds3_image_array(label, obj=None, pointers=[], **kwargs):
+def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
     """Return the image array described by a PDS3 label.
 
     Parameters:
@@ -315,6 +315,6 @@ def _resolve_pds3_filename(base_dir, name):
                             '(tried original, uppercase, and lowercase forms)')
 
 
-__all__ = ['PDS3_METHODS', 'DEFAULT_PDS3_METHOD', 'read_pds3_image_array']
+__all__ = ['DEFAULT_PDS3_METHOD', 'PDS3_METHODS', 'read_pds3_image_array']
 
 ##########################################################################################

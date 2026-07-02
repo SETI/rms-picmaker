@@ -10,7 +10,7 @@ import astropy.io.fits as pyfits  # noqa
 import numpy as np
 from astropy.io.fits.verify import VerifyWarning
 
-from picmaker.instruments import ImageData, tint_by_nm, register_instrument
+from picmaker.instruments import ImageData, register_instrument, tint_by_nm
 from picmaker.instruments._hst_support import get_hst_filter_digits
 
 _DEFAULT_UPWARD = True

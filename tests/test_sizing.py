@@ -39,6 +39,24 @@ def test_get_size_size_scalar() -> None:
     assert unwrapped == [64, 64]
 
 
+def test_get_size_scale_scalar_broadcast() -> None:
+    """A scalar ``scale`` is broadcast to both dimensions."""
+    unwrapped, *_ = get_size((16, 16, 3), scale=50.0)
+    assert unwrapped == [8, 8]
+
+
+def test_get_size_frame_scalar_broadcast() -> None:
+    """A scalar ``frame`` is broadcast to both dimensions before fitting."""
+    unwrapped, *_ = get_size((16, 16, 3), frame=8)
+    assert max(unwrapped) <= 8
+
+
+def test_get_size_scale_none_leaves_size_unchanged() -> None:
+    """``scale=None`` applies no scale factor, so the array size is unchanged."""
+    unwrapped, *_ = get_size((16, 16, 3), scale=None)
+    assert unwrapped == [16, 16]
+
+
 def test_get_size_frame_max_caps_upscale() -> None:
     """``frame_max=PCT`` caps how far the input can be enlarged."""
     unwrapped, _, _, _ = get_size((8, 8, 3), frame=(64, 64), frame_max=200)

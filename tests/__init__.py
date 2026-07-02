@@ -53,7 +53,8 @@ def render_snapshot(input_path: Path, out_dir: Path, slug: str,
     :file:`test_snapshots.py` call this, so their pipeline invocations are
     byte-for-byte identical -- the property the snapshot test relies on.
     """
-    options = vars(get_parser().parse_args([str(input_path), '--directory', str(out_dir)]))
+    options = vars(
+        get_parser().parse_args([str(input_path), '--directory', str(out_dir)]))
     options['suffix'] = f'--{slug}'
     options['extension'] = extension
     options.update(option_overrides)

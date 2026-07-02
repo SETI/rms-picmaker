@@ -25,7 +25,7 @@ from tests import generate_previews
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_nicmos'
 IMAGE = DATA_DIR / 'nb06030a0_mos.fits'
 
-# Base options from the original NICMOS preview recipe; each version adds its own overrides.
+# Base options from the original NICMOS preview recipe; each version adds overrides.
 BASE_ARGS = ('--percentiles', '0.02', '99.98', '--gamma', '0.5', '--extension', 'jpg')
 
 # (suffix, per-version args, reference jpg, expected PIL mode). The tinted

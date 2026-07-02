@@ -50,7 +50,8 @@ def test_rotate_rgb_array_display_upward() -> None:
     """``display_upward=True`` pre-flips the image vertically."""
     arr = np.zeros((4, 4, 3), dtype='float32')
     arr[0, 0] = 1.0
-    out = rotate_rgb_array(arr, default_upward=False, display_upward=True, rotation='NONE')
+    out = rotate_rgb_array(arr, default_upward=False, display_upward=True,
+                           rotation='NONE')
     assert out[-1, 0, 0] == pytest.approx(1.0)
 
 

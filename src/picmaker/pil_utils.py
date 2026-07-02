@@ -149,7 +149,7 @@ def _one_pil_to_array(image, rescale):
 
         return array
 
-    raise IOError('unsupported PIL image format')
+    raise OSError('unsupported PIL image format')
 
 
 def write_pil(image, outfile, quality=75):

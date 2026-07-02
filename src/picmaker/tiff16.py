@@ -216,7 +216,7 @@ def read_tiff16(filepath, up=False, transpose=None):
           ``None`` for non-palette inputs.
     """
 
-    # Open the output file inside a `with` so the handle is closed promptly if `_my_assert`
+    # Open the output file inside a `with` so it is closed promptly if `_my_assert`
     # short-circuits the parse (otherwise the file leaks until GC and `pytest -W error`
     # turns the ResourceWarning into a test failure).
     with open(filepath, 'rb') as f:

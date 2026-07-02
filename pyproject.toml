@@ -180,7 +180,7 @@ ignore_missing_imports = true
 
 [tool.ruff]
 target-version = "py311"
-line-length = 100
+line-length = 90
 exclude = [
 #  "TODO"
 ]
@@ -197,7 +197,28 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "A", "N", "PT", "RUF"]
 # PT011 - pytest.raises is too broad.
 # SIM105 - Use contextlib.suppress for suppressions.
 # SIM108 - Use ternary operator for simple if/else.
-extend-ignore = ["PT011", "SIM105", "SIM108"]
+# RUF005 - `(2,) + shape` concatenation is intentional; never rewrite it.
+# N801 - instrument class names (HST_ACS, HST_WFC3, ...) intentionally use
+#        underscores rather than CapWords.
+# E741 - single-letter names like `l` are used intentionally in this codebase.
+# UP015 - explicit open() 'r' mode is kept for readability.
+# RUF012 - class-level lookup dicts are shared constants, not instance
+#          defaults; ClassVar annotations add no value here.
+# SIM910 - explicit `dict.get(key, None)` is kept for clarity.
+extend-ignore = ["PT011", "SIM105", "SIM108", "RUF005", "N801", "E741", "UP015", "RUF012",
+                 "SIM910"]
+
+[tool.ruff.lint.per-file-ignores]
+# `filter` is the public keyword-argument / option name here; keep it despite
+# shadowing the builtin (the builtin is not used in this module).
+"src/picmaker/processing.py" = ["A001", "A002"]
+# The TFIELDS check reads more clearly as an explicit `if ...: return False`.
+"src/picmaker/instruments/_fits_support.py" = ["SIM103"]
+# The per-filter tint chain keeps one `elif` per filter for readability rather
+# than merging same-valued branches with `or`.
+"src/picmaker/instruments/cassini_iss.py" = ["SIM114"]
+# The explicit `for` loop over patterns is kept over an `any(...)` generator.
+"src/picmaker/control.py" = ["SIM110"]
 
 
 [tool.pymarkdown.plugins.md013]

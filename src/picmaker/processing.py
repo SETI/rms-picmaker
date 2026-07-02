@@ -125,6 +125,6 @@ def fill_zebra_stripes(array, **kwargs):
     return array
 
 
-__all__ = ['FILTER_CHOICES', 'filter_pil_image', 'fill_zebra_stripes']
+__all__ = ['FILTER_CHOICES', 'fill_zebra_stripes', 'filter_pil_image']
 
 ##########################################################################################

@@ -5,9 +5,6 @@
 import numpy as np
 from PIL import Image
 
-from picmaker.colornames import ColorNames
-from picmaker.pil_utils import array_to_pil, pil_to_array
-
 
 def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap=False,
              wrap_ratio=None, overlaps=(0., 0.), gap_size=1, frame_max=None, **kwargs):
@@ -31,7 +28,7 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
         wrap (bool, optional): True to consider wrapping the image to reduce distortion.
         wrap_ratio (float, optional): Wrap the sections of the image if the width:height
             or height:width ratio exceeds this value.
-        overlaps (tuple[float, float], optional): The ``(min, max)`` percentages of allowed
+        overlaps (tuple[float, float], optional): ``(min, max)`` percentages of allowed
             overlap between the end of one wrapped section and the beginning of the next.
             For example, (5,10) means that between 5% and 10% of the last pixels in one
             section of a wrapped image.
@@ -52,17 +49,14 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
     """
 
     # Normalize inputs
-    if size is not None:
-        if not isinstance(size, (list, tuple)):
-            size = (size, size)
+    if size is not None and not isinstance(size, (list, tuple)):
+        size = (size, size)
 
-    if scale is not None:
-        if not isinstance(scale, (list, tuple)):
-            scale = (scale, scale)
+    if scale is not None and not isinstance(scale, (list, tuple)):
+        scale = (scale, scale)
 
-    if frame is not None:
-        if not isinstance(frame, (list, tuple)):
-            frame = (frame, frame)
+    if frame is not None and not isinstance(frame, (list, tuple)):
+        frame = (frame, frame)
 
     # Apply scale factor to shape
     array_size = [array_rgb_shape[1], array_rgb_shape[0]]   # [width, height]

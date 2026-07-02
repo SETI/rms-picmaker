@@ -80,9 +80,15 @@ class Cassini_ISS(ImageData):
         elif 'VIO' in filter_name:
             return (160, 120, 200)
         elif 'BL' in filter_name:
-            return (110, 180, 180) if 'GRN' in filter_name else (110, 110, 180)
+            if 'GRN' in filter_name:
+                return (110, 180, 180)
+            else:
+                return (110, 110, 180)
         elif 'GRN' in filter_name:
-            return (190, 190, 110) if 'RED' in filter_name else (110, 190, 110)
+            if 'RED' in filter_name:
+                return (190, 190, 110)
+            else:
+                return (110, 190, 110)
         elif 'RED' in filter_name:
             return (190, 110, 100)
         elif 'MT1' in filter_name:

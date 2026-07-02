@@ -15,7 +15,7 @@ def hdu_is_image(hdu):
     return True
 
 
-def get_fits_image_hdus(hdulist, pointers=[], **kwargs):
+def get_fits_image_hdus(hdulist, pointers=None, **kwargs):
     """Return a list of selected HDUs from an HDUList.
 
     Parameters:
@@ -52,7 +52,7 @@ def get_fits_image_hdus(hdulist, pointers=[], **kwargs):
     return selected_hdus
 
 
-def get_fits_image_hdu(hdulist, obj=None, pointers=[], **kwargs):
+def get_fits_image_hdu(hdulist, obj=None, pointers=None, **kwargs):
     """Return an image HDU from a FITS file.
 
     Parameters:
@@ -89,7 +89,7 @@ def get_fits_image_hdu(hdulist, obj=None, pointers=[], **kwargs):
     return selected_hdu
 
 
-def get_fits_array(hdulist, obj=None, pointers=[], **kwargs):
+def get_fits_array(hdulist, obj=None, pointers=None, **kwargs):
     """Return an image array from a FITS file.
 
     Parameters:
@@ -113,6 +113,6 @@ def get_fits_array(hdulist, obj=None, pointers=[], **kwargs):
     return get_fits_image_hdu(hdulist, obj=obj, pointers=pointers).data
 
 
-__all__ = ['get_fits_image_hdus', 'get_fits_image_hdu', 'get_fits_array']
+__all__ = ['get_fits_array', 'get_fits_image_hdu', 'get_fits_image_hdus']
 
 ##########################################################################################

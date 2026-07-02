@@ -107,9 +107,8 @@ def validate_options(options, *, logger=None, _versions_validated=None):
 
         # movie vs. versions
         versions = options.get('versions', None)
-        if versions:
-            if options.get('movie', False):
-                raise ValueError('--movie and --versions options are incompatible')
+        if versions and options.get('movie', False):
+            raise ValueError('--movie and --versions options are incompatible')
 
         # obj vs. pointers
         obj = options.get('obj', None)
@@ -206,7 +205,7 @@ def picmaker(logger=None, **options):
     for name in ('files', 'directory', 'recursive', 'patterns', 'movie', 'logging',
                  'versions'):
         if name in options:
-            del options[name]
+            del options[name]  # noqa: RUF051
 
     if movie:
         entries = []        # (infile, outdir, image_data) for each readable file
@@ -347,6 +346,6 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
     return image_data
 
 
-__all__ = ['validate_options', 'get_versions', 'picmaker', 'picmaker1']
+__all__ = ['get_versions', 'picmaker', 'picmaker1', 'validate_options']
 
 ##########################################################################################

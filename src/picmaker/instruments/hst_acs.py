@@ -8,9 +8,12 @@ import re
 import astropy.io.fits as pyfits  # noqa
 import numpy as np
 
-from picmaker.instruments import ImageData, tint_by_nm, register_instrument
-from picmaker.instruments._fits_support import (get_fits_image_hdu, get_fits_image_hdus,
-                                                hdu_is_image)
+from picmaker.instruments import ImageData, register_instrument, tint_by_nm
+from picmaker.instruments._fits_support import (
+    get_fits_image_hdu,
+    get_fits_image_hdus,
+    hdu_is_image,
+)
 from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
 
 _IS_UNDIAGNOSTIC = re.compile(r'(|CLEAR.*|POL.*|G800L|N/A)$')
@@ -22,7 +25,7 @@ class HST_ACS(ImageData):
     """HST ACS detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, obj=None, pointers=[], retint=None,
+    def detect_in_fits(hdulist, filepath, obj=None, pointers=None, retint=None,
                        mosaic=False, **kwargs):
         """Extract HST ACS data from an open :class:`pyfits.HDUList`.
 

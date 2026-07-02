@@ -59,8 +59,10 @@ def test_default_and_obj_read_the_matching_raw_detector_planes() -> None:
     plane — byte-for-byte with the raw PRIMARY cube."""
     raw = _raw_cube(SCIENCE)
     np.testing.assert_array_equal(np.asarray(read_image_array(SCIENCE).array), raw[0])
-    np.testing.assert_array_equal(np.asarray(read_image_array(SCIENCE, obj=0).array), raw[0])
-    np.testing.assert_array_equal(np.asarray(read_image_array(SCIENCE, obj=2).array), raw[2])
+    np.testing.assert_array_equal(
+        np.asarray(read_image_array(SCIENCE, obj=0).array), raw[0])
+    np.testing.assert_array_equal(
+        np.asarray(read_image_array(SCIENCE, obj=2).array), raw[2])
 
 
 def test_mosaic_returns_the_raw_detector_cube() -> None:

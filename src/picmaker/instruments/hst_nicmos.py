@@ -17,7 +17,7 @@ class HST_NICMOS(ImageData):
     """HST NICMOS detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, obj=None, pointers=[], retint=None, **kwargs):
+    def detect_in_fits(hdulist, filepath, obj=None, pointers=None, retint=None, **kwargs):
         """Extract HST NICMOS data from an open :class:`pyfits.HDUList`.
 
         Parameters:

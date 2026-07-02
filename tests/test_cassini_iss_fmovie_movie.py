@@ -16,6 +16,7 @@ Driving picmaker over the directory tree exercises three options together:
   normalised independently.
 """
 
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -62,7 +63,7 @@ def test_movie_preserves_brightness_ramp(tmp_path: Path) -> None:
     generate_previews(DATA_DIR, tmp_path, extra_args=[*PATTERN_ARGS, '--movie'])
 
     means = [_mean_brightness(tmp_path / name) for name, _ in SCALED_FRAMES]
-    assert all(lo < hi for lo, hi in zip(means, means[1:])), means
+    assert all(lo < hi for lo, hi in pairwise(means)), means
     # A genuine ramp, not a few DN of encoder noise.
     assert means[-1] - means[0] > 20
 

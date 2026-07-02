@@ -2,11 +2,11 @@
 
 Options are now plain dicts produced by
 :func:`picmaker.picmaker.validate_options`, not a ``PicmakerOptions`` dataclass.
-Two of the surviving helpers still declare list-typed *default arguments*
+Two of the surviving helpers take list-typed parameters
 (:func:`picmaker.control.get_outfile`'s ``strip`` and
-:func:`picmaker.control.get_filepaths`'s ``patterns``). These guard against the
-classic Python footgun where a shared mutable default is mutated in place and
-leaks state across calls.
+:func:`picmaker.control.get_filepaths`'s ``patterns``); both default to the
+immutable ``None`` sentinel rather than a shared ``[]``, sidestepping the classic
+Python footgun where a mutable default is mutated in place and leaks across calls.
 """
 
 import inspect
@@ -24,26 +24,22 @@ def _default(func: Callable[..., Any], name: str) -> Any:
     return sig.parameters[name].default
 
 
-def test_get_outfile_strip_default_not_mutated(tmp_path: Path) -> None:
-    """``get_outfile`` must not mutate its shared ``strip`` default list."""
-    before = _default(get_outfile, 'strip')
-    assert before == []
+def test_get_outfile_strip_default_is_none_sentinel(tmp_path: Path) -> None:
+    """``get_outfile`` uses an immutable ``None`` default for ``strip`` (not a
+    shared ``[]``), and still writes an output path when called with it."""
+    assert _default(get_outfile, 'strip') is None
     infile = tmp_path / 'image.IMG'
     infile.write_bytes(b'')
-    get_outfile(str(infile), outdir=str(tmp_path), extension='png')
-    after = _default(get_outfile, 'strip')
-    assert after == []
-    assert after is before
+    assert get_outfile(str(infile), outdir=str(tmp_path), extension='png')
+    assert _default(get_outfile, 'strip') is None
 
 
-def test_get_filepaths_patterns_default_not_mutated(fixtures_dir: Path) -> None:
-    """``get_filepaths`` must not mutate its shared ``patterns`` default list."""
-    before = _default(get_filepaths, 'patterns')
-    assert before == []
-    get_filepaths([str(fixtures_dir / 'cassini_iss.vic')])
-    after = _default(get_filepaths, 'patterns')
-    assert after == []
-    assert after is before
+def test_get_filepaths_patterns_default_is_none_sentinel(fixtures_dir: Path) -> None:
+    """``get_filepaths`` uses an immutable ``None`` default for ``patterns`` (not
+    a shared ``[]``), and still resolves inputs when called with it."""
+    assert _default(get_filepaths, 'patterns') is None
+    assert get_filepaths([str(fixtures_dir / 'cassini_iss.vic')])
+    assert _default(get_filepaths, 'patterns') is None
 
 
 def test_validate_options_returns_independent_dicts() -> None:
