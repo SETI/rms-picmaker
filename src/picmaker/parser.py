@@ -35,7 +35,7 @@ def get_parser():
         help='search recursively down each directory trees.')
     _control.add_argument(
         '--pattern', dest='patterns', type=str, default=[], nargs='+',
-        help='one or more patterns describing file names to match, e.g., *.IMG.')
+        help=r'one or more patterns describing file names to match, e.g., \*.IMG.')
     _control.add_argument(
         '--movie', action='store_true', default=False,
         help='use the same enhancement limits for all images.')

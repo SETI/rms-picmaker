@@ -36,6 +36,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'sphinxarg.ext',
     'sphinxcontrib.mermaid',
     'myst_parser',
 ]

@@ -118,6 +118,7 @@ dev = [
 docs = [
   "myst-parser",
   "sphinx>=7",
+  "sphinx-argparse",
   "sphinxcontrib-mermaid",
   "sphinx-rtd-theme",
 ]

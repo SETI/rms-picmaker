@@ -51,28 +51,20 @@ def test_help_flag_set_matches_baseline() -> None:
 
 
 def test_user_guide_documents_every_cli_flag() -> None:
-    """Every long flag in ``--help`` is mentioned in ``docs/user_guide.rst``
-    so doc drift is caught by CI. Excludes ``--help`` and ``--version``
-    which are documented implicitly by the argparse banner.
+    """Section 4 of ``docs/user_guide.rst`` auto-generates its option list
+    from ``get_parser`` via the ``sphinx-argparse`` directive, so every flag
+    is documented by construction. Guard that the directive stays wired to
+    the real parser rather than assert on a hand-maintained flag list.
     """
-    import re
-    baseline_path = Path(__file__).parent / 'fixtures' / '.baseline-flags.txt'
-    baseline = set(baseline_path.read_text().splitlines())
-
-    # The guide's narrative covers --help / --version in the Overview and
-    # 4. Command-line reference text rather than as table entries.
-    implicit = {'--help', '--version'}
-    expected = baseline - implicit
-
     guide_path = Path(__file__).parent.parent / 'docs' / 'user_guide.rst'
     guide = guide_path.read_text()
-    guide_flags = set(re.findall(r'--[a-z0-9_-]+', guide))
 
-    missing = expected - guide_flags
-    assert not missing, (
-        f'docs/user_guide.rst is missing CLI flags: {sorted(missing)}. '
-        'Add them to the relevant table in section 4 (Command-line reference).'
+    assert '.. argparse::' in guide, (
+        'docs/user_guide.rst no longer auto-generates the command-line '
+        'reference; restore the sphinx-argparse directive in section 4.'
     )
+    assert ':module: picmaker.parser' in guide
+    assert ':func: get_parser' in guide
 
 
 def test_no_args_errors() -> None:

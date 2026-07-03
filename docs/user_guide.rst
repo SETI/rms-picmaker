@@ -81,171 +81,13 @@ The same operation from Python:
 4. Command-line reference
 -------------------------
 
-The flag groups below mirror the ``picmaker --help`` output exactly.
+The full list of options below is generated directly from the argument
+parser, so it always matches the ``picmaker --help`` output exactly.
 
-Control options
-~~~~~~~~~~~~~~~
-
-* ``--directory DIR`` (default: input directory) — Output directory.
-  Required when ``--recursive`` is set.
-* ``-r``, ``--recursive`` — Descend into directory trees, mirroring the
-  input layout under ``--directory``.
-* ``--pattern PATTERN [PATTERN ...]`` (default: match every file) — One or
-  more glob filters applied to file names during recursion.
-* ``--movie`` — Share one set of enhancement limits across every input.
-  Incompatible with ``--versions``.
-* ``--versions FILE`` — For each non-blank line in ``FILE``, re-parse
-  the command line with that line's tokens appended and run the
-  resulting pipeline. Produces one output per non-blank line.
-* ``--logging LEVEL`` (default: ``info``) — Logging verbosity. One of
-  ``warning``, ``info``, ``debug``, ``error``.
-* ``--replace POLICY`` (default: ``all``) — One of ``all`` (silent
-  overwrite), ``none`` (skip silently), ``warn`` (overwrite with a
-  warning), ``error`` (abort).
-* ``--proceed`` — On a per-file error, log the traceback and continue
-  with the remaining inputs instead of aborting.
-
-Output options
-~~~~~~~~~~~~~~
-
-* ``-x EXT``, ``--extension EXT`` (default: ``jpg``) — Output file format.
-  Choices: ``bmp``, ``dib``, ``gif``,
-  ``jpg``, ``jpeg``, ``png``, ``tif``, ``tiff`` (any-case).
-* ``-s STR``, ``--suffix STR`` (default: ``''``) — Inserted between the
-  file stem and ``.<ext>``.
-* ``--strip STR [STR ...]`` (default: none) — One or more substrings to
-  remove from the output filename's stem before appending the suffix.
-* ``-q N``, ``--quality N`` (default: ``75``) — JPEG quality, 1-100.
-  Ignored for non-JPEG outputs.
-* ``--16`` — Emit a 16-bit grayscale or 16-bit RGB TIFF. Requires
-  ``--extension tiff`` (or ``tif``) to be given explicitly. Incompatible
-  with ``--filter`` (image filters are not supported for 16-bit images).
-
-Selection options
-~~~~~~~~~~~~~~~~~
-
-* ``-b N``, ``--band N`` (default: ``1``) — Select a single band from a
-  3-D array (band indices start at 1). Incompatible with ``--bands``.
-* ``--bands LO HI`` — Coadd bands ``LO..HI`` (indices start at 1 and are
-  inclusive of the upper limit). Incompatible with ``--band``.
-* ``--lines L1 L2`` — Sub-region selection by line index (1-based,
-  inclusive of the upper limit).
-* ``--samples S1 S2`` — Sub-region selection by sample index (1-based,
-  inclusive of the upper limit).
-* ``-o N``, ``--object N`` (default: first valid) — Index of the PDS
-  object to read when a file contains multiple image objects.
-* ``--pointer PTR [PTR ...]`` — One or more pointer strings identifying
-  the image object in a PDS3 label (without leading ``^``) or the HDU in
-  a FITS file; tried in order.
-* ``--pds3-method METHOD``
-  (default: ``fast``) — Parsing strictness forwarded to
-  :class:`pdsparser.Pds3Label` for ``.LBL`` inputs. Choices:
-  ``fast`` (minimum-overhead key/value scan), ``strict`` (rigorous
-  PDS3 grammar), ``loose`` (allow common deviations), ``compound``
-  (try strict then loose).
-
-Sizing options
-~~~~~~~~~~~~~~
-
-* ``--size W H`` — Force output dimensions in pixels. Incompatible with
-  ``--frame``.
-* ``--scale PCT`` (default: ``100``) — Uniform percentage scale.
-  Incompatible with ``--wscale`` / ``--hscale``.
-* ``--wscale PCT`` (default: matches ``--scale``) — Horizontal-only
-  percentage scale.
-* ``--hscale PCT`` (default: matches ``--scale``) — Vertical-only
-  percentage scale.
-* ``--crop VALUE`` — Crop outer rows / columns whose every pixel equals
-  ``VALUE`` (typically used to trim CCD frames of zeros).
-* ``--frame W H`` — Fit the image inside a ``W x H`` box, preserving
-  aspect ratio. Incompatible with ``--size``.
-* ``--pad`` — When set with ``--frame``, pad the output to the full
-  frame size; otherwise the output is cropped to content.
-* ``--pad-color NAME`` (default: ``gray``) — Padding fill color (any
-  X11 color name or ``#RRGGBB``).
-* ``--frame_max PCT`` — When set with ``--frame``, the up-scaling is
-  capped at this percentage of the input size (prevents up-scaling a
-  tiny image to fill a large frame).
-
-Layout options
-~~~~~~~~~~~~~~
-
-* ``--wrap`` — Split very elongated images into stacked sections.
-* ``--wrap-ratio R`` — Wrap when ``max(W, H) / min(W, H) > R``.
-* ``--overlap PCT`` — Per-section overlap percentage (single value).
-  Incompatible with ``--overlaps``.
-* ``--overlaps LO HI`` — Minimum and maximum overlap percentages explored
-  to pick the best fit.
-* ``--gap-size N`` (default: ``1``) — Width in pixels of the gap drawn
-  between wrapped sections.
-* ``--gap-color NAME`` (default: ``white``) — Gap color (X11 color name
-  or ``(R,G,B)`` tuple).
-* ``--mosaic`` — Construct a mosaic from all detector panels (currently
-  HST ACS/WFC and WFPC2).
-
-Scaling options (histogram and intensity controls)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-* ``-v LO HI``, ``--valid LO HI`` — Pixels outside ``[LO, HI]`` are
-  treated as invalid (filled with ``--invalid`` color, excluded from
-  the histogram).
-* ``-l LO HI``, ``--limits LO HI`` — Force the histogram stretch
-  endpoints. Overrides ``--percentiles``.
-* ``-p LO HI``, ``--percentiles LO HI`` (default: ``(0, 100)``) —
-  Percentile cut for the histogram stretch. Used when ``--limits`` is
-  not set.
-* ``--trim N`` (default: ``0``) — Pixels at the image edge to ignore
-  when computing the histogram.
-* ``--trim-zeros`` — Ignore exterior rows / columns that are entirely
-  zero (CCD overscan cleanup).
-* ``--footprint D`` (default: ``0``) — Diameter in pixels of a circular
-  median-filter footprint used to compute the histogram.
-* ``--histogram`` — Use a flat-histogram stretch instead of the linear
-  stretch.
-
-Enhancement options
-~~~~~~~~~~~~~~~~~~~
-
-* ``-c COLOR [COLOR ...]``, ``--colormap COLOR [COLOR ...]`` — Build a
-  colormap from one or more color stops, e.g.
-  ``--colormap black blue white``. A single color (e.g.
-  ``--colormap blue``) is shorthand for ``black <color> white``. Each
-  stop is an X11 color name or an ``(R,G,B)`` tuple.
-* ``--below COLOR`` — Color used for pixels below the lower limit.
-* ``--above COLOR`` — Color used for pixels above the upper limit.
-* ``--invalid COLOR`` (default: ``black``) — Color used for invalid
-  pixel values and NaNs.
-* ``-g G``, ``--gamma G`` (default: ``1.0``) — Power-law correction
-  applied to the grayscale axis.
-* ``--tint`` — Override the colormap with the per-instrument tint
-  inferred from the filter name. See section 6.
-* ``--retint FACTOR`` — Factor applied to the inferred filter wavelength
-  before the tint color is chosen; use it to map IR or UV instruments into
-  the visual range. The default depends on the detector: ``1`` for most
-  (ACS/WFC, ACS/HRC, WFC3/UVIS), ``0.4`` for NICMOS and WFC3/IR, and ``3``
-  for the UV-only ACS/SBC. WFPC2 does not apply a retint factor.
-
-Orientation options
-~~~~~~~~~~~~~~~~~~~
-
-* ``-u``, ``--up`` — Force the image to be drawn with line numbers
-  increasing upward (overrides per-instrument default).
-* ``-d``, ``--down`` — Force line numbers increasing downward.
-  Incompatible with ``--up``.
-* ``--rotate KIND`` (default: ``none``) — One of ``none``, ``fliplr``,
-  ``fliptb``, ``rot90``, ``rot180``, ``rot270`` (any-case).
-
-Processing options
-~~~~~~~~~~~~~~~~~~
-
-* ``-f NAME``, ``--filter NAME`` (default: ``none``) — One of the
-  Pillow filter presets (``blur``, ``contour``, ``detail``,
-  ``edge_enhance``, ``edge_enhance_more``, ``emboss``, ``find_edges``,
-  ``smooth``, ``smooth_more``, ``sharpen``, ``median_<n>``,
-  ``minimum_<n>``, ``maximum_<n>`` for ``n`` in 3, 5, 7), plus
-  ``none``. Any-case.
-* ``--zebra`` — Interpolate across the black "zebra stripes" some
-  legacy detectors put at the start and end of each line.
+.. argparse::
+   :module: picmaker.parser
+   :func: get_parser
+   :prog: picmaker
 
 
 5. Supported input formats
@@ -268,11 +110,38 @@ Processing options
 * **Common raster formats** — BMP, GIF, JPEG, PNG, plain TIFF.
 
 
-6. Supported instruments and filters
-------------------------------------
+6. Supported instruments
+------------------------
 
-When ``--tint`` is enabled, ``rms-picmaker`` recognizes images from the
-instruments below and applies a per-filter tint.
+``rms-picmaker`` automatically recognizes images from the instruments
+listed below, reading the instrument identity from the file's VICAR
+label, PDS3 label, or FITS header. Recognition drives the per-instrument
+default orientation and, when ``--tint`` is enabled, a per-filter tint
+color.
+
+Supported instruments:
+
+* **Cassini ISS** — VICAR or PDS3.
+* **Voyager ISS** — VICAR or PDS3.
+* **Galileo SSI** — VICAR or PDS3.
+* **HST ACS** (WFC / HRC / SBC) — FITS.
+* **HST WFC3** (UVIS / IR) — FITS.
+* **HST WFPC2** — FITS.
+* **HST NICMOS** — FITS.
+* **New Horizons LORRI** — PDS3 or FITS.
+* **New Horizons MVIC** — PDS3 or FITS.
+* **Generic reader** — the fallback for any image no instrument above
+  claims: unrecognized VICAR, PDS3, or FITS files, plus ``.npy`` and
+  ``.pkl`` arrays, 16-bit TIFFs, and the common raster formats (BMP, GIF,
+  JPEG, PNG, TIFF).
+
+Every instrument above is fully supported as an input. The per-instrument
+subsections below add the detail that only applies under ``--tint`` —
+which filter maps to which color. Instruments with a single broadband
+channel, notably New Horizons LORRI, are recognized and oriented like any
+other but define no filter-based tint, so ``--tint`` leaves their coloring
+unchanged; use ``--colormap`` for explicit false color. The generic
+reader, described last, is the catch-all for everything else.
 
 Cassini ISS
 ~~~~~~~~~~~
@@ -357,16 +226,52 @@ For every HST detector, when no diagnostic wavelength can be inferred (an
 undiagnostic or unrecognized filter), no tint is applied and the existing
 colormap or grayscale is left in place.
 
+New Horizons LORRI
+~~~~~~~~~~~~~~~~~~
+
+Recognized from New Horizons LORRI PDS3 labels and FITS headers. LORRI is
+a panchromatic imager with a single broadband channel, so it defines no
+per-filter tint: its images are recognized and oriented correctly, and
+``--tint`` has no effect on them. Apply a ``--colormap`` explicitly to add
+false color.
+
 New Horizons MVIC
 ~~~~~~~~~~~~~~~~~
 
-Recognized from New Horizons MVIC FITS headers. Supported filters and
-their tints:
+Recognized from New Horizons MVIC PDS3 labels and FITS headers. Supported
+filters and their tints:
 
 * ``BLUE`` → (110, 110, 210)
 * ``RED`` → (190, 100, 100)
 * ``NIR`` → (210, 65, 45)
 * ``CH4`` → (230, 35, 35)
+
+Generic reader
+~~~~~~~~~~~~~~
+
+Any image that none of the instruments above recognizes is handled by the
+generic reader — the last stage in the detection cascade. It reads:
+
+* Unrecognized **VICAR**, **PDS3** (attached or detached label), and
+  **FITS** images — files in those containers that carry no identifiable
+  instrument, or whose instrument ``rms-picmaker`` does not model.
+* **NumPy** ``.npy`` files and **pickled** arrays (``.pkl``).
+* **16-bit TIFFs**.
+* Common raster formats read through Pillow: **BMP**, **GIF**, **JPEG**,
+  **PNG**, and plain **TIFF**.
+
+The generic reader carries no instrument knowledge, so:
+
+* **No default tint.** ``default_tint`` is unset, so ``--tint`` has no
+  effect; use ``--colormap`` to add color explicitly.
+* **No instrument-specific orientation.** The default line direction is
+  upward for FITS inputs (matching the FITS bottom-origin convention) and
+  downward for everything else. Override it with ``--up`` / ``--down`` or
+  ``--rotate``.
+
+Every other option — the stretch, sizing, layout, and processing
+controls — applies to generic inputs exactly as it does to a recognized
+instrument.
 
 
 7. Output formats and their controls
