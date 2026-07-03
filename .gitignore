@@ -178,3 +178,6 @@ nohup.out
 *.*.bak
 log.txt
 profile.txt
+
+# Sphinx build output
+docs/_build/

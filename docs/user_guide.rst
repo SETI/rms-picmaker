@@ -219,9 +219,11 @@ Enhancement options
   applied to the grayscale axis.
 * ``--tint`` — Override the colormap with the per-instrument tint
   inferred from the filter name. See section 6.
-* ``--retint FACTOR`` — Factor applied to the filter wavelength before
-  the tint color is chosen; use it to map IR or UV instruments into the
-  visual range.
+* ``--retint FACTOR`` — Factor applied to the inferred filter wavelength
+  before the tint color is chosen; use it to map IR or UV instruments into
+  the visual range. The default depends on the detector: ``1`` for most
+  (ACS/WFC, ACS/HRC, WFC3/UVIS), ``0.4`` for NICMOS and WFC3/IR, and ``3``
+  for the UV-only ACS/SBC. WFPC2 does not apply a retint factor.
 
 Orientation options
 ~~~~~~~~~~~~~~~~~~~
@@ -324,25 +326,36 @@ tints:
 HST (WFC3 / ACS / WFPC2 / NICMOS)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Recognized from FITS headers. The tint is derived from the wavelength
-inferred by parsing the digits out of the filter name (for example,
-``F606W`` becomes 606 nm) and looking that wavelength up in an internal
-CIE-style color table.
+Recognized from FITS headers. The tint is derived from a wavelength
+inferred by parsing the digits out of the filter name and looking the
+result up in an internal color table. The inferred wavelength is then
+scaled by ``--retint`` (see its per-detector default above) before the
+lookup; this is what maps IR and UV bands back into the visible range.
 
-Per-detector adjustments:
+Per-detector wavelength handling:
 
-* **NICMOS** scales the inferred number by 3.5 (NICMOS filter names
-  encode tens of nm, not nm).
-* **WFC3/IR** and **ACS/SBC** scale by 3.5 when the inferred number is
-  below 200.
-* **WFPC2** quad-filters ``FQUV*`` and ``FQCH4*`` are pinned to 300 nm
-  and 900 nm respectively.
-* **NICMOS** polarisers ``POL0S`` / ``POL0L`` are pinned to 110 nm and
-  220 nm.
+* **ACS** (WFC / HRC / SBC): the wavelength is the mean of the digits in
+  ``FILTER1`` / ``FILTER2`` (e.g. ``F606W`` → 606 nm), read directly as nm
+  and scaled by the retint default (``1``, or ``3`` for the UV-only SBC).
+  Filters matching ``CLEAR*``, ``POL*``, ``G800L``, or ``N/A`` carry no
+  diagnostic wavelength and are left untinted.
+* **WFC3/UVIS**: the filter digits are read directly as nm (``F606W`` → 606
+  nm), scaled by the retint default ``1``.
+* **WFC3/IR**: IR filter names encode wavelength / 10 (``F160W`` → 1600 nm),
+  so the digits are multiplied by 10 and then by the retint default ``0.4``.
+  The broad long-pass filters ``F200LP`` and ``F350LP`` are left untinted.
+* **NICMOS**: filter names likewise encode wavelength / 10, so the digits
+  are multiplied by 10 and then by the retint default ``0.4`` (``F187N`` →
+  1870 nm → 748 nm). Polariser filters (``POL*``) are left untinted.
+* **WFPC2**: the wavelength is the mean of the digits in ``FILTNAM1`` /
+  ``FILTNAM2``, with the ``FQUVN`` quad filter pinned to 387 nm; ``--retint``
+  is not applied. Filters matching ``F130LP``, ``F165LP``, ``F606W``,
+  ``FQCH4*``, or ``POL*`` are left untinted, and only calibrated science
+  products (``*_c0f`` / ``*_d0f``) are tinted at all.
 
-The broadband filters ``F350LP``, ``F606W``, and ``LONG_PASS`` use a
-plain black-to-white colormap. When no wavelength can be inferred the
-tint is skipped and the existing colormap is left in place.
+For every HST detector, when no diagnostic wavelength can be inferred (an
+undiagnostic or unrecognized filter), no tint is applied and the existing
+colormap or grayscale is left in place.
 
 New Horizons MVIC
 ~~~~~~~~~~~~~~~~~

@@ -167,8 +167,8 @@ def get_parser():
         '--retint', type=float, default=None,
         help='a factor to apply to the filter wavelength before determining the tint '
              'color. This can be used to map IR or UV instruments into the visual range. '
-             'The default is 1 for most instruments, but 0.4 for NICMOS, 3 for ACS/SBC, '
-             ' and 4 for WFC3/IR.')
+             'The default is 1 for most instruments, but 0.4 for NICMOS and WFC3/IR, '
+             'and 3 for ACS/SBC. WFPC2 does not apply a retint factor.')
     _enhancement.add_argument(
         '--histogram', action='store_true', default=False,
         help='use a histogram contrast stretch. This takes advantage of the full dynamic '
