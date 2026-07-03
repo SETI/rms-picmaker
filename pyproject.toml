@@ -238,7 +238,10 @@ targets = ["src"]
 # Pickle scanning is intentional: read_one_image_array accepts pickle inputs
 # as a documented (and README-warned) fallback format. The library doesn't
 # unpickle anything by itself.
-skips = ["B301", "B403"]
+# B110 (try/except/pass) is the format-reader cascade: each reader is tried in
+# turn and a failure just means "not this format, move on" -- the pass is
+# deliberate control flow, not a swallowed error.
+skips = ["B301", "B403", "B110"]
 
 [tool.vulture]
 paths = ["src"]
