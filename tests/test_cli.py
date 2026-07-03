@@ -63,7 +63,7 @@ def test_user_guide_documents_every_cli_flag() -> None:
         'docs/user_guide.rst no longer auto-generates the command-line '
         'reference; restore the sphinx-argparse directive in section 4.'
     )
-    assert ':module: picmaker.parser' in guide
+    assert ':module: picmaker.options' in guide
     assert ':func: get_parser' in guide
 
 

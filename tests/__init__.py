@@ -11,7 +11,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
 
 # Maximum tolerated mean absolute difference per pixel between a generated

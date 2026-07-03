@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 
@@ -42,11 +42,12 @@ def test_frame_size_incompatible(fixtures_dir: Path, tmp_path: Path) -> None:
 def test_twobytes_requires_tiff_extension(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """``--16`` defaults the extension to ``'jpg'``, which is rejected for
-    16-bit output; only tiffs may be written in 16-bit mode.
+    """``--16`` with an explicit non-TIFF extension is rejected; only tiffs may
+    be written in 16-bit mode. (``--16`` alone defaults the extension to tiff.)
     """
     with pytest.raises(ValueError, match='only tiffs can be written'):
-        _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path, '--16')
+        _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
+             '--16', '--extension', 'jpg')
 
 
 # ---------------------------------------------------------------------------

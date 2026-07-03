@@ -1,16 +1,21 @@
-"""Unit tests for :func:`picmaker.picmaker.get_versions`.
+"""Unit tests for :func:`picmaker.options.get_versions`.
 
 ``get_versions`` reads a ``--versions`` file and expands it into a list of
-fully-normalized option dicts (one per non-blank line). Note: lines are
-tokenized with ``str.split`` (not ``shlex``), and per-line ``--replace`` /
-``--proceed`` values are preserved rather than overridden by a top-level value.
+fully-normalized, deconflicted option dicts (one per non-blank line). Note:
+lines are tokenized with ``str.split`` (not ``shlex``), and per-line
+``--replace`` / ``--proceed`` values are preserved rather than overridden by a
+top-level value.
 """
 
 from pathlib import Path
 from typing import Any
 
-from picmaker.parser import get_parser
-from picmaker.picmaker import get_versions, validate_options
+from picmaker.options import (
+    deconflict_options,
+    get_parser,
+    get_versions,
+    validate_options,
+)
 
 
 def _base(*args: str) -> dict[str, Any]:
@@ -27,8 +32,12 @@ def test_no_versions_returns_single_options_dict() -> None:
 
 
 def test_versions_none_returns_the_kwargs() -> None:
-    """``versions=None`` echoes the remaining kwargs as one dict."""
-    assert get_versions(versions=None, suffix='_x') == [{'suffix': '_x'}]
+    """``versions=None`` returns a single deconflicted options dict built from
+    the base options."""
+    base = _base('--suffix', '_x')
+    out = get_versions(**base)
+    assert len(out) == 1
+    assert out[0]['suffix'] == '_x'
 
 
 def test_versions_lines_each_produce_one_dict(tmp_path: Path) -> None:
@@ -59,5 +68,7 @@ def test_versions_blank_file_falls_back_to_base(tmp_path: Path) -> None:
     vfile.write_text('\n\n   \n')
     base = _base('in.vic')
     out = get_versions(**{**base, 'versions': str(vfile)})
-    # One fallback run whose options are the base minus the consumed 'versions' key.
-    assert out == [{k: v for k, v in base.items() if k != 'versions'}]
+    # One fallback run: the base options, deconflicted, with the consumed
+    # 'versions' key removed.
+    expected = deconflict_options({k: v for k, v in base.items() if k != 'versions'})
+    assert out == [expected]

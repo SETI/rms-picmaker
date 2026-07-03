@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 # hst_acs.fits and hst_wfpc2.fits are omitted from the end-to-end pipeline

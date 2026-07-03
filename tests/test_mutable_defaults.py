@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from picmaker.control import get_filepaths, get_outfile
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import validate_options
 
 

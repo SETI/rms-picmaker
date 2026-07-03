@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from pdslogger import PdsLogger
 
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 CapturedLogger = tuple[PdsLogger, list[logging.LogRecord]]
@@ -64,13 +64,13 @@ def test_no_input_files_logs_error(captured_logger: CapturedLogger) -> None:
 def test_validation_error_is_logged(captured_logger: CapturedLogger) -> None:
     """A validation conflict is logged (as an exception) before raising."""
     logger, records = captured_logger
-    with pytest.raises(ValueError, match='--band and --bands'):
+    with pytest.raises(ValueError, match='--movie and --versions'):
         validate_options(
-            get_parser().parse_args(['x.vic', '--band', '2', '--bands', '0', '1']),
+            get_parser().parse_args(['x.vic', '--movie', '--versions', 'v.txt']),
             logger=logger,
         )
     # logger.exception() records the error at CRITICAL level.
-    assert any('--band and --bands' in m for m in _messages(records))
+    assert any('--movie and --versions' in m for m in _messages(records))
     assert any(r.levelname == 'CRITICAL' for r in records)
 
 

@@ -3,18 +3,18 @@
 ##########################################################################################
 """Complete ``picmaker`` functionality in a single function call."""
 
-import argparse
+# ruff: noqa: I001
 import logging
 
 import numpy as np
 from pdslogger import PdsLogger
 
-from picmaker.colornames  import ColorNames
 from picmaker.control     import get_filepaths, get_outfile
 from picmaker.instruments import read_image_array
 from picmaker.layout      import pad_pil_image, wrap_pil_image
+from picmaker.options     import deconflict_options, get_versions, validate_options
 from picmaker.orientation import rotate_rgb_array
-from picmaker.pil_utils   import PIL_EXTENSIONS, array_to_pil, write_pil
+from picmaker.pil_utils   import array_to_pil, write_pil
 from picmaker.processing  import fill_zebra_stripes, filter_pil_image
 from picmaker.sizing      import get_size, resize_pil_image
 from picmaker.slicing     import slice_array
@@ -28,7 +28,7 @@ def picmaker(logger=None, **options):
         logger (Logger or PdsLogger, optional): Logger to use.
         **options: The dictionary of command options.
 
-    In "--movie" mode, common enhancement limits are computed across all images before
+    In "movie" mode, common enhancement limits are computed across all images before
     writing; otherwise each input file is processed once per version.
     """
 
@@ -57,6 +57,7 @@ def picmaker(logger=None, **options):
             del options[name]  # noqa: RUF051
 
     if movie:
+        deconflict_options(options)
         entries = []        # (infile, outdir, image_data) for each readable file
         min_limit = np.inf
         max_limit = -np.inf
@@ -195,178 +196,6 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
     return image_data
 
 
-def validate_options(options, *, logger=None, _versions_validated=None):
-    """Convert an Namespace to a dict if necessary and validate values.
-
-    Parameters:
-        options (Namespace or dict): Picmaker inputs.
-        logger (PdsLogger, optional): Logger to use.
-        _versions_validated (str, optional): A version file already validated; this is
-            used to prevent recursive version files.
-
-    Returns:
-        dict: Dictionary of all input options.
-
-    Raises:
-        ValueError: If any parameter has an invalid or contradictory value.
-    """
-
-    if not isinstance(options, dict):
-        options = options.__dict__
-
-    try:
-        extension = options.get('extension') or 'jpg'
-        if extension.lower() not in PIL_EXTENSIONS:
-            raise ValueError(f'unrecognized --extension: {extension!r}')
-        options['extension'] = extension
-
-        names_to_delete = []
-
-        # band vs. bands -> bands
-        band = options.get('band', None)
-        bands = options.get('bands', None)
-        if band is not None:
-            if bands is None:
-                options['bands'] = (band, band)
-            else:
-                raise ValueError('--band and --bands options are incompatible')
-
-        # scale vs. (wscale, hscale) -> scale, a pair of values (wscale, hscale)
-        scale = options.get('scale', None)
-        wscale = options.get('wscale', None)
-        hscale = options.get('hscale', None)
-        if scale is not None and wscale is not None:
-            raise ValueError('--scale and --wscale options are incompatible')
-        if scale is not None and hscale is not None:
-            raise ValueError('--scale and --hscale options are incompatible')
-        if scale is None:
-            scale = 100.
-        if np.isscalar(scale):
-            options['scale'] = (wscale if wscale is not None else scale,
-                                hscale if hscale is not None else scale)
-        names_to_delete += ['wscale', 'hscale']
-
-        # overlap vs. overlaps -> overlaps. A default-filled overlaps of (0., 0.), left by
-        # an earlier validation of a versions base, does not conflict with a per-version
-        # --overlap; the explicit --overlap wins.
-        overlap = options.get('overlap', None)
-        overlaps = options.get('overlaps', None)
-        if overlap is not None and overlaps not in (None, (0., 0.)):
-            raise ValueError('--overlap and --overlaps options are incompatible')
-        if overlap is not None:
-            options['overlaps'] = (overlap, overlap)
-        elif overlaps is None:
-            options['overlaps'] = (0., 0.)
-        names_to_delete.append('overlap')
-
-        # display_upward vs. display_downward -> display_upward
-        display_upward = options.get('display_upward', None)
-        display_downward = options.get('display_downward', None)
-        if display_downward is not None:
-            if display_upward is None:
-                options['display_upward'] = not display_downward
-            else:
-                raise ValueError('--up and --down options are incompatible')
-        names_to_delete.append('display_downward')
-
-        # frame vs. size
-        if options['frame'] is not None and options['size'] is not None:
-            raise ValueError('--frame and --size options are incompatible')
-
-        # two-byte vs. extension
-        if options.get('twobytes', False):
-            extension = options.get('extension', '')
-            if extension and extension.lower() not in ('tif', 'tiff', '.tif', '.tiff'):
-                raise ValueError('only tiffs can be written in 16-bit mode')
-
-        # movie vs. versions
-        versions = options.get('versions', None)
-        if versions and options.get('movie', False):
-            raise ValueError('--movie and --versions options are incompatible')
-
-        # obj vs. pointers
-        obj = options.get('obj', None)
-        if obj is not None:
-            pointers = options.get('pointers', [])
-            if obj and pointers:
-                raise ValueError('--obj and --pointers options are incompatible')
-
-        # Validate all colors
-        colormap = options.get('colormap', [])
-        for color in colormap:
-            _ = ColorNames.lookup(color)
-
-        for name in ('below_color', 'above_color', 'invalid_color', 'gap_color',
-                     'pad_color'):
-            color = options.get(name)
-            if color is not None:   # None means "use the colormap default"
-                _ = ColorNames.lookup(color)
-
-    except Exception as err:
-        logger and logger.exception(err)
-        raise
-
-    # Remove alternative names from the dict
-    for name in names_to_delete:
-        if name in options:
-            del options[name]
-
-    # Validate the versions file including recursive call to this function
-    versions = options.get('versions', None)
-    if versions:
-        if _versions_validated and _versions_validated != versions:
-            logger and logger.error('recursive --versions are not supported', versions)
-            raise ValueError('recursive --versions are not supported: {versions}')
-
-        logger and logger.debug('parsing version file', versions)
-        _ = get_versions(**options)
-
-    return options
-
-
-def get_versions(versions=None, **kwargs):
-    """Read the versions file and return a list of options dictionaries.
-
-    Parameters:
-        versions (str or Path, optional): Path to a "versions" file with alternative sets
-            of command-line options, one set per row.
-        **kwargs: Additional picmaker input parameters.
-
-    Returns:
-        list[dict]: One or more dictionaries of alternative input parameters.
-    """
-
-    if not versions:
-        return [kwargs]
-
-    # Imported lazily to avoid a circular import at package-load time: picmaker.parser
-    # imports nothing from this module, but this module is reached via the package
-    # __init__, so a top-level import would pull picmaker.parser in during `import
-    # picmaker`.
-    from picmaker.parser import get_parser
-    parser = get_parser()
-
-    with open(versions, 'r') as f:  # forward any OSErrors
-        lines = f.readlines()
-
-    # Each version line layers its option overrides onto a fresh copy of the base options,
-    # so the versions are independent. Input files are optional in the parser, so a line
-    # specifying only options parses cleanly; the resolved file list comes from the base
-    # options, not from each version.
-    options_list = []
-    for line in lines:
-        new_args = line.split()
-        if not new_args:
-            continue
-
-        namespace = argparse.Namespace(**kwargs)
-        alt_namespace = parser.parse_args(new_args, namespace=namespace)
-        alt_options = validate_options(alt_namespace, _versions_validated=versions)
-        options_list.append(alt_options)
-
-    return options_list if options_list else [kwargs]
-
-
-__all__ = ['get_versions', 'picmaker', 'picmaker1', 'validate_options']
+__all__ = ['picmaker', 'picmaker1']
 
 ##########################################################################################

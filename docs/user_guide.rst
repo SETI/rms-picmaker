@@ -70,7 +70,7 @@ The same operation from Python:
 .. code-block:: python
 
    from picmaker import picmaker
-   from picmaker.parser import get_parser
+   from picmaker.options import get_parser
 
    options = get_parser().parse_args(
        ['tests/fixtures/cassini_iss.vic', '--directory', '/tmp/out'],
@@ -85,39 +85,116 @@ The full list of options below is generated directly from the argument
 parser, so it always matches the ``picmaker --help`` output exactly.
 
 .. argparse::
-   :module: picmaker.parser
+   :module: picmaker.options
    :func: get_parser
    :prog: picmaker
 
 
-5. Supported input formats
---------------------------
+5. Command-line details
+-----------------------
 
-``rms-picmaker`` reads the following input formats:
+This section expands on how ``picmaker``'s main option groups behave: the
+enhancement pipeline, the geometry pipeline, the ``--versions`` multi-output
+form, and the output-format controls.
 
-* **PDS3 detached label** — a ``.LBL`` file pointing at one or more
-  ``IMAGE`` objects in a sibling data file. ``--pointer`` chooses
-  which pointer(s) to follow when more than one is present.
-* **PDS3 attached label** — the label header precedes the image data
-  in the same file.
-* **VICAR** — including per-instrument variants (Cassini ISS, Voyager
-  ISS, Galileo SSI). The instrument is recognized automatically from
-  the label, which enables instrument-aware tinting (see section 6).
-* **FITS** — including HST (WFC3, ACS, WFPC2, NICMOS) and New
-  Horizons (LORRI, MVIC). HST mosaics across multiple detector panels are
-  reconstructed with ``--mosaic``.
-* **Pickled NumPy arrays** (``.pkl``) and **NumPy** ``.npy`` files.
-* **Common raster formats** — BMP, GIF, JPEG, PNG, plain TIFF.
+Enhancement controls
+~~~~~~~~~~~~~~~~~~~~~
+
+The intensity pipeline runs in this order:
+
+1. ``--valid LO HI`` masks pixels outside the range (replaced with
+   ``--invalid`` color).
+2. ``--limits`` or ``--percentiles`` chooses the linear stretch
+   endpoints (``--limits`` wins when both are set). ``--trim`` /
+   ``--trim-zeros`` / ``--footprint`` further refine which pixels are
+   considered.
+3. ``--histogram`` switches the stretch from linear to
+   flat-histogram-equalised.
+4. ``--gamma G`` applies a power-law correction to the stretched
+   grayscale (``out = in ** G``) before the colormap is applied. Values
+   ``> 1`` darken the midtones; values ``< 1`` brighten them.
+5. ``--colormap COLOR ...`` maps the stretched values into RGB. Supply
+   one or more X11 color names (or ``(R,G,B)`` tuples) as separate color
+   stops. ``--tint`` overrides this step with the per-instrument tint
+   from section 6.
+6. ``--below``, ``--above``, ``--invalid`` override the colors used for
+   the three special cases.
+
+Geometry controls
+~~~~~~~~~~~~~~~~~~
+
+Geometry runs in this order:
+
+1. ``--lines`` / ``--samples`` / ``--crop`` / ``--trim`` shrink the
+   working region.
+2. ``--rotate`` (or the implicit default from the per-instrument
+   detector geometry) flips / rotates the working array.
+3. ``--size`` / ``--scale`` / ``--wscale`` / ``--hscale`` resize the
+   working array. ``--frame W H`` instead picks the largest scale that
+   fits inside ``W x H``; ``--frame_max PCT`` caps how far the image
+   may be enlarged.
+4. ``--wrap`` / ``--wrap-ratio`` / ``--overlap`` / ``--overlaps`` split
+   very elongated images into stacked panels separated by a
+   ``--gap-size`` × ``--gap-color`` gap.
+5. ``--pad`` re-introduces the full ``--frame`` box, filling with
+   ``--pad-color``.
+
+The ``--versions FILE`` form
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``--versions FILE`` re-parses the command line once per non-blank line
+in ``FILE``, appending the line's tokens to the command for each run.
+The same input file therefore produces one output per line, each with
+its own suffix / quality / colormap / etc.
+
+For example, ``two_versions.txt``::
+
+   --suffix _v1 --extension jpg --quality 90
+   --suffix _v2 --extension tif --16
+
+paired with ``input.IMG`` produces ``input_v1.jpg`` and
+``input_v2.tif`` in one read.
+
+Lines starting with ``#`` and blank lines are skipped. Every
+mutex / value-validity check the CLI performs fires per line, so an
+invalid version doesn't abort the others (when combined with
+``--proceed``).
+
+Output formats and their controls
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``--extension`` (alias ``-x``) chooses the output container:
+
+* ``bmp`` / ``dib`` — Windows Bitmap. 8-bit grayscale or 24-bit RGB;
+  lossless.
+* ``gif`` — GIF. 8-bit indexed; transparency not preserved.
+* ``jpg`` / ``jpeg`` — JPEG. 8-bit RGB only; ``--quality 1..100``
+  controls compression.
+* ``png`` — PNG. 8-bit grayscale or 24-bit RGB; lossless.
+* ``tif`` / ``tiff`` — TIFF. 8-bit by default. With ``--16`` the output
+  is a 16-bit grayscale TIFF (or 16-bit RGB when the colormap path
+  produced 3-channel data).
+
+The output filename stem is built as
+``<input-stem><suffix>.<extension>``, with ``--strip`` removing each of
+its one-or-more substrings from ``<input-stem>``.
 
 
-6. Supported instruments
-------------------------
+6. Supported instruments and formats
+------------------------------------
 
-``rms-picmaker`` automatically recognizes images from the instruments
-listed below, reading the instrument identity from the file's VICAR
-label, PDS3 label, or FITS header. Recognition drives the per-instrument
-default orientation and, when ``--tint`` is enabled, a per-filter tint
-color.
+``rms-picmaker`` reads image data from PDS3 (attached or detached label),
+VICAR, and FITS containers, as well as NumPy ``.npy`` files, pickled
+arrays (``.pkl``), and the common raster formats (BMP, GIF, JPEG, PNG,
+TIFF). Within the PDS3, VICAR, and FITS containers it automatically
+recognizes a number of specific instruments; recognition drives the
+per-instrument default orientation and, when ``--tint`` is enabled, a
+per-filter tint color. Anything it does not recognize as a specific
+instrument is handled by the generic reader described at the end of this
+section.
+
+When a PDS3 label points at more than one ``IMAGE`` object, ``--pointer``
+selects which pointer(s) to follow.
 
 Supported instruments:
 
@@ -130,18 +207,13 @@ Supported instruments:
 * **HST NICMOS** — FITS.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.
-* **Generic reader** — the fallback for any image no instrument above
-  claims: unrecognized VICAR, PDS3, or FITS files, plus ``.npy`` and
-  ``.pkl`` arrays, 16-bit TIFFs, and the common raster formats (BMP, GIF,
-  JPEG, PNG, TIFF).
 
-Every instrument above is fully supported as an input. The per-instrument
-subsections below add the detail that only applies under ``--tint`` —
-which filter maps to which color. Instruments with a single broadband
-channel, notably New Horizons LORRI, are recognized and oriented like any
-other but define no filter-based tint, so ``--tint`` leaves their coloring
-unchanged; use ``--colormap`` for explicit false color. The generic
-reader, described last, is the catch-all for everything else.
+The per-instrument subsections below add the detail that only applies
+under ``--tint`` — which filter maps to which color. Instruments with a
+single broadband channel, notably New Horizons LORRI, are recognized and
+oriented like any other but define no filter-based tint, so ``--tint``
+leaves their coloring unchanged; use ``--colormap`` for explicit false
+color. The generic reader is described last.
 
 Cassini ISS
 ~~~~~~~~~~~
@@ -226,6 +298,9 @@ For every HST detector, when no diagnostic wavelength can be inferred (an
 undiagnostic or unrecognized filter), no tint is applied and the existing
 colormap or grayscale is left in place.
 
+HST exposures that span multiple detector panels can be reassembled into
+a single image with ``--mosaic``.
+
 New Horizons LORRI
 ~~~~~~~~~~~~~~~~~~
 
@@ -274,94 +349,8 @@ controls — applies to generic inputs exactly as it does to a recognized
 instrument.
 
 
-7. Output formats and their controls
-------------------------------------
-
-``--extension`` (alias ``-x``) chooses the output container:
-
-* ``bmp`` / ``dib`` — Windows Bitmap. 8-bit grayscale or 24-bit RGB;
-  lossless.
-* ``gif`` — GIF. 8-bit indexed; transparency not preserved.
-* ``jpg`` / ``jpeg`` — JPEG. 8-bit RGB only; ``--quality 1..100``
-  controls compression.
-* ``png`` — PNG. 8-bit grayscale or 24-bit RGB; lossless.
-* ``tif`` / ``tiff`` — TIFF. 8-bit by default. With ``--16`` the output
-  is a 16-bit grayscale TIFF (or 16-bit RGB when the colormap path
-  produced 3-channel data).
-
-The output filename stem is built as
-``<input-stem><suffix>.<extension>``, with ``--strip`` removing each of
-its one-or-more substrings from ``<input-stem>``.
-
-
-8. Enhancement controls
------------------------
-
-The intensity pipeline runs in this order:
-
-1. ``--valid LO HI`` masks pixels outside the range (replaced with
-   ``--invalid`` color).
-2. ``--limits`` or ``--percentiles`` chooses the linear stretch
-   endpoints (``--limits`` wins when both are set). ``--trim`` /
-   ``--trim-zeros`` / ``--footprint`` further refine which pixels are
-   considered.
-3. ``--histogram`` switches the stretch from linear to
-   flat-histogram-equalised.
-4. ``--gamma G`` applies a power-law correction to the stretched
-   grayscale (``out = in ** G``) before the colormap is applied. Values
-   ``> 1`` darken the midtones; values ``< 1`` brighten them.
-5. ``--colormap COLOR ...`` maps the stretched values into RGB. Supply
-   one or more X11 color names (or ``(R,G,B)`` tuples) as separate color
-   stops. ``--tint`` overrides this step with the per-instrument tint
-   from section 6.
-6. ``--below``, ``--above``, ``--invalid`` override the colors used for
-   the three special cases.
-
-
-9. Geometry controls
---------------------
-
-Geometry runs in this order:
-
-1. ``--lines`` / ``--samples`` / ``--crop`` / ``--trim`` shrink the
-   working region.
-2. ``--rotate`` (or the implicit default from the per-instrument
-   detector geometry) flips / rotates the working array.
-3. ``--size`` / ``--scale`` / ``--wscale`` / ``--hscale`` resize the
-   working array. ``--frame W H`` instead picks the largest scale that
-   fits inside ``W x H``; ``--frame_max PCT`` caps how far the image
-   may be enlarged.
-4. ``--wrap`` / ``--wrap-ratio`` / ``--overlap`` / ``--overlaps`` split
-   very elongated images into stacked panels separated by a
-   ``--gap-size`` × ``--gap-color`` gap.
-5. ``--pad`` re-introduces the full ``--frame`` box, filling with
-   ``--pad-color``.
-
-
-10. The ``--versions FILE`` form
---------------------------------
-
-``--versions FILE`` re-parses the command line once per non-blank line
-in ``FILE``, appending the line's tokens to the command for each run.
-The same input file therefore produces one output per line, each with
-its own suffix / quality / colormap / etc.
-
-For example, ``two_versions.txt``::
-
-   --suffix _v1 --extension jpg --quality 90
-   --suffix _v2 --extension tif --16
-
-paired with ``input.IMG`` produces ``input_v1.jpg`` and
-``input_v2.tif`` in one read.
-
-Lines starting with ``#`` and blank lines are skipped. Every
-mutex / value-validity check the CLI performs fires per line, so an
-invalid version doesn't abort the others (when combined with
-``--proceed``).
-
-
-11. Programmatic usage
-----------------------
+7. Programmatic usage
+---------------------
 
 The library mirrors the CLI: every flag binds to a keyword argument of
 ``picmaker``. The most robust way to assemble a complete set of options
@@ -371,7 +360,7 @@ resulting namespace straight through:
 .. code-block:: python
 
    from picmaker import picmaker
-   from picmaker.parser import get_parser
+   from picmaker.options import get_parser
 
    # Convert one file with a percentile stretch and a colormap.
    options = get_parser().parse_args([
@@ -410,8 +399,8 @@ Lower-level helpers are re-exported on the top-level package. For example,
 See :doc:`module` for the full API reference.
 
 
-12. Troubleshooting
--------------------
+8. Troubleshooting
+------------------
 
 * ``unrecognized file format in <path>`` — None of the supported readers
   recognized the file. Check the file is not truncated and that its

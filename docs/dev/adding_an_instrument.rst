@@ -344,8 +344,8 @@ Step-by-step for a new instrument-specific option
 
 Suppose you want to add ``--retint`` (used only by the HST readers):
 
-1. **Add the CLI argument.** In :func:`picmaker.parser.get_parser`
-   (:file:`src/picmaker/parser.py`), add the argument under an
+1. **Add the CLI argument.** In :func:`picmaker.options.get_parser`
+   (:file:`src/picmaker/options.py`), add the argument under an
    appropriate argument group:
 
    .. code-block:: python

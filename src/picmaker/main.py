@@ -2,22 +2,21 @@
 # picmaker/main.py
 ##########################################################################################
 
+# ruff: noqa: I001
 import sys
 import warnings
 
 from pdslogger import PdsLogger
 
-from picmaker.parser import get_parser
+from picmaker.options import get_parser, validate_options
+from picmaker.picmaker import picmaker
+
 
 
 def main():
     """Parse command-line arguments and run picmaker."""
 
     warnings.simplefilter('error')
-
-    # Imported here to avoid a circular import: picmaker.picmaker imports parser from this
-    # module at load time.
-    from picmaker.picmaker import picmaker, validate_options
 
     parser = get_parser()
     options = parser.parse_args()   # could raise SystemExit

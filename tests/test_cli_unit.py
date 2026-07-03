@@ -2,7 +2,7 @@
 
 The subprocess-based tests in :mod:`tests.test_cli` cover the
 end-to-end CLI contract (exit codes, ``--help`` baseline, ``--versions``).
-These tests exercise the ``get_parser()`` factory (:mod:`picmaker.parser`) and
+These tests exercise the ``get_parser()`` factory (:mod:`picmaker.options`) and
 the option-validation and file-discovery helpers directly so the coverage tool
 counts them and so each validation rule has a focused assertion that fails with
 a clear locator.
@@ -18,8 +18,7 @@ import pytest
 from picmaker.control import get_filepaths
 from picmaker.instruments import DEFAULT_PDS3_METHOD, PDS3_METHODS
 from picmaker.main import main
-from picmaker.parser import get_parser
-from picmaker.picmaker import validate_options
+from picmaker.options import deconflict_options, get_parser, validate_options
 
 # ---------------------------------------------------------------------------
 # get_parser
@@ -32,16 +31,21 @@ def test_parser_is_argument_parser() -> None:
 
 
 def test_parser_parses_empty_args() -> None:
-    """The parser succeeds on an empty argv (no positionals required)."""
+    """The parser succeeds on an empty argv (no positionals required).
+
+    Most defaults now live in the ``validate_options`` table rather than the
+    parser, so unspecified options come back as ``None`` here and are filled in
+    downstream (see the ``validate_options`` tests below).
+    """
     ns = get_parser().parse_args([])
     assert ns.files == []
     assert ns.directory is None
     assert ns.recursive is False
-    assert ns.patterns == []
-    assert ns.replace == 'all'
-    assert ns.gamma == 1.0
+    assert ns.patterns is None
+    assert ns.replace is None
+    assert ns.gamma is None
     assert ns.extension is None
-    assert ns.percentiles == (0.0, 100.0)
+    assert ns.percentiles is None
     assert ns.pds3_method == DEFAULT_PDS3_METHOD
 
 
@@ -118,19 +122,26 @@ def test_get_filepaths_empty() -> None:
 
 
 # ---------------------------------------------------------------------------
-# validate_options — mutex checks
+# validate_options + deconflict_options — mutex checks
 # ---------------------------------------------------------------------------
 
 
 def _vo(*args: str) -> dict[str, Any]:
+    """Run the full CLI option pipeline: fill/validate then deconflict.
+
+    Cross-option mutex and normalization rules live in ``deconflict_options``,
+    which runs after ``validate_options`` has filled defaults and validated each
+    value, so both steps are needed to exercise those rules.
+    """
     options: dict[str, Any] = validate_options(get_parser().parse_args(list(args)))
-    return options
+    deconflicted: dict[str, Any] = deconflict_options(options)
+    return deconflicted
 
 
 def test_validate_band_bands_incompatible() -> None:
     """``--band`` and ``--bands`` with mismatched endpoints conflict."""
     with pytest.raises(ValueError, match='--band and --bands'):
-        _vo('--band', '2', '--bands', '0', '1')
+        _vo('--band', '2', '--bands', '1', '3')
 
 
 def test_validate_scale_wscale_incompatible() -> None:
@@ -172,8 +183,8 @@ def test_validate_twobytes_non_tiff_rejected() -> None:
 def test_validate_bad_extension_rejected() -> None:
     """An unrecognized ``--extension`` is rejected."""
     # argparse enforces --extension choices, so feed a dict directly to reach
-    # the validate_options guard.
-    with pytest.raises(ValueError, match='unrecognized --extension'):
+    # the validate_options guard, which rejects an off-list choice with KeyError.
+    with pytest.raises(KeyError, match='unrecognized'):
         validate_options({'extension': 'xyz'})
 
 
@@ -195,9 +206,10 @@ def test_validate_band_becomes_bands_pair() -> None:
 
 
 def test_validate_scale_defaults_propagate() -> None:
-    """When ``--scale`` is given, ``wscale`` / ``hscale`` default to it."""
+    """A scalar ``--scale`` is left as a scalar; ``get_size`` applies it to
+    both axes."""
     out = _vo('--scale', '75')
-    assert out['scale'] == (75.0, 75.0)
+    assert out['scale'] == 75.0
 
 
 def test_validate_wscale_only() -> None:
@@ -366,10 +378,10 @@ def test_main_keyboard_interrupt(
         '--directory', str(tmp_path),
         str(fixtures_dir / 'cassini_iss.vic'),
     ])
-    # main() does ``from picmaker.picmaker import picmaker`` lazily; patch the
-    # attribute on the module object (the package re-exports the same name, so
-    # a dotted-string target would be ambiguous).
-    monkeypatch.setattr(sys.modules['picmaker.picmaker'], 'picmaker', kb)
+    # main() calls the ``picmaker`` name imported into the picmaker.main module,
+    # so patch it there (patching picmaker.picmaker.picmaker would not rebind
+    # the name main() already holds).
+    monkeypatch.setattr(sys.modules['picmaker.main'], 'picmaker', kb)
     with pytest.raises(SystemExit) as excinfo:
         main()
     assert excinfo.value.code == 2

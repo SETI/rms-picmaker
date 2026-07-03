@@ -48,17 +48,17 @@ write.
 
 The console-script entry point (``picmaker = "picmaker.main:main"`` in
 ``pyproject.toml``). :func:`picmaker.main.main` builds the parser from
-:func:`picmaker.parser.get_parser`, parses ``sys.argv``, runs the
+:func:`picmaker.options.get_parser`, parses ``sys.argv``, runs the
 options through :func:`picmaker.picmaker.validate_options`, shifts the
 one-based ``--samples`` / ``--lines`` / ``--bands`` / ``--obj``
 command-line indices to zero-based, and calls
 :func:`picmaker.picmaker.picmaker`. Warnings are promoted to errors
 here (``warnings.simplefilter('error')``).
 
-:mod:`picmaker.parser` (``src/picmaker/parser.py``)
----------------------------------------------------
+:mod:`picmaker.options` (``src/picmaker/options.py``)
+-----------------------------------------------------
 
-The argparse definition. :func:`picmaker.parser.get_parser` builds and
+The argparse definition. :func:`picmaker.options.get_parser` builds and
 returns the :class:`argparse.ArgumentParser` for every ``picmaker``
 command-line flag. It is used both by :mod:`picmaker.main` (to parse
 ``sys.argv``) and by :func:`picmaker.picmaker.get_versions` (to

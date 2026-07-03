@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 

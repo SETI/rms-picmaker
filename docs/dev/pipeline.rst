@@ -98,13 +98,13 @@ CLI entry point
 :func:`picmaker.main.main` is the function bound to the ``picmaker``
 console script (``picmaker = "picmaker.main:main"``). It promotes all
 warnings to errors, builds the argparse parser with
-:func:`picmaker.parser.get_parser`, parses ``sys.argv``, normalizes
+:func:`picmaker.options.get_parser`, parses ``sys.argv``, normalizes
 the result with :func:`picmaker.picmaker.validate_options`, shifts the
 1-based ``--samples`` / ``--lines`` / ``--bands`` / ``--obj`` indices
 to 0-based, and calls the orchestrator
 :func:`picmaker.picmaker.picmaker` with the validated option dict as
 ``**kwargs``. There is no ``cli.py``; the two responsibilities are
-split between :mod:`picmaker.parser` (parser construction) and
+split between :mod:`picmaker.options` (parser construction) and
 :mod:`picmaker.main` (wiring).
 
 The library equivalent of "run the CLI from Python" is to call
@@ -143,7 +143,7 @@ same knob:
 When a ``--versions`` file is present, ``validate_options`` calls
 :func:`picmaker.picmaker.get_versions`, which re-parses each line of
 the file (layering its overrides onto a fresh copy of the base
-namespace via :func:`picmaker.parser.get_parser`) and recursively
+namespace via :func:`picmaker.options.get_parser`) and recursively
 validates each resulting option dict. Recursive ``--versions`` files
 are rejected via the ``_versions_validated`` guard.
 

@@ -17,7 +17,7 @@ from PIL import Image
 
 from picmaker.instruments import read_image_array, tint_by_nm
 from picmaker.instruments.hst_wfpc2 import HST_WFPC2
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker, validate_options
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_wfpc2'
