@@ -6,7 +6,7 @@
 import pdsparser                # noqa
 import astropy.io.fits as pyfits  # noqa
 
-from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
 _DEFAULT_UPWARD = True
@@ -64,7 +64,5 @@ class NH_LORRI(ImageData):
 
         return NH_LORRI(hdulist[0].data, _DEFAULT_UPWARD, None)
 
-
-register_instrument(NH_LORRI)
 
 ##########################################################################################

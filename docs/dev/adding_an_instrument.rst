@@ -3,8 +3,8 @@ Adding a new instrument
 
 Every supported mission lives in its own module under
 :mod:`picmaker.instruments`. Each module defines a subclass of
-:class:`picmaker.instruments.ImageData` and registers it by calling
-:func:`picmaker.instruments.register_instrument`. There is no formal
+:class:`picmaker.instruments.ImageData`, which registers itself
+automatically via :func:`ImageData.__init_subclass__`. There is no formal
 :class:`typing.Protocol`; the contract is the set of ``detect_*`` static
 methods described below, and the tests pin it.
 
@@ -146,7 +146,7 @@ Writing the instrument module
 
       """My-Mission MyInstrument detector and reader."""
 
-      from picmaker.instruments import ImageData, register_instrument
+      from picmaker.instruments import ImageData
 
       _DEFAULT_UPWARD = False
 
@@ -174,15 +174,12 @@ Writing the instrument module
               default_tint = _FILTER_DICT.get(filter_name)
               return MyMission_MyInst(vic.array[0], _DEFAULT_UPWARD, default_tint)
 
-
-      register_instrument(MyMission_MyInst)
-
    **FITS-based instrument** (e.g. HST, New Horizons MVIC) — use
    ``detect_in_fits`` and the FITS helpers:
 
    .. code-block:: python
 
-      from picmaker.instruments import ImageData, register_instrument, tint_by_nm
+      from picmaker.instruments import ImageData, tint_by_nm
       from picmaker.instruments._fits_support import get_fits_array
 
       _DEFAULT_UPWARD = True
@@ -203,16 +200,13 @@ Writing the instrument module
               array = get_fits_array(hdulist, obj=obj)
               return MyMission_MyInst(array, _DEFAULT_UPWARD, None)
 
-
-      register_instrument(MyMission_MyInst)
-
    **PDS3-labeled instrument** (e.g. Cassini ISS via ``.LBL``, NH LORRI
    via ``.LBL``) — add a ``detect_in_pds3`` method and extract the array
    with :func:`~picmaker.instruments.read_pds3_image_array`:
 
    .. code-block:: python
 
-      from picmaker.instruments import ImageData, register_instrument
+      from picmaker.instruments import ImageData
       from picmaker.instruments._pds3_support import read_pds3_image_array
 
 
@@ -229,9 +223,6 @@ Writing the instrument module
               array = read_pds3_image_array(label, **kwargs)
               return MyMission_MyInst(array, False, None)
 
-
-      register_instrument(MyMission_MyInst)
-
    An instrument can implement several ``detect_*`` methods on the same
    subclass — for example ``detect_in_pds3`` for ``.LBL`` inputs and
    ``detect_in_vicar`` for bare VICAR data files (see
@@ -240,12 +231,12 @@ Writing the instrument module
 2. **Registration is automatic — no ``__init__.py`` edit needed.**
    :mod:`picmaker.instruments` discovers and imports every module in the
    package whose name does not start with an underscore, so dropping the
-   file in is enough; the module registers itself by calling
-   :func:`~picmaker.instruments.register_instrument` at import time.
+   file in is enough; each ``ImageData`` subclass registers itself
+   automatically via :func:`ImageData.__init_subclass__` when its module
+   is imported.
 
-   Ordering is by **class name**:
-   :func:`~picmaker.instruments.register_instrument` keeps the internal
-   list sorted by ``__name__``, and the cascade returns on the first
+   Ordering is by **class name**: the registry is kept sorted by
+   ``__name__``, and the cascade returns on the first
    match. The always-accepting fallback is named ``ZZZ_Generic`` (in
    ``zzz_generic.py``) precisely so it sorts last and is only reached
    when no real instrument claims the file. If two instruments could
@@ -414,7 +405,6 @@ Several existing modules go beyond the minimal template:
   quadrant). :func:`~picmaker.picmaker.picmaker1` calls
   :func:`!apply_mosaic` under ``--mosaic`` after colormapping each band.
 
-All still subclass :class:`~picmaker.instruments.ImageData` and register
-through :func:`~picmaker.instruments.register_instrument`; only the
-internals differ.
+All still subclass :class:`~picmaker.instruments.ImageData` (and so
+register automatically); only the internals differ.
 </content>

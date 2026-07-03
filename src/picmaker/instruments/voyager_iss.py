@@ -3,7 +3,7 @@
 ##########################################################################################
 """Voyager ISS detector and reader."""
 
-from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
 _FILTER_TINTS = {
@@ -83,7 +83,5 @@ class Voyager_ISS(ImageData):
         return Voyager_ISS(vic.array[0], _DEFAULT_UPWARD,
                            _FILTER_TINTS.get(filter_name, None))
 
-
-register_instrument(Voyager_ISS)
 
 ##########################################################################################

@@ -22,19 +22,20 @@ from picmaker.instruments._pds3_support import (DEFAULT_PDS3_METHOD, PDS3_METHOD
 _INSTRUMENTS = []
 
 
-def register_instrument(subclass):
-    _INSTRUMENTS.append(subclass)
-    _INSTRUMENTS.sort(key=lambda k: k.__name__)
+def _register_instrument(subclass):
+    if subclass not in _INSTRUMENTS:
+        _INSTRUMENTS.append(subclass)
+        _INSTRUMENTS.sort(key=lambda k: k.__name__)
 
 
 def _register_all_instruments():
     """Import every instrument submodule so that each registers itself.
 
     Any module in this package whose name does not begin with an underscore is imported
-    for its side effects: defining an ImageData subclass and calling
-    `register_instrument`. Support modules (`_pds3_support`, `_fits_support`, etc.) are
-    skipped. A new instrument is picked up automatically by dropping a module into this
-    package.
+    for its side effect of defining an ImageData subclass; each subclass registers itself
+    automatically via `ImageData.__init_subclass__`. Support modules (`_pds3_support`,
+    `_fits_support`, etc.) are skipped. A new instrument is picked up automatically by
+    dropping a module into this package.
     """
 
     for module_info in pkgutil.iter_modules(__path__):
@@ -43,6 +44,13 @@ def _register_all_instruments():
 
 
 class ImageData:
+    def __init_subclass__(cls, **kwargs):
+        # Every ImageData subclass is an instrument reader; register it as soon
+        # as its class body runs (i.e. when its module is imported), so modules
+        # never have to call _register_instrument themselves.
+        super().__init_subclass__(**kwargs)
+        _register_instrument(cls)
+
     def __init__(self, array, default_upward, default_tint):
         self.array = array
         self.default_upward = default_upward

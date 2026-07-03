@@ -183,7 +183,7 @@ defines the reader cascade and the plug-in machinery:
   ``detect_in_pds3`` / ``detect_in_vicar`` / ``detect_in_fits`` /
   ``detect_in_file`` static method until one returns an
   :class:`~picmaker.instruments.ImageData`.
-* :func:`picmaker.instruments.register_instrument` adds an
+* :func:`picmaker.instruments._register_instrument` adds an
   :class:`~picmaker.instruments.ImageData` subclass to the dispatch
   list. Every non-underscore module in the subpackage is imported at
   package load so it can register itself, so a new instrument is picked

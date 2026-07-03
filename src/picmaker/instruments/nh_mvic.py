@@ -6,7 +6,7 @@
 import pdsparser                # noqa
 import astropy.io.fits as pyfits  # noqa
 
-from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
 _FILTER_TINTS = {
@@ -72,7 +72,5 @@ class NH_MVIC(ImageData):
         filter_name = hdulist[0].header.get('FILTER', '')
         return NH_MVIC(hdulist[0].data, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
-
-register_instrument(NH_MVIC)
 
 ##########################################################################################

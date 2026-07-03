@@ -7,7 +7,7 @@ import re
 
 import numpy as np
 
-from picmaker.instruments import ImageData, register_instrument, tint_by_nm
+from picmaker.instruments import ImageData, tint_by_nm
 from picmaker.instruments._fits_support import (
     get_fits_image_hdu,
     get_fits_image_hdus,
@@ -134,7 +134,5 @@ class HST_ACS(ImageData):
         mosaic[:nl ] = arrays_rgb[1]    # WFC2 (top)
         return mosaic
 
-
-register_instrument(HST_ACS)
 
 ##########################################################################################

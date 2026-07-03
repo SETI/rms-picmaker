@@ -13,8 +13,7 @@ constants are intentionally not re-exported.
 from picmaker.colornames  import ColorNames
 from picmaker.control     import get_filepaths, get_outfile
 from picmaker.enhancement import apply_colormap
-from picmaker.instruments import (ImageData, read_image_array, register_instrument,
-                                  tint_by_nm)
+from picmaker.instruments import ImageData, read_image_array, tint_by_nm
 from picmaker.layout      import pad_pil_image, wrap_pil_image
 from picmaker.orientation import rotate_rgb_array
 from picmaker.picmaker    import get_versions, picmaker, picmaker1, validate_options
@@ -43,7 +42,6 @@ __all__ = [
     'pil_to_array',
     'read_image_array',
     'read_tiff16',
-    'register_instrument',
     'resize_pil_image',
     'rotate_rgb_array',
     'slice_array',

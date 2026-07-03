@@ -10,7 +10,7 @@ import numpy as np
 import pdsparser
 from PIL import Image
 
-from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments import ImageData
 from picmaker.instruments._fits_support import get_fits_array
 from picmaker.instruments._pds3_support import DEFAULT_PDS3_METHOD, read_pds3_image_array
 from picmaker.pil_utils import pil_to_array
@@ -143,7 +143,5 @@ class ZZZ_Generic(ImageData):
 
         return None
 
-
-register_instrument(ZZZ_Generic)
 
 ##########################################################################################

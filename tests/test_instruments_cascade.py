@@ -23,7 +23,32 @@ import pytest
 from vicar import VicarImage
 
 from picmaker import get_outfile
-from picmaker.instruments import read_image_array
+from picmaker.instruments import (
+    _INSTRUMENTS,
+    ImageData,
+    _register_instrument,
+    read_image_array,
+)
+
+# ---------------------------------------------------------------------------
+# Instrument auto-registration
+# ---------------------------------------------------------------------------
+
+def test_imagedata_subclasses_auto_register() -> None:
+    """Every ImageData subclass registers itself via __init_subclass__, so the
+    registry holds exactly the direct subclasses, sorted by name with the
+    ZZZ_Generic fallback last."""
+    assert sorted(ImageData.__subclasses__(), key=lambda c: c.__name__) == _INSTRUMENTS
+    assert _INSTRUMENTS[-1].__name__ == 'ZZZ_Generic'
+
+
+def test_register_instrument_is_idempotent() -> None:
+    """Re-registering an already-registered subclass is a no-op (guards against
+    a stray manual call now that registration is automatic)."""
+    before = list(_INSTRUMENTS)
+    _register_instrument(before[0])
+    assert before == _INSTRUMENTS
+
 
 # ---------------------------------------------------------------------------
 # Single-file pickle / numpy reads (no reshape to 3-D anymore)
@@ -121,6 +146,12 @@ def test_unrecognized_format_raises(tmp_path: Path) -> None:
     src.write_bytes(b'\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10')
     with pytest.raises(OSError, match='unrecognized file format'):
         read_image_array(str(src))
+
+
+def test_directory_path_raises_is_a_directory_error(tmp_path: Path) -> None:
+    """A path that exists but is a directory raises IsADirectoryError."""
+    with pytest.raises(IsADirectoryError):
+        read_image_array(str(tmp_path))
 
 
 def test_cascade_falls_through_to_pil(fixtures_dir: Path) -> None:

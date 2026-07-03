@@ -59,7 +59,7 @@ Layout
    │   ├── tiff16.py             # 16-bit TIFF reader / writer.
    │   ├── colornames.py         # X11 color-name lookup (ColorNames).
    │   ├── instruments/          # Per-mission file readers + tint chains.
-   │   │   ├── __init__.py       # ImageData, read_image_array, register_instrument, tint_by_nm.
+   │   │   ├── __init__.py       # ImageData, read_image_array, _register_instrument, tint_by_nm.
    │   │   ├── _fits_support.py  # Shared FITS helpers (get_fits_array, ...).
    │   │   ├── _hst_support.py   # Shared HST helpers (filter digits, science HDU).
    │   │   ├── _pds3_support.py  # Shared PDS3 helper (read_pds3_image_array).

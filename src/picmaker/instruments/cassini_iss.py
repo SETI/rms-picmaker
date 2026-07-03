@@ -3,7 +3,7 @@
 ##########################################################################################
 """Cassini ISS detector and reader."""
 
-from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
 _DEFAULT_UPWARD = False
@@ -101,7 +101,5 @@ class Cassini_ISS(ImageData):
 
         return None
 
-
-register_instrument(Cassini_ISS)
 
 ##########################################################################################

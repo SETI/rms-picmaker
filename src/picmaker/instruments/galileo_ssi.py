@@ -3,7 +3,7 @@
 ##########################################################################################
 """Galileo SSI detector and reader."""
 
-from picmaker.instruments import ImageData, register_instrument
+from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
 _FILTER_NAMES = ['CLEAR', 'GREEN', 'RED', 'VIOLET', 'IR-7560', 'IR-9680', 'IR-7270',
@@ -75,7 +75,5 @@ class Galileo_SSI(ImageData):
         filter_name = _FILTER_NAMES[ifilter]
         return Galileo_SSI(vic.array[0], _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
-
-register_instrument(Galileo_SSI)
 
 ##########################################################################################

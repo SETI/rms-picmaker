@@ -270,7 +270,7 @@ axis with :func:`numpy.vstack`, inheriting the ``default_upward`` and
 :func:`!picmaker.instruments._read_one_image_array` tries each format in
 turn against every registered instrument. Instruments live in the
 ``_INSTRUMENTS`` list, kept sorted by class name by
-:func:`picmaker.instruments.register_instrument`; the always-accepting
+:func:`picmaker.instruments._register_instrument`; the always-accepting
 fallback :class:`!picmaker.instruments.zzz_generic.ZZZ_Generic` sorts
 last so it is only reached when no real instrument claims the file. The
 stages are:
