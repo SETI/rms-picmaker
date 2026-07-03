@@ -24,7 +24,7 @@ def get_parser():
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('files', nargs='*', help='input files or directories')
 
-    _control = parser.add_argument_group('control options')
+    _control = parser.add_argument_group('Control options')
     _control.add_argument(
         '--directory', type=str, default=None,
         help='directory in which to place converted files. If the recursive option is '
@@ -58,7 +58,7 @@ def get_parser():
         help='logging level, one of "warning", "info", "debug", or "error". Default is '
              '"info".')
 
-    _input_ = parser.add_argument_group('input options')
+    _input_ = parser.add_argument_group('Input options')
     _input_.add_argument(
         '-o', '--object', dest='obj', type=int, default=None,
         help='numeric index (starting at 1) of the image object in the file to display;  '
@@ -72,7 +72,7 @@ def get_parser():
         choices=PDS3_METHODS,
         help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is "fast".')
 
-    _output = parser.add_argument_group('output options')
+    _output = parser.add_argument_group('Output options')
     _output.add_argument(
         '-x', '--extension', default=None, choices=PIL_EXTENSIONS,
         help='file name extension for image produced; default is "jpg"')
@@ -90,7 +90,7 @@ def get_parser():
         '--16', dest='twobytes', action='store_true', default=False,
         help='output a 16-bit tiff instead of an 8-bit picture.')
 
-    _slicing = parser.add_argument_group('slicing options')
+    _slicing = parser.add_argument_group('Slicing options')
     _slicing.add_argument(
         '-b', '--band', type=int, default=None,
         help='index of the band to appear in the output image, with indices starting at '
@@ -111,7 +111,7 @@ def get_parser():
         '--crop', type=float, default=None,
         help='crop boundary regions that entirely contain the specified value.')
 
-    _stretch = parser.add_argument_group('stretch options')
+    _stretch = parser.add_argument_group('Stretch options')
     _stretch.add_argument(
         '-v', '--valid', type=float, nargs=2, default=None,
         help='range of valid pixel values; pixels outside are ignored.')
@@ -136,7 +136,7 @@ def get_parser():
              'the image prior to calculating the limits and percentiles. This can be '
              'used to suppress noise spikes prior to determining the optimal scaling.')
 
-    _enhancement = parser.add_argument_group('enhancement options')
+    _enhancement = parser.add_argument_group('Enhancement options')
     _enhancement.add_argument(
         '-c', '--colormap', type=str, default=[], nargs='+',
         help='a colormap to apply to the image, defined via one or more colors. For '
@@ -174,7 +174,7 @@ def get_parser():
         help='use a histogram contrast stretch. This takes advantage of the full dynamic '
              'range within the limits of the stretch.')
 
-    _orientation = parser.add_argument_group('orientation options')
+    _orientation = parser.add_argument_group('Orientation options')
     _orientation.add_argument(
         '-u', '--up', dest='display_upward', action='store_true', default=None,
         help='display the image with line numbers increasing upward, overriding the '
@@ -207,7 +207,7 @@ def get_parser():
         '--frame_max', type=int, default=None,
         help='maximum percentage by which to scale the image to fit it inside the frame.')
 
-    _layout = parser.add_argument_group('layout options')
+    _layout = parser.add_argument_group('Layout options')
     _layout.add_argument(
         '--wrap', action='store_true', default=False,
         help='wrap the sections of an image if it is extremely elongated.')
@@ -241,7 +241,7 @@ def get_parser():
         help='invoke the instrument-specific method for constructing a mosaic of images '
              'for an instrument that has multiple detectors.')
 
-    _processing = parser.add_argument_group('processing options')
+    _processing = parser.add_argument_group('Processing options')
     _processing.add_argument(
         '--filter', default=None, choices=FILTER_CHOICES,
         help='apply an image processing filter to the image. Options are '
