@@ -1,5 +1,0 @@
-# .coderabbit.yaml
-reviews:
-  path_filters:
-    - "src/**"          # Explicitly include and focus on the core source folder
-    - "!**/tests/**"    # Ignore all test folders globally
