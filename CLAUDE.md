@@ -53,5 +53,5 @@ After regenerating, verify no unexpected diff: `git diff --exit-code tests/fixtu
 - `tests/snapshots_index.py` is **auto-generated** — never edit it by hand; regenerate via `generate_snapshots.py`
 - `tests/fixture_recipes/*_recipe.py` are snapshot-generator scripts, not pytest test files — pytest does not collect them
 - Warnings are treated as errors; two specific deprecation warnings are exempted (Pillow 12 `getdata` and astropy `XDG_CONFIG_HOME`)
-- Coverage minimum is 90%
+- Coverage minimum is 95%
 - Snapshot freshness is checked in CI only on ubuntu-latest + Python 3.13
