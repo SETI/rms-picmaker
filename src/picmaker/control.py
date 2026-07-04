@@ -49,7 +49,8 @@ def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=
         return directory / remainder
 
     try:
-        directory = directory and pathlib.Path(directory)   # convert to Path if not None
+        # Convert to a Path, treating an empty string (the default) as "unset".
+        directory = pathlib.Path(directory) if directory else None
         patterns = patterns or ['*']
 
         info = []

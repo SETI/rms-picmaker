@@ -145,3 +145,18 @@ class TestGetFilepaths:
 
         result = get_filepaths([str(src)], patterns=['*.vic'])
         assert result == [(src / 'cassini_iss.vic', src)]
+
+    def test_empty_directory_string_behaves_like_default(
+        self, fixtures_dir: Path, tmp_path: Path
+    ) -> None:
+        """An empty-string ``directory`` — the value the CLI defaults resolve
+        to when no ``--directory`` is given — is treated as unset: a directory
+        input's outputs go beside their inputs, rather than raising TypeError."""
+        import shutil
+
+        src = tmp_path / 'src'
+        src.mkdir()
+        shutil.copy(fixtures_dir / 'cassini_iss.vic', src / 'cassini_iss.vic')
+
+        result = get_filepaths([str(src)], directory='', patterns=['*.vic'])
+        assert result == [(src / 'cassini_iss.vic', src)]
