@@ -13,8 +13,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from picmaker.options import get_parser
-from picmaker.picmaker import picmaker, validate_options
+from picmaker.options import get_parser, validate_options
+from picmaker.picmaker import picmaker
 
 
 def _run(infiles: list[str], tmp_path: Path, *extra: str) -> None:

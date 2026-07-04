@@ -25,7 +25,7 @@ from astropy.io import fits
 IMAGE_TYPES = ('PrimaryHDU', 'ImageHDU')
 
 
-def block_average(data, f):
+def block_average(data: np.ndarray, f: int) -> np.ndarray:
     *lead, ny, nx = data.shape
     ny2, nx2 = ny // f, nx // f
     cropped = data[..., :ny2 * f, :nx2 * f]
@@ -33,12 +33,12 @@ def block_average(data, f):
     avg = reshaped.mean(axis=(-3, -1), dtype=np.float64)
     if np.issubdtype(data.dtype, np.integer):
         info = np.iinfo(data.dtype)
-        rounded = np.clip(np.rint(avg), info.min, info.max)
-        return rounded.astype(data.dtype)
-    return avg.astype(data.dtype)
+        avg = np.clip(np.rint(avg), info.min, info.max)
+    result: np.ndarray = avg.astype(data.dtype)
+    return result
 
 
-def shrink_file(path, factor, suffix):
+def shrink_file(path: str, factor: int, suffix: str) -> None:
     root, ext = os.path.splitext(path)
     out = root + suffix + ext
     hdul = fits.open(path, do_not_scale_image_data=True)
@@ -59,7 +59,7 @@ def shrink_file(path, factor, suffix):
     print(f'  wrote {out} ({os.path.getsize(out):,} bytes)\n')
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('files', nargs='+', help='FITS files to shrink')

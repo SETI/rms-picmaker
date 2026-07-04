@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from picmaker.options import get_parser
-from picmaker.picmaker import picmaker, validate_options
+from picmaker.options import get_parser, validate_options
+from picmaker.picmaker import picmaker
 
 
 def test_default_run_emits_no_warnings(

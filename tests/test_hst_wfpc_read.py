@@ -17,8 +17,8 @@ from PIL import Image
 
 from picmaker.instruments import read_image_array, tint_by_nm
 from picmaker.instruments.hst_wfpc import HST_WFPC
-from picmaker.options import get_parser
-from picmaker.picmaker import picmaker, validate_options
+from picmaker.options import get_parser, validate_options
+from picmaker.picmaker import picmaker
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_wfpc'
 MOSAIC = DATA_DIR / 'w0ck0103t_c0f_small.fits'   # four detectors, FILTNAM1=F718M
