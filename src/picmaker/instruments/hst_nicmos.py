@@ -43,20 +43,15 @@ class HST_NICMOS(ImageData):
             return None
 
         hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers, **kwargs)
+        default_tint = None
         if is_science_hdu(hdu):
             filter_name = hdulist[0].header['FILTER']
-            if filter_name[:3] == 'POL':
-                default_tint = None
-            else:
+            if filter_name[:3] != 'POL':
                 lambda_div_10 = get_hst_filter_digits(filter_name)
-                if lambda_div_10 is None:
-                    default_tint = None
-                else:
+                if lambda_div_10 is not None:
                     lambda_nm = lambda_div_10 * 10.
                     retint = retint or _DEFAULT_RETINT
                     default_tint = tint_by_nm(lambda_nm * retint)
-        else:
-            default_tint = None
 
         return HST_NICMOS(hdu.data, _DEFAULT_UPWARD, default_tint)
 

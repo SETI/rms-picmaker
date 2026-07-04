@@ -29,6 +29,7 @@ from picmaker.instruments import (
     _register_instrument,
     read_image_array,
 )
+from picmaker.tiff16 import write_tiff16
 
 # ---------------------------------------------------------------------------
 # Instrument auto-registration
@@ -160,6 +161,22 @@ def test_cascade_falls_through_to_pil(fixtures_dir: Path) -> None:
     """
     data = read_image_array(str(fixtures_dir / 'small_grayscale.png'))
     assert data.array.shape == (8, 8)
+    assert data.default_upward is False
+    assert data.default_tint is None
+
+
+def test_cascade_reads_16bit_tiff(tmp_path: Path) -> None:
+    """A 16-bit grayscale ``.tif`` flows through the cascade to the generic
+    ``read_tiff16`` branch and round-trips its full-range values as 2-D data.
+    """
+    arr = (np.arange(64, dtype=np.uint16).reshape(8, 8) * 1000)
+    src = tmp_path / 'depth16.tif'
+    write_tiff16(src, arr)
+
+    data = read_image_array(str(src))
+    assert data.array.shape == (8, 8)
+    assert np.asarray(data.array).dtype == np.uint16
+    assert np.array_equal(np.asarray(data.array), arr)
     assert data.default_upward is False
     assert data.default_tint is None
 

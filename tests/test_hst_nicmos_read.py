@@ -15,11 +15,13 @@ and mode match the committed references.
 
 from pathlib import Path
 
+import astropy.io.fits as pyfits
 import numpy as np
 import pytest
 from PIL import Image
 
 from picmaker.instruments import read_image_array
+from picmaker.instruments.hst_nicmos import HST_NICMOS
 from tests import generate_previews
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_nicmos'
@@ -66,3 +68,39 @@ def test_nicmos_preview_geometry(suffix: str, version_args: tuple[str, ...],
     with Image.open(produced) as got, Image.open(DATA_DIR / reference) as ref:
         assert got.size == ref.size
         assert got.mode == mode
+
+
+# --- no-tint branches, via synthetic in-memory HDULists ------------------------------
+
+def _nicmos_hdulist(filter_name: str = 'F160W', science: bool = True) -> pyfits.HDUList:
+    """A minimal NICMOS HDUList. With ``science`` the image is a SCI extension
+    (an empty primary, as in real products); otherwise it sits in the primary
+    HDU, which is not a science extension."""
+    if science:
+        primary = pyfits.PrimaryHDU()
+        sci = pyfits.ImageHDU(np.zeros((4, 4), dtype='float32'), name='SCI')
+        hdus = [primary, sci]
+    else:
+        hdus = [pyfits.PrimaryHDU(np.zeros((4, 4), dtype='float32'))]
+    hdus[0].header['TELESCOP'] = 'HST'
+    hdus[0].header['INSTRUME'] = 'NICMOS'
+    hdus[0].header['FILTER'] = filter_name
+    return pyfits.HDUList(hdus)
+
+
+def test_nicmos_non_science_hdu_has_no_tint() -> None:
+    """When the selected HDU is not a science ('SCI') extension, no tint."""
+    data = HST_NICMOS.detect_in_fits(_nicmos_hdulist(science=False), 'x')
+    assert data.default_tint is None
+
+
+def test_nicmos_polarizer_filter_has_no_tint() -> None:
+    """A polarizer filter (``POL*``) carries no tint."""
+    data = HST_NICMOS.detect_in_fits(_nicmos_hdulist('POL0L'), 'x')
+    assert data.default_tint is None
+
+
+def test_nicmos_non_diagnostic_filter_has_no_tint() -> None:
+    """A filter with no embedded wavelength digits carries no tint."""
+    data = HST_NICMOS.detect_in_fits(_nicmos_hdulist('BLANK'), 'x')
+    assert data.default_tint is None
