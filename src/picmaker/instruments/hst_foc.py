@@ -26,11 +26,6 @@ class HST_FOC(ImageData):
     def detect_in_fits(hdulist, filepath, retint=None, **kwargs):
         """Extract HST FOC data from an open HDUList.
 
-        FOC predates the modern HST FITS convention: the image is stored in the primary
-        HDU and there is no ``TELESCOP`` keyword, so the file is matched on ``INSTRUME``
-        alone. The default tint is derived from the mean wavelength embedded in the two
-        filter-wheel names (``FILTNAM1`` / ``FILTNAM2``), like WFPC2.
-
         Parameters:
             hdulist (HDUList): The HDUList of the FITS file.
             filepath (str or Path): The path to this FITS file.

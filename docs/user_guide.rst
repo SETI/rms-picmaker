@@ -19,7 +19,7 @@ suitable for visual display. It accepts:
 * PDS3-labeled images, with either attached or detached labels.
 * VICAR images.
 * FITS images.
-* Pickled NumPy arrays (``.pkl``) and ``.npy`` files.
+* Pickled NumPy arrays and ``.npy`` files.
 * Common raster formats: BMP, GIF, JPEG, PNG, plain TIFF.
 
 It produces JPEG, PNG, BMP, GIF, or TIFF picture files (8-bit per
@@ -195,16 +195,20 @@ Supported instruments:
 * **Voyager ISS** — VICAR or PDS3.
 * **Galileo SSI** — VICAR or PDS3.
 * **HST ACS** (WFC / HRC / SBC) — FITS.
-* **HST WFC3** (UVIS / IR) — FITS.
-* **HST WFPC2** — FITS.
+* **HST COS** — FITS.
+* **HST FOC** — FITS.
 * **HST NICMOS** — FITS.
+* **HST STIS** — FITS.
+* **HST WFC3** (UVIS / IR) — FITS.
+* **HST WFPC** (WFPC1) — FITS.
+* **HST WFPC2** — FITS.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.
 
 The per-instrument subsections below add the detail that only applies
 under ``--tint`` — which filter maps to which color. Instruments with a
-single broadband channel, notably New Horizons LORRI, are recognized and
-oriented like any other but define no filter-based tint, so ``--tint``
+single broadband channel, notably New Horizons LORRI and HST COS, are recognized
+and oriented like any other but define no filter-based tint, so ``--tint``
 leaves their coloring unchanged; use ``--colormap`` for explicit
 pseudo-color. The generic reader is described last.
 
@@ -258,37 +262,41 @@ tints:
 * ``IR-8890`` → (220, 60, 60)
 * ``IR-9680`` → (230, 40, 40)
 
-HST (WFC3 / ACS / WFPC2 / NICMOS)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+HST Instruments
+~~~~~~~~~~~~~~~~
 
-Recognized from FITS headers. The tint is derived from a wavelength
-inferred by parsing the digits out of the filter name and looking the
-result up in an internal color table. The inferred wavelength is then
-scaled by ``--retint`` (see its per-detector default above) before the
-lookup; this is what maps IR and UV bands back into the visible range.
+Recognized from FITS headers. For most cameras the tint is derived from a wavelength
+inferred by parsing the
+digits out of the filter name and looking the result up in an internal color
+table; the inferred wavelength is scaled by ``--retint`` (see its per-detector
+default above) before the lookup, which maps IR and UV bands back into the
+visible range.
 
-Per-detector wavelength handling:
+Per-instrument wavelength handling:
 
-* **ACS/HRC**, **ACS/WFC**, **WFC3/UVIS**, and **WFPC2**. The filter is interpreted
-  as a wavelength in nm (e.g., ``F606W`` → 606 nm) and the tint is derived from
-  that wavelength. UV wavelengths map to a deep violet and IR wavelengths map to
-  a deep red. Certain very wide filters (e.g., ``CLEAR*``, ``POL*``, ``G800L``,
-  etc.) do not contribute to the tinting.
+* **ACS/HRC**, **ACS/WFC**, **FOC**, **STIS/CCD**, **WFC3/UVIS**, **WF/PC**, and
+  **WFPC2**: The filter name is interpreted as a wavelength in nm (e.g.
+  ``F606W`` → 606 nm) and the tint is derived from it. UV wavelengths map to a
+  deep violet and IR wavelengths to a deep red. Very wide, clear, prism, polarizer,
+  or neutral-density filters (e.g.
+  ``CLEAR*``, ``POL*``, and ``*ND``) do not contribute to the tinting.
 * **NICMOS** and **WFC3/IR**: For these IR instruments, wavelengths are scaled
-  by 0.4 for the default tinting. This ensures that, when tinting is applied, the
-  color carries usable information.
-* **ACS/SBC**: For this UV instrument, wavelengths are scaled by a factor of 3 to
-  obtain colors in the visual range.
+  by 0.4 for the default tinting, so the color carries usable information.
+* **ACS/SBC** and STIS/NUV, FUV: For these UV instrument, wavelengths are scaled
+  by a factor of 3 to obtain tints in the visual range.
+* **COS/NUV**: COS imaging uses a broadband mirror (``MIRRORA``/``MIRRORB``) with
+  no wavelength filter, so no default tint is applied; use ``--colormap`` for
+  false color.
 
-For every HST detector, when no diagnostic wavelength can be inferred (an
-undiagnostic or unrecognized filter), no tint is applied and the existing
-colormap or grayscale is left in place.
+For every HST camera, when no diagnostic wavelength can be inferred (an
+undiagnostic or unrecognized filter or aperture), no tint is applied and the
+existing colormap or grayscale is left in place.
 
-HST exposures that span multiple detector panels can be reassembled into
-a single image with ``--mosaic``. For WFPC2, this produces a 2x2 grid with
-the PC1 image at upper right (but not re-sized relative to the other detectors).
-For ACS/WFC and WFC3/UVIS, images involving both chips are stacked one atop the
-other.
+HST exposures that span multiple detector panels can be reassembled into a
+single image with ``--mosaic``. For WFPC2 and WF/PC this produces a 2x2
+grid of the four detectors (for WFPC2 the PC1 image is placed at upper right and
+is not re-sized relative to the others). For ACS/WFC and WFC3/UVIS, images
+involving both chips are stacked one above the other.
 
 New Horizons LORRI
 ~~~~~~~~~~~~~~~~~~
@@ -342,8 +350,8 @@ instrument.
 ---------------------
 
 The library entry point is the :func:`~picmaker.picmaker.picmaker` function.
-It accepts the same options as the command line — one keyword argument per
-option — and carries out the whole conversion: resolving the input files,
+It accepts the same options as the command line, one keyword argument per
+option, and carries out the whole conversion: resolving the input files,
 reading and processing each one, and writing the output pictures. It returns
 ``None``; its result is the files it writes.
 

@@ -6,7 +6,6 @@
 import re
 import warnings
 
-import astropy.io.fits as pyfits  # noqa
 import numpy as np
 from astropy.io.fits.verify import VerifyWarning
 
@@ -80,7 +79,7 @@ class HST_WFPC(ImageData):
                     new_array[(det - 1) % 4] = array[b]  # 1-4 for WF, 5-8 for PC
                 array = new_array
         else:
-            array = array[obj or 0]  # forward IndexError
+            array = array[obj or 0]     # forward IndexError
 
         return HST_WFPC(array, _DEFAULT_UPWARD, default_tint)
 
@@ -102,10 +101,10 @@ class HST_WFPC(ImageData):
         # Assemble directly in display orientation with W1/P5 at upper right
         (nl, ns, nc) = quads[0].shape
         mosaic = np.empty((2 * nl, 2 * ns, nc))
-        mosaic[-nl:, -ns:] = quads[0]   # PC1
-        mosaic[-nl:, :ns ] = quads[1]   # WF2
-        mosaic[:nl , :ns ] = quads[2]   # WF3
-        mosaic[:nl , -ns:] = quads[3]   # WF4
+        mosaic[-nl:, -ns:] = quads[0]   # W1 or P5
+        mosaic[-nl:, :ns ] = quads[1]   # W2 or P6
+        mosaic[:nl , :ns ] = quads[2]   # W3 or P7
+        mosaic[:nl , -ns:] = quads[3]   # W4 or P8
 
         return mosaic
 

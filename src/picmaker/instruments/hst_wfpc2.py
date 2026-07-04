@@ -6,7 +6,6 @@
 import re
 import warnings
 
-import astropy.io.fits as pyfits  # noqa
 import numpy as np
 from astropy.io.fits.verify import VerifyWarning
 

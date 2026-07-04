@@ -43,28 +43,40 @@ Instruments
 .. automodule:: picmaker.instruments.cassini_iss
    :members:
    :member-order: bysource
-.. automodule:: picmaker.instruments.voyager_iss
-   :members:
-   :member-order: bysource
 .. automodule:: picmaker.instruments.galileo_ssi
    :members:
    :member-order: bysource
 .. automodule:: picmaker.instruments.hst_acs
    :members:
    :member-order: bysource
-.. automodule:: picmaker.instruments.hst_wfc3
+.. automodule:: picmaker.instruments.hst_cos
    :members:
    :member-order: bysource
-.. automodule:: picmaker.instruments.hst_wfpc2
+.. automodule:: picmaker.instruments.hst_foc
    :members:
    :member-order: bysource
 .. automodule:: picmaker.instruments.hst_nicmos
+   :members:
+   :member-order: bysource
+.. automodule:: picmaker.instruments.hst_stis
+   :members:
+   :member-order: bysource
+.. automodule:: picmaker.instruments.hst_wfc3
+   :members:
+   :member-order: bysource
+.. automodule:: picmaker.instruments.hst_wfpc
+   :members:
+   :member-order: bysource
+.. automodule:: picmaker.instruments.hst_wfpc2
    :members:
    :member-order: bysource
 .. automodule:: picmaker.instruments.nh_lorri
    :members:
    :member-order: bysource
 .. automodule:: picmaker.instruments.nh_mvic
+   :members:
+   :member-order: bysource
+.. automodule:: picmaker.instruments.voyager_iss
    :members:
    :member-order: bysource
 .. automodule:: picmaker.instruments.zzz_generic
