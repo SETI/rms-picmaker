@@ -90,56 +90,47 @@ parser, so it always matches the ``picmaker --help`` output exactly.
    :prog: picmaker
 
 
-5. Command-line details
------------------------
+5. Image processing details
+---------------------------
 
-This section expands on how ``picmaker``'s main option groups behave: the
-enhancement pipeline, the geometry pipeline, the ``--versions`` multi-output
+This section expands on how ``picmaker``'s main options behave: the order in
+which the processing pipeline applies them, the ``--versions`` multi-output
 form, and the output-format controls.
 
-Enhancement controls
-~~~~~~~~~~~~~~~~~~~~~
+Pipeline
+~~~~~~~~
 
-The intensity pipeline runs in this order:
+Regardless of the order in which they appear on the command line, the options
+are applied to each image in the following order:
 
-1. ``--valid LO HI`` masks pixels outside the range (replaced with
-   ``--invalid`` color).
-2. ``--limits`` or ``--percentiles`` chooses the linear stretch
-   endpoints (``--limits`` wins when both are set). ``--trim`` /
-   ``--trim-zeros`` / ``--footprint`` further refine which pixels are
-   considered.
-3. ``--histogram`` switches the stretch from linear to
-   flat-histogram-equalised.
-4. ``--gamma G`` applies a power-law correction to the stretched
-   grayscale (``out = in ** G``) before the colormap is applied. Values
-   ``> 1`` darken the midtones; values ``< 1`` brighten them.
-5. ``--colormap COLOR ...`` maps the stretched values into RGB. Supply
-   one or more X11 color names (or ``(R,G,B)`` tuples) as separate color
-   stops. ``--tint`` overrides this step with the per-instrument tint
-   from section 6.
-6. ``--below``, ``--above``, ``--invalid`` override the colors used for
-   the three special cases.
+1. ``--zebra`` — interpolate across the zero-valued "zebra stripes" some
+   detectors write at the start and end of each line.
+2. ``--bands``, ``--lines``, ``--samples``, ``--crop`` — coadd the selected
+   bands and reduce the array to the requested sub-region, optionally cropping constant
+   borders.
+3. ``--valid`` — mark pixels outside the valid range (and NaNs) as invalid,
+   to be colored later, in step 8.
+4. Only when ``--limits`` is *not* given, the stretch endpoints are derived
+   from the pixel statistics: ``--trim``, ``--trim-zeros``, ``--footprint``,
+   ``--percentiles``.
+5. ``--histogram`` — use a flat-histogram stretch instead of the linear one.
+6. ``--gamma`` — adjust the mid-level intensities relative to the extremes.
+7. ``--colormap``, ``--tint``, ``--retint`` — map the stretched grayscale into
+   RGB. ``--tint`` substitutes the per-instrument color
+   (:ref:`section 6 <supported-instruments>`), and
+   ``--retint`` scales the inferred filter wavelength for some instruments.
+8. ``--above``, ``--below``, ``--invalid`` — apply the colors for above-limit,
+   below-limit, and invalid pixels.
+9. ``--up``, ``--down`` — set the vertical (line-number) direction.
+10. ``--rotate`` — flip or rotate the image.
+11. ``--filter`` — apply an optional image processing filter.
+12. ``--size``, ``--scale``, ``--wscale``, ``--hscale``, ``--frame``,
+    ``--frame_max`` — resize the image and fit it inside its designated frame.
+13. ``--wrap``, ``--wrap-ratio``, ``--overlap``, ``--overlaps``, ``--gap-size``,
+    ``--gap-color`` — wrap an elongated image if necessary.
+14. ``--pad``, ``--pad-color`` — pad the output to the full frame.
 
-Geometry controls
-~~~~~~~~~~~~~~~~~~
-
-Geometry runs in this order:
-
-1. ``--lines`` / ``--samples`` / ``--crop`` / ``--trim`` shrink the
-   working region.
-2. ``--rotate`` (or the implicit default from the per-instrument
-   detector geometry) flips / rotates the working array.
-3. ``--size`` / ``--scale`` / ``--wscale`` / ``--hscale`` resize the
-   working array. ``--frame W H`` instead picks the largest scale that
-   fits inside ``W x H``; ``--frame_max PCT`` caps how far the image
-   may be enlarged.
-4. ``--wrap`` / ``--wrap-ratio`` / ``--overlap`` / ``--overlaps`` split
-   very elongated images into stacked panels separated by a
-   ``--gap-size`` × ``--gap-color`` gap.
-5. ``--pad`` re-introduces the full ``--frame`` box, filling with
-   ``--pad-color``.
-
-The ``--versions FILE`` form
+The ``--versions FILE`` option
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``--versions FILE`` re-parses the command line once per non-blank line
@@ -180,6 +171,8 @@ The output filename stem is built as
 its one-or-more substrings from ``<input-stem>``.
 
 
+.. _supported-instruments:
+
 6. Supported instruments and formats
 ------------------------------------
 
@@ -212,16 +205,14 @@ The per-instrument subsections below add the detail that only applies
 under ``--tint`` — which filter maps to which color. Instruments with a
 single broadband channel, notably New Horizons LORRI, are recognized and
 oriented like any other but define no filter-based tint, so ``--tint``
-leaves their coloring unchanged; use ``--colormap`` for explicit false
-color. The generic reader is described last.
+leaves their coloring unchanged; use ``--colormap`` for explicit
+pseudo-color. The generic reader is described last.
 
 Cassini ISS
 ~~~~~~~~~~~
 
-Recognized from VICAR labels for the Cassini Orbiter. Filters are
-selected from the ``FILTER_NAME`` tuple joined with ``'+'`` (e.g.
-``CL1+GRN``). The tint is chosen by a chain of substring tests on the
-filter key:
+Recognized from VICAR labels for the Cassini Orbiter and the ISS instrument.
+The default tint is chosen from the filter name:
 
 * ``IR`` → reddish IR shading
 * ``UV`` → violet
@@ -232,7 +223,8 @@ filter key:
 * ``MT1``, ``CB1``, ``HAL``, ``MT``, ``CB`` → narrowband methane /
   hydrogen-alpha shadings
 
-Unknown filters fall back to neutral gray.
+The clear filters (``CL1`` and ``CL2``) are ignored when combined with a color
+filter. Images involving both ``CL1`` or ``CL2`` fall back to neutral gray.
 
 Voyager ISS
 ~~~~~~~~~~~
@@ -248,6 +240,8 @@ Recognized from Voyager VICAR labels. Supported filters and their tints:
 * ``SODIUM`` → (110, 255, 110)
 * ``CH4_U`` / ``CH4/U`` → (255, 60, 60)
 * ``CH4_JS`` / ``CH4/JS`` → (255, 60, 60)
+
+The ``CLEAR`` filter falls back to neutral gray.
 
 Galileo SSI
 ~~~~~~~~~~~
@@ -275,31 +269,26 @@ lookup; this is what maps IR and UV bands back into the visible range.
 
 Per-detector wavelength handling:
 
-* **ACS** (WFC / HRC / SBC): the wavelength is the mean of the digits in
-  ``FILTER1`` / ``FILTER2`` (e.g. ``F606W`` → 606 nm), read directly as nm
-  and scaled by the retint default (``1``, or ``3`` for the UV-only SBC).
-  Filters matching ``CLEAR*``, ``POL*``, ``G800L``, or ``N/A`` carry no
-  diagnostic wavelength and are left untinted.
-* **WFC3/UVIS**: the filter digits are read directly as nm (``F606W`` → 606
-  nm), scaled by the retint default ``1``.
-* **WFC3/IR**: IR filter names encode wavelength / 10 (``F160W`` → 1600 nm),
-  so the digits are multiplied by 10 and then by the retint default ``0.4``.
-  The broad long-pass filters ``F200LP`` and ``F350LP`` are left untinted.
-* **NICMOS**: filter names likewise encode wavelength / 10, so the digits
-  are multiplied by 10 and then by the retint default ``0.4`` (``F187N`` →
-  1870 nm → 748 nm). Polariser filters (``POL*``) are left untinted.
-* **WFPC2**: the wavelength is the mean of the digits in ``FILTNAM1`` /
-  ``FILTNAM2``, with the ``FQUVN`` quad filter pinned to 387 nm; ``--retint``
-  is not applied. Filters matching ``F130LP``, ``F165LP``, ``F606W``,
-  ``FQCH4*``, or ``POL*`` are left untinted, and only calibrated science
-  products (``*_c0f`` / ``*_d0f``) are tinted at all.
+* **ACS/HRC**, **ACS/WFC**, **WFC3/UVIS**, and **WFPC2**. The filter is interpreted
+  as a wavelength in nm (e.g., ``F606W`` → 606 nm) and the tint is derived from
+  that wavelength. UV wavelengths map to a deep violet and IR wavelengths map to
+  a deep red. Certain very wide filters (e.g., ``CLEAR*``, ``POL*``, ``G800L``,
+  etc.) do not contribute to the tinting.
+* **NICMOS** and **WFC3/IR**: For these IR instruments, wavelengths are scaled
+  by 0.4 for the default tinting. This ensures that, when tinting is applied, the
+  color carries usable information.
+* **ACS/SBC**: For this UV instrument, wavelengths are scaled by a factor of 3 to
+  obtain colors in the visual range.
 
 For every HST detector, when no diagnostic wavelength can be inferred (an
 undiagnostic or unrecognized filter), no tint is applied and the existing
 colormap or grayscale is left in place.
 
 HST exposures that span multiple detector panels can be reassembled into
-a single image with ``--mosaic``.
+a single image with ``--mosaic``. For WFPC2, this produces a 2x2 grid with
+the PC1 image at upper right (but not re-sized relative to the other detectors).
+For ACS/WFC and WFC3/UVIS, images involving both chips are stacked one atop the
+other.
 
 New Horizons LORRI
 ~~~~~~~~~~~~~~~~~~
@@ -308,7 +297,7 @@ Recognized from New Horizons LORRI PDS3 labels and FITS headers. LORRI is
 a panchromatic imager with a single broadband channel, so it defines no
 per-filter tint: its images are recognized and oriented correctly, and
 ``--tint`` has no effect on them. Apply a ``--colormap`` explicitly to add
-false color.
+pseudo-color.
 
 New Horizons MVIC
 ~~~~~~~~~~~~~~~~~
@@ -352,51 +341,87 @@ instrument.
 7. Programmatic usage
 ---------------------
 
-The library mirrors the CLI: every flag binds to a keyword argument of
-``picmaker``. The most robust way to assemble a complete set of options
-is to let the argument parser fill in all of the defaults, then pass the
-resulting namespace straight through:
+The library entry point is the :func:`~picmaker.picmaker.picmaker` function.
+It accepts the same options as the command line — one keyword argument per
+option — and carries out the whole conversion: resolving the input files,
+reading and processing each one, and writing the output pictures. It returns
+``None``; its result is the files it writes.
+
+.. code-block:: python
+
+   from picmaker import picmaker
+
+   # Convert one file with a percentile stretch and a three-stop colormap.
+   picmaker(
+       files=['data/cassini.vic'],
+       directory='/tmp/out',
+       percentiles=(5, 95),
+       colormap=['black', 'blue', 'white'],
+       extension='png',
+   )
+
+Each keyword is the option's long name with dashes turned into underscores,
+except for a few whose keyword differs from the flag: ``patterns``
+(``--pattern``), ``obj`` (``--object``), ``pointers`` (``--pointer``),
+``below_color`` / ``above_color`` / ``invalid_color`` (``--below`` /
+``--above`` / ``--invalid``), ``display_upward`` / ``display_downward``
+(``--up`` / ``--down``), and ``twobytes`` (``--16``). Every keyword is
+optional; anything you omit takes its documented default. The
+:func:`~picmaker.picmaker.picmaker` reference in :doc:`module` lists every
+option in full.
+
+Values follow ordinary Python conventions:
+
+* Colors may be an X11 name (``'blue'``), an ``(R, G, B)`` tuple of integers
+  in the range 0-255, or the string form of such a tuple (``'(0,0,255)'``).
+* Paired options are tuples: ``percentiles=(5, 95)``, ``size=(800, 600)``,
+  ``bands=(0, 3)``.
+* Boolean flags are ``True`` / ``False``: ``tint=True``, ``movie=True``.
+
+.. important::
+
+   The image-object, band, line, and sample indices — ``obj``, ``band``,
+   ``bands``, ``lines``, and ``samples`` — are **zero-based and exclusive** of
+   the upper limit when you call :func:`~picmaker.picmaker.picmaker` directly,
+   whereas the command line takes **one-based, inclusive** indices and
+   converts them for you. The command line ``--bands 1 3`` therefore
+   corresponds to ``bands=(0, 3)`` in a direct call.
+
+Because the function takes every option at once, "movie" mode — sharing one
+set of enhancement limits across a sequence of frames — is simply a matter of
+passing all the frames together with ``movie=True``:
+
+.. code-block:: python
+
+   from picmaker import picmaker
+
+   picmaker(
+       files=['frame_001.vic', 'frame_002.vic', 'frame_003.vic'],
+       directory='/tmp/out',
+       movie=True,
+   )
+
+To reproduce a command-line invocation verbatim, let the argument parser build
+the option namespace and splat it in. Note that this route skips the
+one-based-to-zero-based index conversion the command line performs, so it
+matches the CLI exactly only for invocations that use no ``obj``, ``band``,
+``bands``, ``lines``, or ``samples`` indices:
 
 .. code-block:: python
 
    from picmaker import picmaker
    from picmaker.options import get_parser
 
-   # Convert one file with a percentile stretch and a colormap.
    options = get_parser().parse_args([
-       'data/cassini.vic',
-       '--directory', '/tmp/out',
-       '--percentiles', '5', '95',
-       '--colormap', 'black', 'blue', 'white',
-       '--extension', 'png',
+       'data/cassini.vic', '--directory', '/tmp/out',
+       '--percentiles', '5', '95', '--extension', 'png',
    ])
    picmaker(**vars(options))
 
-   # Re-use one set of enhancement limits across a sequence of frames by
-   # passing every frame at once with ``--movie``.
-   options = get_parser().parse_args([
-       'frame_001.vic', 'frame_002.vic', 'frame_003.vic',
-       '--directory', '/tmp/out',
-       '--movie',
-   ])
-   picmaker(**vars(options))
-
-Lower-level helpers are re-exported on the top-level package. For example,
-``read_image_array`` reads a file into an ``ImageData`` object whose
-``.array`` holds the raw pixels:
-
-.. code-block:: python
-
-   from picmaker import (
-       read_image_array,
-       apply_colormap,
-       array_to_pil,
-   )
-
-   image_data = read_image_array('data/cassini.vic')
-   pixels = image_data.array
-
-See :doc:`module` for the full API reference.
+For finer-grained work, the lower-level helpers are re-exported on the
+top-level package — for example, ``read_image_array`` reads a file into an
+``ImageData`` object whose ``.array`` attribute holds the raw pixels. See
+:doc:`module` for the full API reference.
 
 
 8. Troubleshooting

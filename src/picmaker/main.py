@@ -28,11 +28,11 @@ def main():
 
     # Shift the indexing origin to zero for values from the command line
     for name in ('samples', 'lines', 'bands'):
-        value = kwargs.get(name, None)
+        value = kwargs.get(name)
         if value is not None:
             kwargs[name] = (value[0] - 1, value[1])
-    for name in ('obj',):
-        value = kwargs.get(name, None)
+    for name in ('obj', 'band'):
+        value = kwargs.get(name)
         if value is not None:
             kwargs[name] = value - 1
 

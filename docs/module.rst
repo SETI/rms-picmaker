@@ -1,19 +1,16 @@
 ``picmaker`` Module
 =====================
 
-The command-line entry point and the two pipeline functions come first,
-followed by the public API (re-exported from the top-level :mod:`picmaker`
-package, so ``from picmaker import ...``) in alphabetical order, and then
-the per-instrument readers.
+The two pipeline functions come first, followed by the public API
+(re-exported from the top-level :mod:`picmaker` package, so
+``from picmaker import ...``) in alphabetical order, and then the
+per-instrument readers.
 
-.. autofunction:: picmaker.main.main
 .. autofunction:: picmaker.picmaker.picmaker
 .. autofunction:: picmaker.picmaker.picmaker1
 
 .. autofunction:: picmaker.apply_colormap
 .. autofunction:: picmaker.array_to_pil
-.. autoclass:: picmaker.ColorNames
-   :members:
 .. autofunction:: picmaker.fill_zebra_stripes
 .. autofunction:: picmaker.filter_pil_image
 .. autofunction:: picmaker.get_filepaths
@@ -21,8 +18,6 @@ the per-instrument readers.
 .. autofunction:: picmaker.get_outfile
 .. autofunction:: picmaker.get_size
 .. autofunction:: picmaker.get_versions
-.. autoclass:: picmaker.ImageData
-   :members:
 .. autofunction:: picmaker.pad_pil_image
 .. autofunction:: picmaker.pil_to_array
 .. autofunction:: picmaker.read_image_array
@@ -35,6 +30,15 @@ the per-instrument readers.
 .. autofunction:: picmaker.wrap_pil_image
 .. autofunction:: picmaker.write_pil
 .. autofunction:: picmaker.write_tiff16
+
+.. autoclass:: picmaker.ColorNames
+   :members:
+
+Instruments
+-----------
+
+.. autoclass:: picmaker.ImageData
+   :members:
 
 .. automodule:: picmaker.instruments.cassini_iss
    :members:

@@ -21,7 +21,7 @@ def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation
         display_upward (bool, optional): True to display the image with lines increasing
             upward; False to display with the lines increasing downward.
         rotation (str, optional): Name of the rotation to be applied. Choices are
-            "NONE", "FLIPLR", "FLIPTB",  "ROT90", "ROT180", "ROT270". Values are
+            "none", "fliplr", "fliptb",  "rot90", "rot180", "rot270". Values are
             case-insensitive. Rotation is counterclockwise.
         **kwargs: Additional input parameters, ignored here.
 

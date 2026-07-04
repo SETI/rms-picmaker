@@ -313,15 +313,15 @@ def resize_pil_image(image, new_size):
         PIL.Image or list of three: The resized image or list of images.
     """
 
-    # If the size is unchanged, just return
-    if image.size == new_size:
+    # If the size is unchanged, just return. A list holds three images that
+    # share one size, so check the first.
+    current_size = image[0].size if isinstance(image, (list, tuple)) else image.size
+    if current_size == new_size:
         return image
 
     # Handle one or three PIL image objects
     if isinstance(image, (list, tuple)):
-        result = []
-        for i in image:
-            result.append(_resize_one_image(i, new_size))
+        result = [_resize_one_image(i, new_size) for i in image]
     else:
         result = _resize_one_image(image, new_size)
 

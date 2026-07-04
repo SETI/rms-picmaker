@@ -65,6 +65,7 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
             if array.ndim == 3:
                 if array.shape[0] > 3:  # for more than three bands, collapse to 2-D
                     array = np.median(array, axis=0)
+                    antimask = np.all(antimask, axis=0)  # collapse mask to match
                     array = median_filter(array, footprint=circle_footprint)
                 else:                   # otherwise, process each band
                     array = array.copy()

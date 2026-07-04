@@ -9,7 +9,7 @@ import argparse
 from picmaker._version    import __version__
 from picmaker.colornames  import ColorNames
 from picmaker.control     import REPLACE_CHOICES
-from picmaker.instruments import PDS3_METHODS, DEFAULT_PDS3_METHOD
+from picmaker.instruments import DEFAULT_PDS3_METHOD, PDS3_METHODS
 from picmaker.orientation import ROTATE_CHOICES
 from picmaker.pil_utils   import PIL_EXTENSIONS
 from picmaker.processing  import FILTER_CHOICES
@@ -68,13 +68,14 @@ def get_parser():
         help='One or more pointer strings identifying the image object in a PDS3 label '
              'or the HDU in a FITS file.')
     _input_.add_argument(
-        '--pds3-method', type=str, default=DEFAULT_PDS3_METHOD,
-        choices=PDS3_METHODS,
-        help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is "fast".')
+        '--pds3-method', type=str, choices=PDS3_METHODS,
+        help='Pds3Label parsing strictness for PDS3 .LBL inputs, one of "'
+             + '", "'.join(PDS3_METHODS[:-1]) + f'" and "{PDS3_METHODS[-1]}". '
+             + f'Default is "{DEFAULT_PDS3_METHOD}".')
 
     _preprocessing = parser.add_argument_group('Pre-processing options')
     _preprocessing.add_argument(
-        '--zebra', action='store_true',
+        '--zebra', action='store_true', default=None,
         help='Interpolate across zero-valued "zebra stripes" at the beginnings and ends '
              'of lines.')
 
@@ -82,7 +83,7 @@ def get_parser():
     _slicing.add_argument(
         '-b', '--band', type=int,
         help='Index of the band to appear in the output image, with indices starting at '
-             ' 1; default is 1.')
+             '1; default is 1.')
     _slicing.add_argument(
         '--bands', type=int, nargs=2,
         help='A pair of indices indicating a range of bands to be coadded. Band indices '
@@ -115,7 +116,7 @@ def get_parser():
         help='Number of pixels around the edge of the image to trim before computing the '
              'limits and percentiles.')
     _stretch.add_argument(
-        '--trim-zeros', action='store_true',
+        '--trim-zeros', action='store_true', default=None,
         help='Ignore exterior rows/columns containing all zeros.')
     _stretch.add_argument(
         '--footprint', type=int,
@@ -140,14 +141,14 @@ def get_parser():
         help='Color for pixels whose values are greater than the upper limit. By '
              ' default, this is the last color of the colormap.')
     _enhancement.add_argument(
-        '--invalid', dest='invalid_color', type=str, default='black',
+        '--invalid', dest='invalid_color', type=str, default=None,
         help='Color to use for invalid pixels and NaNs. Default is black.')
     _enhancement.add_argument(
         '-g', '--gamma', type=float,
         help='Gamma value to apply to the image. Values > 1 darken midtones; values < 1 '
              'brighten midtones. The gamma factor is applied before the colormap.')
     _enhancement.add_argument(
-        '--tint', action='store_true',
+        '--tint', action='store_true', default=None,
         help='Use a default colormap for the image based on the instrument and the '
              'filter used.')
     _enhancement.add_argument(
@@ -157,7 +158,7 @@ def get_parser():
              'The default is 1 for most instruments, but 0.4 for NICMOS and WFC3/IR, '
              'and 3 for ACS/SBC. WFPC2 does not apply a retint factor.')
     _enhancement.add_argument(
-        '--histogram', action='store_true',
+        '--histogram', action='store_true', default=None,
         help='Use a histogram contrast stretch. This takes advantage of the full dynamic '
              'range within the limits of the stretch.')
 
@@ -172,7 +173,9 @@ def get_parser():
              'default for the instrument.')
     _orientation.add_argument(
         '--rotate', type=str, choices=ROTATE_CHOICES,
-        help='Rotate or flip the image from its default orientation.')
+        help='Rotate or flip the image from its default orientation. Options are "'
+             + '", "'.join(ROTATE_CHOICES[:-1]) + f'" and "{ROTATE_CHOICES[-1]}". '
+             + 'The default is "none".')
 
     _sizing = parser.add_argument_group('Sizing options')
     _sizing.add_argument(
@@ -232,17 +235,17 @@ def get_parser():
     _processing = parser.add_argument_group('Post-processing options')
     _processing.add_argument(
         '--filter', type=str, choices=FILTER_CHOICES,
-        help='Apply an image processing filter to the image. Options are '
-             f'{", ".join(FILTER_CHOICES[:-1])} and {FILTER_CHOICES[-1]}. '
-             'The default is "none".')
+        help='Apply an image processing filter to the image. Options are "'
+             + '", "'.join(FILTER_CHOICES[:-1]) + f'" and "{FILTER_CHOICES[-1]}". '
+             + 'The default is "none".')
 
     _output = parser.add_argument_group('Output options')
     _output.add_argument(
         '-x', '--extension', type=str, choices=PIL_EXTENSIONS,
         help='File name extension for the image produced; this also defines the output '
-             'file format. Options are '
-             f'{", ".join(PIL_EXTENSIONS[:-1])} and {PIL_EXTENSIONS[-1]}. '
-             'The default is "jpg".')
+             'file format. Options are "'
+             + '", "'.join(PIL_EXTENSIONS[:-1]) + f'" and "{PIL_EXTENSIONS[-1]}". '
+             + 'The default is "jpg" for 8-bit outputs and "tiff" for 16-bit outputs.')
     _output.add_argument(
         '--directory', type=str,
         help='Directory in which to place converted files. If the recursive option is '
@@ -282,7 +285,7 @@ _OPTION_DEFAULTS = [
     # Input options
     ('obj'              , None      , int, 1, None                          ),
     ('pointers'         , []        , list, 0, None     , str               ),
-    ('pds3_method'      , 'fast'    , PDS3_METHODS                          ),
+    ('pds3_method'      , DEFAULT_PDS3_METHOD, PDS3_METHODS                 ),
     # Control options
     ('zebra'            , False     , bool                                  ),
     # Slicing options

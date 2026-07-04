@@ -46,7 +46,7 @@ def test_parser_parses_empty_args() -> None:
     assert ns.gamma is None
     assert ns.extension is None
     assert ns.percentiles is None
-    assert ns.pds3_method == DEFAULT_PDS3_METHOD
+    assert ns.pds3_method is None
 
 
 def test_parser_parses_typical_args() -> None:
