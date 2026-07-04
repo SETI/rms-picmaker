@@ -13,8 +13,10 @@ dependencies = [
   "numpy>=2.4.4",
   "pillow>=12.2.0",
   "scipy>=1.17.1",
+  "rms-pdslogger>=3.2.1",
   "rms-pdsparser>=2.0.0",
   "rms-tabulation>=2.0.0",
+  "rms-vax>=1.0.5",
   "rms-vicar>=1.2.1",
 ]
 license = {text = "Apache-2.0"}
