@@ -15,13 +15,14 @@ from picmaker.instruments._hst_support import get_hst_filter_digits
 
 _DEFAULT_UPWARD = True
 _IS_UNDIAGNOSTIC = re.compile(r'(|F130LP|F165LP|F606W|FQCH4.*|POL.*)$')
-_IS_SCIENCE_DATA = re.compile(r'.*_[cd]0f\.[a-z]+$', re.I)
+_IS_SCIENCE_DATA = re.compile(r'.*_[cd]0f(?![a-z]|\d).*', re.I)
+
 
 class HST_WFPC2(ImageData):
     """HST WFPC2 detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, **kwargs):
+    def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1., **kwargs):
         """Extract HST WFPC2 data from an open HDUList.
 
         Parameters:
@@ -33,6 +34,8 @@ class HST_WFPC2(ImageData):
             mosaic (bool, optional): True to enable the construction of a mosaic of the
                 four WFPC2 detectors; False to return the array from just a single
                 selected detector.
+            retint (float, optional): Factor by which to scale wavelengths for purposes of
+                tinting.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -59,7 +62,7 @@ class HST_WFPC2(ImageData):
             lambda_nms = [(387 if f[:5] == 'FQUVN' else get_hst_filter_digits(f))
                           for f in filters]
             if lambda_nms:
-                default_tint = tint_by_nm(np.mean(lambda_nms))
+                default_tint = tint_by_nm(np.mean(lambda_nms) * retint)
             else:
                 default_tint = None
         else:

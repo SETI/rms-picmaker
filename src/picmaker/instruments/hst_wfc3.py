@@ -3,16 +3,14 @@
 ##########################################################################################
 """HST WFC3 detector and reader."""
 
+# ruff: noqa: I001
 import re
 
 import numpy as np
 
 from picmaker.instruments import ImageData, tint_by_nm
-from picmaker.instruments._fits_support import (
-    get_fits_image_hdu,
-    get_fits_image_hdus,
-    hdu_is_image,
-)
+from picmaker.instruments._fits_support import (get_fits_image_hdu, get_fits_image_hdus,
+                                                hdu_is_image)
 from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
 
 _IS_UNDIAGNOSTIC = re.compile(r'(F200LP|F350LP)$')
