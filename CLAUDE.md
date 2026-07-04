@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`rms-picmaker` (`import picmaker`) converts PDS3/VICAR/FITS astronomy images to JPEG/TIFF/PNG. Python ≥ 3.11, src-layout (`src/picmaker/`).
+`rms-picmaker` (`import picmaker`) converts PDS3/VICAR/FITS astronomy images to JPEG/TIFF/PNG. Python ≥ 3.12, src-layout (`src/picmaker/`).
 
 ## Commands
 

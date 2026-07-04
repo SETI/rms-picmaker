@@ -47,7 +47,7 @@ your other Python environments::
 
    pipx install rms-picmaker
 
-``rms-picmaker`` requires Python 3.11 or later.
+``rms-picmaker`` requires Python 3.12 or later.
 
 
 3. Quick start

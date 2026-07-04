@@ -5,7 +5,7 @@ description: Python coding standards for writing correct, readable, maintainable
 
 # Python Best Practices
 
-Apply these rules to ALL new and modified Python code. This project is a Python library published on PyPI and documented on ReadTheDocs. **Minimum Python version: 3.11.**
+Apply these rules to ALL new and modified Python code. This project is a Python library published on PyPI and documented on ReadTheDocs. **Minimum Python version: 3.12.**
 
 ## 1. Naming and Style
 

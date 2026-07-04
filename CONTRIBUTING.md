@@ -65,7 +65,7 @@ We follow these standards for all code contributions:
 * **Type Hints**: Required in `tests/` (checked by mypy); the `src/picmaker/` package is intentionally untyped and excluded from mypy
 * **Docstrings**: Document all classes and methods with docstrings following the Google style
 * **Testing**: Include unit tests for new functionality
-* **Compatibility**: Ensure compatibility with Python 3.11+
+* **Compatibility**: Ensure compatibility with Python 3.12+
 
 Example of a well-formatted function:
 
