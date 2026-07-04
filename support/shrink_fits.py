@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Shrink FITS images by block-averaging every 2-D IMAGE HDU.
+"""Shrink FITS images by block-averaging every IMAGE HDU.
 
 For each input file, every IMAGE object is reduced by an integer factor in each
-direction via NxN-block pixel averaging (edge pixels that don't fill a full
-block are cropped). Integer arrays are rounded back to their original integer
-type. Every header card is preserved except NAXIS1/NAXIS2, and BSCALE/BZERO
-scaling is kept intact (data is handled in its raw stored representation), so
-the output stays FITS-standard compliant.
+direction via NxN-block pixel averaging over its trailing two (line, sample)
+axes; any leading axes (e.g. a detector or band cube) are preserved. Edge pixels
+that don't fill a full block are cropped. Integer arrays are rounded back to
+their original integer type. Every header card is preserved except the
+NAXIS1/NAXIS2 sizes, and BSCALE/BZERO scaling is kept intact (data is handled in
+its raw stored representation), so the output stays FITS-standard compliant.
 
 Usage:
     python support/shrink_fits.py [-f FACTOR] [-s SUFFIX] FILE [FILE ...]
@@ -25,11 +26,11 @@ IMAGE_TYPES = ('PrimaryHDU', 'ImageHDU')
 
 
 def block_average(data, f):
-    ny, nx = data.shape
+    *lead, ny, nx = data.shape
     ny2, nx2 = ny // f, nx // f
-    cropped = data[:ny2 * f, :nx2 * f]
-    reshaped = cropped.reshape(ny2, f, nx2, f)
-    avg = reshaped.mean(axis=(1, 3), dtype=np.float64)
+    cropped = data[..., :ny2 * f, :nx2 * f]
+    reshaped = cropped.reshape(*lead, ny2, f, nx2, f)
+    avg = reshaped.mean(axis=(-3, -1), dtype=np.float64)
     if np.issubdtype(data.dtype, np.integer):
         info = np.iinfo(data.dtype)
         rounded = np.clip(np.rint(avg), info.min, info.max)
@@ -45,7 +46,7 @@ def shrink_file(path, factor, suffix):
         if type(hdu).__name__ not in IMAGE_TYPES:
             continue
         data = hdu.data
-        if data is None or data.ndim != 2:
+        if data is None or data.ndim < 2:
             continue
         old_shape, old_dtype = data.shape, data.dtype
         new_data = block_average(data, factor)

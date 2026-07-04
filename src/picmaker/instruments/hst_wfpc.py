@@ -1,7 +1,7 @@
 ##########################################################################################
-# picmaker/instruments/hst_wfpc2.py
+# picmaker/instruments/hst_wfpc.py
 ##########################################################################################
-"""HST WFPC2 detector and reader."""
+"""HST WF/PC detector and reader."""
 
 import re
 import warnings
@@ -14,12 +14,12 @@ from picmaker.instruments import ImageData, tint_by_nm
 from picmaker.instruments._hst_support import get_hst_filter_digits
 
 _DEFAULT_UPWARD = True
-_IS_UNDIAGNOSTIC = re.compile(r'(|F130LP|F165LP|F606W|FQCH4.*|POL.*)$')
+_IS_UNDIAGNOSTIC = re.compile(r'(|POL.*|.*ND)$')
 _IS_SCIENCE_DATA = re.compile(r'.*_[cd]0f(?![a-z]|\d).*', re.I)
 
 
-class HST_WFPC2(ImageData):
-    """HST WFPC2 detector and reader."""
+class HST_WFPC(ImageData):
+    """HST WF/PC detector and reader."""
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1., **kwargs):
@@ -31,21 +31,19 @@ class HST_WFPC2(ImageData):
             obj (int, optional): The HDU index (starting at 0) of the image array. If not
                 specified, the first image array in the file is used.
             mosaic (bool, optional): True to enable the construction of a mosaic of the
-                four WFPC2 detectors; False to return the array from just a single
+                four WF or PC detectors; False to return the array from just a single
                 selected detector.
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            HST_WFPC2 or None: Instrument subclass if the file describes an HST WFPC2
+            HST_WFPC or None: Instrument subclass if the file describes an HST WF/PC
             product; None otherwise.
         """
 
         try:
-            if hdulist[0].header['TELESCOP'] != 'HST':
-                return None
-            if hdulist[0].header['INSTRUME'] != 'WFPC2':
+            if hdulist[0].header['INSTRUME'] != 'WFPC':
                 return None
         except (KeyError, IndexError):
             return None
@@ -57,10 +55,7 @@ class HST_WFPC2(ImageData):
             header = hdulist[0].header
             filters = [header.get('FILTNAM1', ''), header.get('FILTNAM2', '')]
             filters = [f for f in filters if not _IS_UNDIAGNOSTIC.match(f)]
-
-            # FQUVN has four nearby bands; this is the mean
-            lambda_nms = [(387 if f[:5] == 'FQUVN' else get_hst_filter_digits(f))
-                          for f in filters]
+            lambda_nms = [get_hst_filter_digits(f) for f in filters]
             if lambda_nms:
                 default_tint = tint_by_nm(np.mean(lambda_nms) * retint)
 
@@ -82,15 +77,15 @@ class HST_WFPC2(ImageData):
 
                 new_array = np.zeros((4,) + array.shape[-2:])
                 for b, det in enumerate(detectors):
-                    new_array[det - 1] = array[b]
+                    new_array[(det - 1) % 4] = array[b]  # 1-4 for WF, 5-8 for PC
                 array = new_array
         else:
             array = array[obj or 0]  # forward IndexError
 
-        return HST_WFPC2(array, _DEFAULT_UPWARD, default_tint)
+        return HST_WFPC(array, _DEFAULT_UPWARD, default_tint)
 
     def apply_mosaic(self, arrays_rgb, **kwargs):
-        """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
+        """Assemble WF/PC's four WF or PC detectors into a 2x2 mosaic.
 
         Parameters:
             arrays_rgb (list[array]): Per-detector RGB arrays (usually length 4), each
@@ -104,8 +99,7 @@ class HST_WFPC2(ImageData):
         # Note that images all display upward. This is inverted afterward.
         quads = [np.rot90(arrays_rgb[b], -b) for b in range(len(arrays_rgb))]
 
-        # Assemble directly in display orientation: PC1 lower-right, WF2 lower-left, WF3
-        # upper-left, WF4 upper-right (before inversion).
+        # Assemble directly in display orientation with W1/P5 at upper right
         (nl, ns, nc) = quads[0].shape
         mosaic = np.empty((2 * nl, 2 * ns, nc))
         mosaic[-nl:, -ns:] = quads[0]   # PC1

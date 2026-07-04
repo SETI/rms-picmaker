@@ -83,8 +83,8 @@ def test_c1f_preserves_integer_dq_dtype() -> None:
 
 
 def test_obj_out_of_range_raises() -> None:
-    """Selecting a detector index with no matching DETECTOR entry raises."""
-    with pytest.raises(ValueError):
+    """Selecting a plane index beyond the detector cube raises IndexError."""
+    with pytest.raises(IndexError):
         read_image_array(SCIENCE, obj=99)
 
 
@@ -130,3 +130,42 @@ def test_mosaic_pipeline_renders_2x2(name: str, tmp_path: Path) -> None:
     assert out.exists()
     with Image.open(out) as img:
         assert img.size == (800, 800)   # 2 x the 400x400 single detector
+
+
+# --- partial-mosaic / no-tint branches, via synthetic in-memory HDULists --------------
+
+def _synth_wfpc2(array: np.ndarray, detectors: list[int] | None = None,
+                 **header: str) -> pyfits.HDUList:
+    """A minimal WFPC2 HDUList: a primary-HDU image plus an optional
+    group-parameters table carrying a DETECTOR column."""
+    primary = pyfits.PrimaryHDU(array.astype('float32'))
+    primary.header['TELESCOP'] = 'HST'
+    primary.header['INSTRUME'] = 'WFPC2'
+    for key, value in header.items():
+        primary.header[key] = value
+    hdus = [primary]
+    if detectors is not None:
+        col = pyfits.Column(name='DETECTOR', format='J', array=np.array(detectors))
+        hdus.append(pyfits.BinTableHDU.from_columns([col]))
+    return pyfits.HDUList(hdus)
+
+
+def test_mosaic_fills_missing_detectors_from_table() -> None:
+    """A file with fewer than four planes is expanded to a four-plane cube using
+    the group table's DETECTOR column."""
+    array = np.stack([np.full((4, 4), 1.0), np.full((4, 4), 2.0)])  # PC1 and WF3
+    hdulist = _synth_wfpc2(array, detectors=[1, 3], FILTNAM1='F675W')
+    cube = np.asarray(HST_WFPC2.detect_in_fits(hdulist, 'u_c0f.fits', mosaic=True).array)
+
+    assert cube.shape == (4, 4, 4)
+    assert cube[0, 0, 0] == 1.0     # detector 1 -> plane 0
+    assert cube[2, 0, 0] == 2.0     # detector 3 -> plane 2
+    assert cube[1].sum() == 0.0     # unfilled planes stay zero
+
+
+def test_all_undiagnostic_filters_have_no_tint() -> None:
+    """A science file whose filters are all undiagnostic (e.g. a polarizer) has
+    no diagnostic wavelength."""
+    hdulist = _synth_wfpc2(np.zeros((4, 4)), FILTNAM1='POL0', FILTNAM2='')
+    data = HST_WFPC2.detect_in_fits(hdulist, 'u_c0f.fits')
+    assert data.default_tint is None
