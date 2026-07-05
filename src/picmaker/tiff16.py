@@ -236,21 +236,21 @@ def read_tiff16(filepath, up=False, transpose=None):
         flag1 = f.read(1)
         flag2 = f.read(1)
         if flag1 != flag2:
-            _my_assert(False)
+            _my_assert(False, filepath)
 
         if   flag1 == b'I':
             o = '<'
         elif flag1 == b'M':
             o = '>'
         else:
-            _my_assert(False)
+            _my_assert(False, filepath)
 
         t = unpack(o+'H', f.read(2))
         if t[0] != 42:
-            _my_assert(False)
+            _my_assert(False, filepath)
 
         t = unpack(o+'L', f.read(4))
-        _my_assert(t[0] == 8)
+        _my_assert(t[0] == 8, filepath)
 
         # f.write(pack(o+'H', ifd_entries))                 # number of entries
         # f.write(pack(o+'HHLL',  256, 4, 1, width))        # image width
@@ -260,11 +260,11 @@ def read_tiff16(filepath, up=False, transpose=None):
         ifd_entries = t[0]
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert((t[0], t[1], t[2]) == (256, 4, 1))
+        _my_assert((t[0], t[1], t[2]) == (256, 4, 1), filepath)
         width = t[3]
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert((t[0], t[1], t[2]) == (257, 4, 1))
+        _my_assert((t[0], t[1], t[2]) == (257, 4, 1), filepath)
         height = t[3]
 
         # if is_rgb:                                        # bits per sample
@@ -273,24 +273,24 @@ def read_tiff16(filepath, up=False, transpose=None):
         #     f.write(pack(o+'HHLHH', 258, 3, 1, 16, 0))
 
         t = unpack(o+'HHLHH', f.read(12))
-        _my_assert((t[0], t[1]) == (258, 3))
+        _my_assert((t[0], t[1]) == (258, 3), filepath)
 
         if   t[2] == 3:
             is_rgb = True
         elif t[2] == 1:
             is_rgb = False
         else:
-            _my_assert(False)
+            _my_assert(False, filepath)
 
         if is_rgb:
             after_offset = t[3] - 16
         else:
-            _my_assert((t[3], t[4]) == (16, 0))
+            _my_assert((t[3], t[4]) == (16, 0), filepath)
 
         # f.write(pack(o+'HHLHH', 259, 3, 1, 1, 0))         # no compression
 
         t = unpack(o+'HHLHH', f.read(12))
-        _my_assert(t == (259, 3, 1, 1, 0))
+        _my_assert(t == (259, 3, 1, 1, 0), filepath)
 
         # if has_palette:                                   # photometric model
         #    f.write(pack(o+'HHLHH', 262, 3, 1, 3, 0))      # palette
@@ -304,8 +304,8 @@ def read_tiff16(filepath, up=False, transpose=None):
         test_rgb    = (t == (262, 3, 1, 2, 0))
         is_gray     = (t == (262, 3, 1, 1, 0))
 
-        _my_assert(test_rgb == is_rgb)
-        _my_assert(has_palette or is_rgb or is_gray)
+        _my_assert(test_rgb == is_rgb, filepath)
+        _my_assert(has_palette or is_rgb or is_gray, filepath)
 
         # Fill in expected sizes now
         ifd_offset = 8
@@ -331,21 +331,21 @@ def read_tiff16(filepath, up=False, transpose=None):
         # f.write(pack(o+'HHLL',  273, 4, 1, data_offset))  # where data begins
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert(t == (273, 4, 1, data_offset))
+        _my_assert(t == (273, 4, 1, data_offset), filepath)
 
         # if is_rgb:                                        # samples per pixel
         #    f.write(pack(o+'HHLHH', 277, 3, 1, 3, 0))
 
         if is_rgb:
             t = unpack(o+'HHLHH', f.read(12))
-            _my_assert(t == (277, 3, 1, 3, 0))
+            _my_assert(t == (277, 3, 1, 3, 0), filepath)
 
         # f.write(pack(o+'HHLL',  278, 4, 1, height))       # rows per strip
         # f.write(pack(o+'HHLL',  279, 4, 1, width * height * pixel_bytes))
                                                             # bytes per strip
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert(t == (278, 4, 1, height))
+        _my_assert(t == (278, 4, 1, height), filepath)
 
         if is_rgb:
             pixel_bytes = 6
@@ -353,44 +353,44 @@ def read_tiff16(filepath, up=False, transpose=None):
             pixel_bytes = 2
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert(t == (279, 4, 1, width * height * pixel_bytes))
+        _my_assert(t == (279, 4, 1, width * height * pixel_bytes), filepath)
 
         # f.write(pack(o+'HHLL',  282, 5, 1, after_offset)) # x resolution
         # f.write(pack(o+'HHLL',  283, 5, 1, after_offset + 8))
                                                             # y resolution
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert(t == (282, 5, 1, after_offset))
+        _my_assert(t == (282, 5, 1, after_offset), filepath)
 
         t = unpack(o+'HHLL', f.read(12))
-        _my_assert(t == (283, 5, 1, after_offset + 8))
+        _my_assert(t == (283, 5, 1, after_offset + 8), filepath)
 
         # f.write(pack(o+'HHLHH', 296, 3, 1, 2, 0))         # unit is inches
 
         t = unpack(o+'HHLHH', f.read(12))
-        _my_assert(t == (296, 3, 1, 2, 0))
+        _my_assert(t == (296, 3, 1, 2, 0), filepath)
 
         # if has_palette:                                   # start of table
         #    f.write(pack(o+'HHLL', 320, 3, 3*65536, after_offset + 16))
 
         if has_palette:
             t = unpack(o+'HHLL', f.read(12))
-            _my_assert(t == (320, 3, 3*65536, after_offset + 16))
+            _my_assert(t == (320, 3, 3*65536, after_offset + 16), filepath)
 
         # f.write(pack(o+'L', 0))                           # end of IFD
 
         t = unpack(o+'L', f.read(4))
-        _my_assert(t[0] == 0)
+        _my_assert(t[0] == 0, filepath)
 
         # "After" values pointed to by every IFD
         # f.write(pack(o+'LL', 72, 1))                      # x unit is 72/inch
         # f.write(pack(o+'LL', 72, 1))                      # y unit is 72/inch
 
         t = unpack(o+'LL', f.read(8))
-        _my_assert(t == (72, 1))
+        _my_assert(t == (72, 1), filepath)
 
         t = unpack(o+'LL', f.read(8))
-        _my_assert(t == (72, 1))
+        _my_assert(t == (72, 1), filepath)
 
         # Read the palette here if there is one
         # if has_palette:
@@ -407,7 +407,7 @@ def read_tiff16(filepath, up=False, transpose=None):
 
         elif is_rgb:
             t = unpack(o+'HHHH', f.read(8))
-            _my_assert(t == (16, 16, 16, 0))
+            _my_assert(t == (16, 16, 16, 0), filepath)
 
         # Append data to output file
         # array.astype(o+'u2').tofile(f, sep='')
@@ -451,8 +451,8 @@ def read_tiff16(filepath, up=False, transpose=None):
     return(array, palette)
 
 
-def _my_assert(test):
+def _my_assert(test, filepath):
     if not test:
-        raise OSError('not a recognized TIFF16 file')
+        raise OSError(f'Not a recognized TIFF16 file: {filepath}')
 
 ##########################################################################################

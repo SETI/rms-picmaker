@@ -124,9 +124,9 @@ def _read_one_image_array(filepath, **kwargs):
 
     filepath = pathlib.Path(filepath)
     if not filepath.exists():
-        raise FileNotFoundError('No such file or directory: "{filepath}"')
+        raise FileNotFoundError(f'No such file or directory: "{filepath}"')
     if not filepath.is_file():
-        raise IsADirectoryError('File is a directory: "{filepath}"')
+        raise IsADirectoryError(f'File is a directory: "{filepath}"')
 
     # Handle a PDS3 label
     if filepath.suffix.lower() == '.lbl':
@@ -176,7 +176,7 @@ def _read_one_image_array(filepath, **kwargs):
     except Exception:
         pass
 
-    raise OSError('unrecognized file format in {filepath}')
+    raise OSError(f'unrecognized file format in {filepath}')
 
 
 # [wavelength_nm, r, g, b]

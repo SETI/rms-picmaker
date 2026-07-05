@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from pdslogger import PdsLogger
 
-from picmaker.options import get_parser, validate_options
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
 
 CapturedLogger = tuple[PdsLogger, list[logging.LogRecord]]
@@ -48,27 +48,25 @@ def _messages(records: list[logging.LogRecord], level: str | None = None) -> lis
 
 def _run(logger: PdsLogger, *argv: str) -> None:
     """Build a complete options dict the CLI way and run the pipeline."""
-    options = validate_options(get_parser().parse_args(list(argv)), logger=logger)
-    options['logger'] = logger
-    picmaker(**options)
+    picmaker(logger=logger, **vars(get_parser().parse_args(list(argv))))
 
 
 def test_no_input_files_logs_error(captured_logger: CapturedLogger) -> None:
     """An empty input set logs an ERROR before raising."""
     logger, records = captured_logger
-    with pytest.raises(ValueError, match='no input files identified'):
+    with pytest.raises(ValueError, match='No input files identified'):
         _run(logger)
-    assert any('no input files identified' in m for m in _messages(records, 'ERROR'))
+    assert any('No input files identified' in m for m in _messages(records, 'ERROR'))
 
 
-def test_validation_error_is_logged(captured_logger: CapturedLogger) -> None:
+def test_validation_error_is_logged(
+    captured_logger: CapturedLogger, fixtures_dir: Path
+) -> None:
     """A validation conflict is logged (as an exception) before raising."""
     logger, records = captured_logger
     with pytest.raises(ValueError, match='--movie and --versions'):
-        validate_options(
-            get_parser().parse_args(['x.vic', '--movie', '--versions', 'v.txt']),
-            logger=logger,
-        )
+        _run(logger, str(fixtures_dir / 'cassini_iss.vic'),
+             '--movie', '--versions', 'v.txt')
     # logger.exception() records the error at CRITICAL level.
     assert any('--movie and --versions' in m for m in _messages(records))
     assert any(r.levelname == 'CRITICAL' for r in records)
@@ -118,4 +116,4 @@ def test_main_creates_logger_and_logs_error(
         logger.remove_handler(handler)
     assert excinfo.value.code == 1
     messages = [r.getMessage() for r in handler.records]
-    assert any('no input files identified' in m for m in messages)
+    assert any('No input files identified' in m for m in messages)

@@ -46,12 +46,12 @@ After regenerating, verify no unexpected diff: `git diff --exit-code tests/fixtu
 - Quotes: **single**
 - **Do not run `ruff format`** — it is intentionally not enforced; existing style inconsistencies are left as-is
 - mypy runs in strict mode; `MYPYPATH=src` is required
-- Bandit B301/B403 (pickle) are intentionally skipped — pickle usage is documented and by design
+- Bandit B301/B403 (pickle) and B110 (try/except/pass) are intentionally skipped — pickle usage is documented and by design, and the try/except/pass is the format-reader cascade's "not this format, move on" control flow
 
 ## Testing Quirks
 
 - `tests/snapshots_index.py` is **auto-generated** — never edit it by hand; regenerate via `generate_snapshots.py`
 - `tests/fixture_recipes/*_recipe.py` are snapshot-generator scripts, not pytest test files — pytest does not collect them
-- Warnings are treated as errors; two specific deprecation warnings are exempted (Pillow 12 `getdata` and astropy `XDG_CONFIG_HOME`)
+- Warnings are treated as errors; three specific deprecation warnings are exempted (Pillow 12 `getdata`, astropy `XDG_CONFIG_HOME`, and `datetime.utcfromtimestamp` from the boto3 import chain)
 - Coverage minimum is 95%
 - Snapshot freshness is checked in CI only on ubuntu-latest + Python 3.13

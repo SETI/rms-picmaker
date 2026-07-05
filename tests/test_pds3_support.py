@@ -135,5 +135,5 @@ def test_resolve_filename_finds_case_variant(tmp_path: Any) -> None:
 
 
 def test_resolve_filename_missing_raises(tmp_path: Any) -> None:
-    with pytest.raises(FileNotFoundError, match='could not find data file'):
+    with pytest.raises(FileNotFoundError, match='Could not find data file'):
         _resolve_pds3_filename(tmp_path, 'nope.img')

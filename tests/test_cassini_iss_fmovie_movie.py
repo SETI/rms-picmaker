@@ -81,6 +81,6 @@ def test_without_movie_each_frame_is_normalised(tmp_path: Path) -> None:
 def test_pattern_requires_recursive_to_reach_subdirectories(tmp_path: Path) -> None:
     """Without ``--recursive`` the top-level directory holds no matching files,
     so picmaker reports that no inputs were identified."""
-    with pytest.raises(ValueError, match='no input files identified'):
+    with pytest.raises(ValueError, match='No input files identified'):
         generate_previews(DATA_DIR, tmp_path,
                           extra_args=['--pattern', '*_x*.IMG', '--extension', 'jpg'])

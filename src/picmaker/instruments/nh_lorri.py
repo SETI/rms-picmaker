@@ -37,7 +37,7 @@ class NH_LORRI(ImageData):
         except KeyError:
             return None
 
-        array = read_pds3_image_array(label)
+        array = read_pds3_image_array(label, **kwargs)
         return NH_LORRI(array, _DEFAULT_UPWARD, None)
 
     @staticmethod

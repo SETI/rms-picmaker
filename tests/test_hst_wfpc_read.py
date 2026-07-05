@@ -17,7 +17,7 @@ from PIL import Image
 
 from picmaker.instruments import read_image_array, tint_by_nm
 from picmaker.instruments.hst_wfpc import HST_WFPC
-from picmaker.options import get_parser, validate_options
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_wfpc'
@@ -100,7 +100,7 @@ def test_apply_mosaic_assembles_four_quadrants() -> None:
 def test_mosaic_pipeline_renders_2x2(tmp_path: Path) -> None:
     """``--mosaic`` renders a full 2x2 detector mosaic, twice the single-chip
     size (160 -> 320)."""
-    options = validate_options(get_parser().parse_args([
+    options = vars(get_parser().parse_args([
         str(MOSAIC), '--directory', str(tmp_path),
         '--mosaic', '--percentiles', '1', '99',
     ]))

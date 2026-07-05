@@ -60,6 +60,7 @@ class HST_WFPC2(ImageData):
             # FQUVN has four nearby bands; this is the mean
             lambda_nms = [(387 if f[:5] == 'FQUVN' else get_hst_filter_digits(f))
                           for f in filters]
+            lambda_nms = [nm for nm in lambda_nms if nm]
             if lambda_nms:
                 default_tint = tint_by_nm(np.mean(lambda_nms) * retint)
 

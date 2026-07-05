@@ -71,7 +71,7 @@ class HST_ACS(ImageData):
         # the data from both chips has been combined into a single array, so no mosaicking
         # can be performed.
         use_mosaic = detector == 'WFC' and obj is None and mosaic and 'ERR' in hdulist
-        if len([hdu for hdu in hdulist[1:] if hdu.header['EXTNAME'] == 'SCI']) == 1:
+        if len([hdu for hdu in hdulist if hdu.header.get('EXTNAME') == 'SCI']) == 1:
             use_mosaic = False
 
         # Determine the default_tint
@@ -98,7 +98,7 @@ class HST_ACS(ImageData):
         # Select the HDUs
         hdus = get_fits_image_hdus(hdulist, pointers=pointers)
         if not hdu_is_image(hdus[0]):
-            raise ValueError(f'selected HDU is not an IMAGE in {hdulist.filename()}')
+            raise ValueError(f'Selected HDU is not an IMAGE in {hdulist.filename()}')
         extname = hdus[0].header['EXTNAME']  # make sure all HDUs have the same EXTNAME
         hdus = [hdu for hdu in hdus if hdu.header['EXTNAME'] == extname]
 

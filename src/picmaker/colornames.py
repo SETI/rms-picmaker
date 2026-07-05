@@ -801,7 +801,7 @@ class ColorNames:
 
         # Make sure it's a string
         if not isinstance(name, str):
-            raise TypeError(f'Colorname must be a string: {name!r}')
+            raise TypeError(f'Color name must be a string: {name!r}')
 
         # Strip spaces, convert to lower case
         test = name.lower().replace(' ', '')
@@ -819,7 +819,7 @@ class ColorNames:
         if test in ColorNames._COLOR_NAME_DICT:
             return ColorNames._COLOR_NAME_DICT[test]
 
-        raise KeyError(f'unrecognized color name: {name}')
+        raise KeyError(f'Unrecognized color name: "{name}"')
 
 
 __all__ = ['ColorNames']

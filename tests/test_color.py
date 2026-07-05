@@ -29,7 +29,7 @@ class TestNegativeLookups:
     def test_empty_string_raises(self) -> None:
         with pytest.raises(KeyError) as excinfo:
             ColorNames.lookup('')
-        assert 'unrecognized color name' in str(excinfo.value)
+        assert 'Unrecognized color name' in str(excinfo.value)
 
     def test_hex_code_not_supported(self) -> None:
         # ColorNames.lookup recognizes only X11 names and (r,g,b)/[r,g,b]
@@ -42,7 +42,7 @@ class TestNegativeLookups:
         # Deliberately passing an int to exercise the TypeError branch.
         with pytest.raises(TypeError) as excinfo:
             ColorNames.lookup(42)
-        assert 'Colorname must be a string' in str(excinfo.value)
+        assert 'Color name must be a string' in str(excinfo.value)
 
 
 class TestRgbExpression:
@@ -67,7 +67,7 @@ class TestRgbExpression:
         Regression: previously the function silently returned None when the
         RGB regex matched a prefix; callers expected a KeyError.
         """
-        with pytest.raises(KeyError, match='unrecognized color name'):
+        with pytest.raises(KeyError, match='Unrecognized color name'):
             ColorNames.lookup('(1, 2, 3) garbage')
 
     def test_rgb_injection_payload_rejected(self) -> None:
@@ -77,5 +77,5 @@ class TestRgbExpression:
         appended to a valid-looking RGB triple. `ast.literal_eval` and the
         end-of-string regex check together guarantee this.
         """
-        with pytest.raises(KeyError, match='unrecognized color name'):
+        with pytest.raises(KeyError, match='Unrecognized color name'):
             ColorNames.lookup('(1, 2, 3); __import__("os").system("ls")')

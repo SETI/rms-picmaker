@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from picmaker.options import get_parser, validate_options
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
 
 
@@ -20,7 +20,7 @@ def test_default_run_emits_no_warnings(
     fixtures_dir: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     with caplog.at_level(logging.WARNING, logger='picmaker'):
-        options = validate_options(get_parser().parse_args([
+        options = vars(get_parser().parse_args([
             str(fixtures_dir / 'cassini_iss.vic'), '--directory', str(tmp_path),
         ]))
         picmaker(**options)

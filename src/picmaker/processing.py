@@ -61,7 +61,7 @@ def filter_pil_image(image, filter=None, **kwargs):
         return image
 
     if not isinstance(image, Image.Image):
-        raise ValueError('image filters are not supported for 2-byte images')
+        raise ValueError('Image filters are not supported for 2-byte images')
 
     filter_method = _FILTER_DICT[filter]    # forward KeyError
     if filter_method:
@@ -89,6 +89,8 @@ def fill_zebra_stripes(array, **kwargs):
 
     # Get the dimensions
     lines, samples = array.shape[-2:]
+    if lines <= 2:
+        return array
 
     # Work on a float copy; the caller's array (shared across versions) is left untouched.
     array = array.astype('float')

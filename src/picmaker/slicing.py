@@ -48,7 +48,7 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
         array = array[bands[0]:bands[1], :, :]
 
     if not array.size:
-        raise ValueError('sliced image has size zero')
+        raise ValueError('Sliced image has size zero')
 
     # Eliminate the bands axis if it's one
     if array.ndim == 3 and array.shape[0] == 1:
@@ -97,9 +97,6 @@ def _crop_array(array, crop=0., *, mask=None):
         tuple: `(array, mask)`, where `array` is the cropped array and `mask` is the
         cropped mask.
     """
-
-    if mask is not None:
-        array[mask] = crop
 
     other_value = (array != crop)
     if mask is not None:

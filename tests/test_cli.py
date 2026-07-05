@@ -72,7 +72,7 @@ def test_no_args_errors() -> None:
     reports that no input files were identified."""
     proc = _run()
     assert proc.returncode != 0
-    assert 'no input files identified' in proc.stderr
+    assert 'No input files identified' in proc.stderr
 
 
 def test_nonexistent_file_exits_nonzero() -> None:

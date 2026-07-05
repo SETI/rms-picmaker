@@ -43,8 +43,8 @@ def test_get_filepaths_patterns_default_is_none_sentinel(fixtures_dir: Path) -> 
 
 def test_validate_options_returns_independent_dicts() -> None:
     """Each ``validate_options`` call yields its own option dict object."""
-    a = validate_options(get_parser().parse_args([]))
-    b = validate_options(get_parser().parse_args([]))
+    a = validate_options(vars(get_parser().parse_args([])))
+    b = validate_options(vars(get_parser().parse_args([])))
     assert a == b
     assert a is not b
     # Mutating one normalized dict does not bleed into a freshly built one.

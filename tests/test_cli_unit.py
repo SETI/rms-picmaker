@@ -19,6 +19,7 @@ from picmaker.control import get_filepaths
 from picmaker.instruments import DEFAULT_PDS3_METHOD, PDS3_METHODS
 from picmaker.main import main
 from picmaker.options import deconflict_options, get_parser, validate_options
+from picmaker.picmaker import picmaker
 
 # ---------------------------------------------------------------------------
 # get_parser
@@ -85,8 +86,9 @@ def test_parser_lines_and_samples() -> None:
 
 
 def test_parser_rejects_bad_choice() -> None:
-    """An unknown ``--rotate`` value triggers argparse's ``SystemExit``."""
-    with pytest.raises(SystemExit):
+    """An unknown ``--rotate`` value is rejected; the parser uses
+    ``exit_on_error=False``, so it raises ``ArgumentError`` rather than exiting."""
+    with pytest.raises(argparse.ArgumentError):
         get_parser().parse_args(['--rotate', 'tumble'])
 
 
@@ -133,7 +135,7 @@ def _vo(*args: str) -> dict[str, Any]:
     which runs after ``validate_options`` has filled defaults and validated each
     value, so both steps are needed to exercise those rules.
     """
-    options: dict[str, Any] = validate_options(get_parser().parse_args(list(args)))
+    options: dict[str, Any] = validate_options(vars(get_parser().parse_args(list(args))))
     deconflicted: dict[str, Any] = deconflict_options(options)
     return deconflicted
 
@@ -184,7 +186,7 @@ def test_validate_bad_extension_rejected() -> None:
     """An unrecognized ``--extension`` is rejected."""
     # argparse enforces --extension choices, so feed a dict directly to reach
     # the validate_options guard, which rejects an off-list choice with KeyError.
-    with pytest.raises(KeyError, match='unrecognized'):
+    with pytest.raises(KeyError, match='Unrecognized'):
         validate_options({'extension': 'xyz'})
 
 
@@ -256,16 +258,19 @@ def test_validate_pds3_method_accepts_each_choice(method: str) -> None:
 
 
 def test_validate_pds3_method_rejects_unknown() -> None:
-    """An unknown ``--pds3-method`` value is rejected by argparse."""
-    with pytest.raises(SystemExit):
+    """An unknown ``--pds3-method`` value is rejected by argparse
+    (``exit_on_error=False`` → ArgumentError)."""
+    with pytest.raises(argparse.ArgumentError):
         _vo('--pds3-method', 'turbo')
 
 
 def test_validate_movie_versions_incompatible(fixtures_dir: Path) -> None:
-    """``--movie`` + ``--versions`` is rejected."""
+    """``--movie`` + ``--versions`` is rejected (the mutex lives in ``picmaker``,
+    after the input files resolve)."""
     versions = str(fixtures_dir / 'two_versions.txt')
     with pytest.raises(ValueError, match='--movie and --versions'):
-        _vo('--movie', '--versions', versions)
+        picmaker(**vars(get_parser().parse_args(
+            [str(fixtures_dir / 'cassini_iss.vic'), '--movie', '--versions', versions])))
 
 
 # ---------------------------------------------------------------------------
@@ -281,29 +286,36 @@ def test_main_no_args_exits_one(monkeypatch: pytest.MonkeyPatch) -> None:
     assert excinfo.value.code == 1
 
 
-def test_main_movie_versions_mutex(monkeypatch: pytest.MonkeyPatch) -> None:
-    """``--movie`` + ``--versions`` raises before the pipeline runs."""
+def test_main_movie_versions_mutex(
+    monkeypatch: pytest.MonkeyPatch, fixtures_dir: Path
+) -> None:
+    """``--movie`` + ``--versions`` raises before the pipeline runs; ``main()``
+    surfaces it as exit code 1."""
     monkeypatch.setattr(
-        sys, 'argv', ['picmaker', '--movie', '--versions', 'x', 'in.vic']
+        sys, 'argv', ['picmaker', '--movie', '--versions', 'x',
+                      str(fixtures_dir / 'cassini_iss.vic')]
     )
-    with pytest.raises(ValueError, match='--movie and --versions'):
+    with pytest.raises(SystemExit) as excinfo:
         main()
+    assert excinfo.value.code == 1
 
 
-def test_main_bad_replace_exits_two(monkeypatch: pytest.MonkeyPatch) -> None:
-    """``--replace garbage`` is rejected by argparse (exit 2)."""
+def test_main_bad_replace_exits_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--replace garbage`` is rejected by argparse; the parser uses
+    ``exit_on_error=False``, so ``main()`` catches the ArgumentError and exits 1."""
     monkeypatch.setattr(sys, 'argv', ['picmaker', '--replace', 'garbage'])
     with pytest.raises(SystemExit) as excinfo:
         main()
-    assert excinfo.value.code == 2
+    assert excinfo.value.code == 1
 
 
-def test_main_bad_logging_exits_two(monkeypatch: pytest.MonkeyPatch) -> None:
-    """``--logging 5`` is rejected by argparse (exit 2)."""
+def test_main_bad_logging_exits_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--logging 5`` is rejected by argparse; ``main()`` catches the
+    ArgumentError and exits 1."""
     monkeypatch.setattr(sys, 'argv', ['picmaker', '--logging', '5'])
     with pytest.raises(SystemExit) as excinfo:
         main()
-    assert excinfo.value.code == 2
+    assert excinfo.value.code == 1
 
 
 def test_main_processes_single_file(

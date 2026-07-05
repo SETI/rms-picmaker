@@ -49,9 +49,9 @@ def wrap_pil_image(image, wrapped_size, sections, wrap_axis=0, gap_size=1,
 
     # Match the gap color to the byte size
     if two_bytes:
-        gap_color[0] = int(gap_color[0]/255. * 65535.9999)
-        gap_color[1] = int(gap_color[1]/255. * 65535.9999)
-        gap_color[2] = int(gap_color[2]/255. * 65535.9999)
+        gap_color = (int(gap_color[0]/255. * 65535.9999),
+                     int(gap_color[1]/255. * 65535.9999),
+                     int(gap_color[2]/255. * 65535.9999))
 
     # Pre-fill the buffer with the gap color
     if buffer.shape[2] == 1:
@@ -134,17 +134,17 @@ def pad_pil_image(image, frame=None, pad=False, pad_color='gray', **kwargs):
     width = max(image.width, frame[0])
     height = max(image.height, frame[1])
 
-    if array.shape[2] == 1 and \
-       (pad_color[0] != pad_color[1] or pad_color[0] != pad_color[2]):
+    if (array.shape[2] == 1
+            and (pad_color[0] != pad_color[1] or pad_color[0] != pad_color[2])):
         buffer = np.empty((height, width, 1), dtype=array.dtype)
     else:
         buffer = np.empty((height, width, array.shape[2]), dtype=array.dtype)
 
     # Match the gap color to the byte size
     if two_bytes:
-        pad_color[0] = int(pad_color[0]/255. * 65535.9999)
-        pad_color[1] = int(pad_color[1]/255. * 65535.9999)
-        pad_color[2] = int(pad_color[2]/255. * 65535.9999)
+        pad_color = (int(pad_color[0]/255. * 65535.9999),
+                     int(pad_color[1]/255. * 65535.9999),
+                     int(pad_color[2]/255. * 65535.9999))
 
     # Pre-fill the buffer with the gap color
     if buffer.shape[2] == 1:

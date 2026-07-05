@@ -47,7 +47,7 @@ def array_to_pil(array, twobytes=False, rescale=True):
 
         # Re-scale from unity if necessary
         if rescale:
-            array *= 65535.9999
+            array = array * 65535.9999
 
         array = array.astype('int32')
 
@@ -69,7 +69,7 @@ def array_to_pil(array, twobytes=False, rescale=True):
 
         # Re-scale from unity
         if rescale:
-            array *= 255.99999
+            array = array * 255.99999
 
         array = array.astype('uint8')
 
@@ -151,7 +151,7 @@ def _one_pil_to_array(image, rescale):
 
         return array
 
-    raise OSError('unsupported PIL image format')
+    raise OSError('Unsupported PIL image format')
 
 
 def write_pil(image, outfile, quality=75):

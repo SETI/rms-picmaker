@@ -61,7 +61,7 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
         image_keys = [key for key, value in label.items()
                       if key.endswith('IMAGE') and isinstance(value, dict)]
         if not image_keys:
-            raise ValueError('label does not describe an IMAGE object')
+            raise ValueError('Label does not describe an IMAGE object')
 
         # Default to the first IMAGE when no index is given.
         if obj is None:
@@ -95,7 +95,7 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
 
     pointer_key = '^' + image_key
     if pointer_key not in label:
-        raise ValueError(f'label has no pointer {pointer_key!r} for the IMAGE object')
+        raise ValueError(f'Label has no pointer {pointer_key!r} for the IMAGE object')
 
     pointer = label[pointer_key]
     unit = label.get(pointer_key + '_unit', '')
@@ -238,7 +238,7 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
         records = np.fromfile(f, dtype=record_dtype, count=record_count)
 
     if len(records) != record_count:
-        raise ValueError(f'file {data_path} contains fewer image records than the label '
+        raise ValueError(f'File {data_path} contains fewer image records than the label '
                          'describes')
 
     samples = records['samples']                # shape (record_count, samples)
@@ -286,7 +286,7 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
         unsigned_view &= np.array(bit_mask, dtype=unsigned_dtype)
 
     if vax_float:
-        if sample_bytes == 32:
+        if sample_bytes == 4:
             array = vax.from_vax32(array)
         else:
             array = vax.from_vax64(array)
@@ -317,7 +317,7 @@ def _resolve_pds3_filename(base_dir, name):
         if path.is_file():
             return path
 
-    raise FileNotFoundError(f'could not find data file {name!r} in {base_dir} '
+    raise FileNotFoundError(f'Could not find data file {name!r} in {base_dir} '
                             '(tried original, uppercase, and lowercase forms)')
 
 

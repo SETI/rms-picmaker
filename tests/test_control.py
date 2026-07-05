@@ -1,11 +1,24 @@
 """Unit tests for :mod:`picmaker.control` (get_outfile, get_filepaths)."""
 
+import logging
 import warnings
 from pathlib import Path
 
 import pytest
+from pdslogger import PdsLogger
 
-from picmaker.control import get_filepaths, get_outfile
+from picmaker.control import FileOverwriteWarning, get_filepaths, get_outfile
+
+
+class _ListHandler(logging.Handler):
+    """A stdlib handler that just collects the records it is given."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
 
 
 class TestGetOutfile:
@@ -32,9 +45,36 @@ class TestGetOutfile:
         out_existing = tmp_path / 'image.jpg'
         out_existing.write_bytes(b'')
 
-        with pytest.warns(UserWarning, match='File overwritten'):
-            result = get_outfile(str(infile), outdir=str(tmp_path), replace='warn')
+        with pytest.warns(FileOverwriteWarning, match='File overwritten'):
+            result = get_outfile(str(infile), outdir=str(tmp_path), replace='warning')
         assert result == out_existing
+
+    def test_replace_warning_overwrites_under_main_warning_config(
+        self, tmp_path: Path
+    ) -> None:
+        """Regression for the CLI path: ``main()`` escalates warnings to errors but
+        exempts ``FileOverwriteWarning``, so ``replace='warning'`` warns-and-overwrites
+        rather than aborting."""
+        infile = tmp_path / 'image.IMG'
+        infile.write_bytes(b'')
+        out_existing = tmp_path / 'image.jpg'
+        out_existing.write_bytes(b'')
+
+        logger = PdsLogger.get_logger('pds.picmaker.test.replace_warn', level='debug')
+        handler = _ListHandler()
+        logger.add_handler(handler)
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter('error')                            # mimic main()
+                warnings.filterwarnings('always', category=FileOverwriteWarning)
+                with pytest.warns(FileOverwriteWarning, match='File overwritten'):
+                    result = get_outfile(str(infile), outdir=str(tmp_path),
+                                         replace='warning', logger=logger)
+        finally:
+            logger.remove_handler(handler)
+
+        assert result == out_existing
+        assert any('File overwritten' in r.getMessage() for r in handler.records)
 
     def test_replace_error_raises_when_exists(self, tmp_path: Path) -> None:
         infile = tmp_path / 'image.IMG'

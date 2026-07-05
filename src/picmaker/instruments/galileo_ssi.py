@@ -72,7 +72,7 @@ class Galileo_SSI(ImageData):
             return None
 
         ifilter = vic.get('FILTER', 0)
-        filter_name = _FILTER_NAMES[ifilter]
+        filter_name = _FILTER_NAMES[ifilter]  # ifilter is never out of range
         return Galileo_SSI(vic.array[0], _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
 

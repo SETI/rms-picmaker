@@ -7,7 +7,12 @@ import pathlib
 import warnings
 from fnmatch import fnmatch
 
-REPLACE_CHOICES = ['all', 'none', 'warn', 'error']
+REPLACE_CHOICES = ['all', 'none', 'warning', 'error']
+
+
+class FileOverwriteWarning(UserWarning):
+    """Issued when an existing output file is overwritten under replace="warning". Needed
+    because all other warnings are converted to errors in main()."""
 
 
 def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=None,
@@ -71,14 +76,14 @@ def get_filepaths(files, directory=None, recursive=False, patterns=None, logger=
                                 info.append((subdir / basename,
                                              _get_outdir(filepath, subdir, directory)))
                 else:
-                    basenames = [child.name for child in filepath.iterdir()]
+                    basenames = sorted(child.name for child in filepath.iterdir())
                     for basename in basenames:
                         if _pattern_match(basename, patterns):
                             info.append((filepath / basename,
                                          _get_outdir(filepath, filepath, directory)))
 
             else:
-                raise OSError(f'not a file or directory: "{filepath}"')
+                raise OSError(f'Not a file or directory: "{filepath}"')
 
     except Exception as err:
         logger and logger.exception(err)
@@ -101,8 +106,8 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
         extension (str, optional): Output file extension, which defines the output
             format, (e.g. "jpg").
         replace (str, optional): Replacement policy when the output file already exists:
-            "all" (silent overwrite), "none" (skip silently), "warn" (warn and overwrite),
-            or "error" (raise OSError).
+            "all" (silent overwrite), "none" (skip silently), "warning" (warn and
+            overwrite), or "error" (raise FileExistsError).
         logger (PdsLogger, optional): Optional PdsLogger for error messages and warnings.
         **kwargs: Additional input parameters, ignored here.
 
@@ -112,7 +117,7 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
 
     Raises:
         ValueError: If `replace` option is invalid.
-        OSError: If `replace` == "error" and the file already exists.
+        FileExistsError: If `replace` == "error" and the file already exists.
         PermissionError: If a file or directory cannot be created.
 
     Side Effects:
@@ -122,7 +127,7 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
     replace = replace or 'all'
     replace = replace.lower()
     if replace not in REPLACE_CHOICES:
-        raise ValueError(f'unrecognized replace option: {replace!r}')
+        raise ValueError(f'Unrecognized replace option: {replace!r}')
 
     try:
         inpath = pathlib.Path(inpath)
@@ -145,11 +150,12 @@ def get_outfile(inpath, outdir=None, *, strip=None, suffix='', extension='jpg',
         if outpath.exists():
             if replace == 'none':
                 return None
-            elif replace == 'warn':
-                logger and logger.warn(f'File overwritten: {outpath}')
-                warnings.warn(f'File overwritten: {outpath}', UserWarning, stacklevel=2)
+            elif replace == 'warning':
+                logger and logger.warning(f'File overwritten: {outpath}')
+                warnings.warn(f'File overwritten: {outpath}', FileOverwriteWarning,
+                              stacklevel=2)
             elif replace == 'error':
-                raise OSError(f'File already exists: {outpath}')
+                raise FileExistsError(f'File already exists: {outpath}')
 
     except Exception as err:
         logger and logger.exception(err)

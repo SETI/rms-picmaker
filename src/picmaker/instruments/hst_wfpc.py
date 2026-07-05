@@ -55,6 +55,7 @@ class HST_WFPC(ImageData):
             filters = [header.get('FILTNAM1', ''), header.get('FILTNAM2', '')]
             filters = [f for f in filters if not _IS_UNDIAGNOSTIC.match(f)]
             lambda_nms = [get_hst_filter_digits(f) for f in filters]
+            lambda_nms = [nm for nm in lambda_nms if nm]
             if lambda_nms:
                 default_tint = tint_by_nm(np.mean(lambda_nms) * retint)
 

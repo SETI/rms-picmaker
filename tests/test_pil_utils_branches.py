@@ -55,7 +55,7 @@ def test_pil_to_array_handles_list_of_three() -> None:
 def test_one_pil_to_array_unsupported_mode_raises() -> None:
     """``_one_pil_to_array`` rejects PIL modes other than ``L`` and ``I``."""
     im = Image.new('RGB', (4, 4))
-    with pytest.raises(OSError, match='unsupported PIL image format'):
+    with pytest.raises(OSError, match='Unsupported PIL image format'):
         _one_pil_to_array(im, rescale=False)
 
 

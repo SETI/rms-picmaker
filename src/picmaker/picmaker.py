@@ -12,7 +12,8 @@ from pdslogger import PdsLogger
 from picmaker.control     import get_filepaths, get_outfile
 from picmaker.instruments import read_image_array
 from picmaker.layout      import pad_pil_image, wrap_pil_image
-from picmaker.options     import deconflict_options, get_versions, validate_options
+from picmaker.options     import (deconflict_options, get_versions, shift_to_zero_origin,
+                                  validate_options)
 from picmaker.orientation import rotate_rgb_array
 from picmaker.pil_utils   import array_to_pil, write_pil
 from picmaker.processing  import fill_zebra_stripes, filter_pil_image
@@ -21,7 +22,7 @@ from picmaker.slicing     import slice_array
 from picmaker.stretch     import get_limits
 
 
-def picmaker(logger=None, **options):
+def picmaker(*, logger=None, _shift_origins=False, **options):
     r"""Convert one or more image data files into browse products.
 
     This function accepts the same options that the command line supports; any command
@@ -35,6 +36,8 @@ def picmaker(logger=None, **options):
 
     Parameters:
         logger (Logger or PdsLogger, optional): Logger to use; None disables logging.
+        _shift_origins (bool, optional): True to shift one-based indices to zero-based
+            indices; used only for the command line input.
 
         files (list[str], optional): Input files or directories to convert.
         directory (str, optional): Directory to write outputs to. With `recursive` set,
@@ -175,30 +178,44 @@ def picmaker(logger=None, **options):
     if type(logger) is logging.Logger:
         logger = PdsLogger(logger)
 
-    log_level = options.get('logging', 'info')
+    log_level = options.get('logging') or 'info'
     logger and logger.set_level(log_level)
-
-    validate_options(options, logger=logger)
-    options['logger'] = logger  # many functions get the logger out of the options dict
 
     infiles_and_outdirs = get_filepaths(**options)
     if not infiles_and_outdirs:
-        logger and logger.error('no input files identified')
-        raise ValueError('no input files identified')
+        logger and logger.error('No input files identified')
+        raise ValueError('No input files identified')
 
     movie = options.get('movie', False)
     proceed = options.get('proceed', False)
     versions = options.get('versions', None)
 
-    # Remove fully-handled options now
-    for name in ('files', 'directory', 'recursive', 'patterns', 'movie', 'logging',
-                 'versions'):
-        if name in options:
-            del options[name]  # noqa: RUF051
+    # Remove fully-handled control options now
+    for name in ('files', 'directory', 'recursive', 'patterns', 'movie', 'versions',
+                 'logging'):
+        options.pop(name)
 
+    # Validate all remaining inputs
+    try:
+        if movie and versions:
+            raise ValueError('--movie and --versions options are incompatible')
+        options_list = get_versions(versions=versions, **options)
+        for options in options_list:
+            validate_options(options)
+            deconflict_options(options)
+            if _shift_origins:
+                shift_to_zero_origin(options)
+    except Exception as err:
+        logger and logger.exception(err)
+        raise
+
+    # Functions below get their logger out of the options dict
+    options['logger'] = logger
+
+    # Process files...
     if movie:
-        deconflict_options(options)
-        entries = []        # (infile, outdir, image_data) for each readable file
+        options = options_list[0]   # in `movie` mode there are never multiple versions
+        entries = []                # (infile, outdir, image_data) for each readable file
         min_limit = np.inf
         max_limit = -np.inf
         for infile, outdir in infiles_and_outdirs:
@@ -219,7 +236,7 @@ def picmaker(logger=None, **options):
         for infile, outdir, image_data in entries:
             try:
                 outfile = get_outfile(infile, outdir=outdir, **options)
-                if not outfile:     # if replace='none' and the output file exists
+                if not outfile:  # if replace='none' and the output file exists
                     continue
                 picmaker1(infile, outfile, options, image_data=image_data)
             except Exception:
@@ -228,13 +245,12 @@ def picmaker(logger=None, **options):
                 logger and logger.info('Proceeding after error')
 
     else:
-        options_list = get_versions(versions=versions, **options)
         for infile, outdir in infiles_and_outdirs:
             image_data = None
             for options in options_list:
                 try:
                     outfile = get_outfile(infile, outdir=outdir, **options)
-                    if not outfile:     # replace='none' and the output already exists
+                    if not outfile:  # replace='none' and the output already exists
                         continue
                     image_data = picmaker1(infile, outfile, options,
                                            image_data=image_data)

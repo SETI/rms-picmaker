@@ -43,7 +43,7 @@ class NH_MVIC(ImageData):
         except KeyError:
             return None
 
-        array = read_pds3_image_array(label)
+        array = read_pds3_image_array(label, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
         return NH_MVIC(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 

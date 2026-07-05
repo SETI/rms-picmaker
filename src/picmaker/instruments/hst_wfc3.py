@@ -58,22 +58,23 @@ class HST_WFC3(ImageData):
         # the data from both chips has been combined into a single array, so no mosaicking
         # can be performed.
         use_mosaic = detector == 'UVIS' and obj is None and mosaic and 'ERR' in hdulist
-        if len([hdu for hdu in hdulist[1:] if hdu.header['EXTNAME'] == 'SCI']) == 1:
+        if len([hdu for hdu in hdulist if hdu.header.get('EXTNAME') == 'SCI']) == 1:
             use_mosaic = False
 
         # Determine the default_tint
         hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers)
         default_tint = None
         if is_science_hdu(hdu):
-            filter_name = hdulist[0].header['FILTER']
+            filter_name = hdulist[0].header.get('FILTER', '')
             if not _IS_UNDIAGNOSTIC.fullmatch(filter_name):
                 digits = get_hst_filter_digits(filter_name)
-                if detector == 'UVIS':
-                    default_tint = tint_by_nm(digits * (retint or 1))
-                else:
-                    # IR filter names encode wavelength/10 (F160W -> 1600 nm).
-                    default_tint = tint_by_nm(
-                        digits * 10. * (retint or _DEFAULT_IR_RETINT))
+                if digits:
+                    if detector == 'UVIS':
+                        default_tint = tint_by_nm(digits * (retint or 1))
+                    else:
+                        # IR filter names encode wavelength/10 (F160W -> 1600 nm).
+                        default_tint = tint_by_nm(
+                            digits * 10. * (retint or _DEFAULT_IR_RETINT))
 
         # Handle the non-mosaicked case
         if not use_mosaic:
@@ -90,7 +91,7 @@ class HST_WFC3(ImageData):
         # Select the HDUs
         hdus = get_fits_image_hdus(hdulist, pointers=pointers)
         if not hdu_is_image(hdus[0]):
-            raise ValueError(f'selected HDU is not an IMAGE in {hdulist.filename()}')
+            raise ValueError(f'Selected HDU is not an IMAGE in {hdulist.filename()}')
         extname = hdus[0].header['EXTNAME']  # make sure all HDUs have the same EXTNAME
         hdus = [hdu for hdu in hdus if hdu.header['EXTNAME'] == extname]
 

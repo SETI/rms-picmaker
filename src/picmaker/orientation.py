@@ -8,7 +8,7 @@ import numpy as np
 ROTATE_CHOICES = ['none', 'fliplr', 'fliptb', 'rot90', 'rot180', 'rot270']
 
 
-def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation=None,
+def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotate=None,
                      **kwargs):
     """Apply a new orientation to an array.
 
@@ -20,16 +20,16 @@ def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation
             if it is not overridden by `display_upward`.
         display_upward (bool, optional): True to display the image with lines increasing
             upward; False to display with the lines increasing downward.
-        rotation (str, optional): Name of the rotation to be applied. Choices are
-            "none", "fliplr", "fliptb",  "rot90", "rot180", "rot270". Values are
-            case-insensitive. Rotation is counterclockwise.
+        rotate (str, optional): Name of the rotation to be applied. Choices are "none",
+            "fliplr", "fliptb",  "rot90", "rot180", "rot270". Values are case-insensitive.
+            Rotation is counterclockwise.
         **kwargs: Additional input parameters, ignored here.
 
     Returns:
         array: The rotated array.
 
     Raises:
-        KeyError: If `rotation` is not one of the recognized choices.
+        KeyError: If `rotate` is not one of the recognized choices.
     """
 
     # Resolve the desired vertical orientation, falling back to the instrument default.
@@ -40,24 +40,24 @@ def rotate_rgb_array(array_rgb, *, default_upward, display_upward=None, rotation
     if display_upward:
         array_rgb = np.flipud(array_rgb)
 
-    if not rotation:
+    if not rotate:
         return array_rgb
 
-    rotation = rotation.lower()
-    if rotation == 'none':
+    rotate = rotate.lower()
+    if rotate == 'none':
         return array_rgb
-    if rotation == 'fliplr':
+    if rotate == 'fliplr':
         return np.fliplr(array_rgb)
-    if rotation == 'fliptb':
+    if rotate == 'fliptb':
         return np.flipud(array_rgb)
-    if rotation == 'rot90':
+    if rotate == 'rot90':
         return np.rot90(array_rgb, 1)
-    if rotation == 'rot180':
+    if rotate == 'rot180':
         return np.rot90(array_rgb, 2)
-    if rotation == 'rot270':
+    if rotate == 'rot270':
         return np.rot90(array_rgb, 3)
 
-    raise KeyError(f'unrecognized rotation method: {rotation}')
+    raise KeyError(f'unrecognized rotate option: {rotate}')
 
 
 __all__ = ['ROTATE_CHOICES', 'rotate_rgb_array']

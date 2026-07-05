@@ -25,7 +25,8 @@ def get_parser():
                'RGB values in the range 0-255 inside parentheses (e.g., "(255,255,0)" '
                'for yellow).',
         usage='%(prog)s [options] file1 file2 ...',
-        prog='picmaker')
+        prog='picmaker',
+        exit_on_error=False)
     parser.add_argument('--version', action='version',
                         version='%(prog)s version ' + __version__)
     parser.add_argument('files', nargs='*', help='Input files or directories')
@@ -47,7 +48,7 @@ def get_parser():
     _control.add_argument(
         '--replace', type=str, choices=REPLACE_CHOICES,
         help='What to do when a file already exists, one of "all" (overwrite silently), '
-             '"none" (skip silently), "warn" (issue a warning), "error" (raise an '
+             '"none" (skip silently), "warning" (issue a warning), "error" (raise an '
              'exception and abort). Default is "all".')
     _control.add_argument(
         '--proceed', action='store_true',
@@ -274,14 +275,8 @@ def get_parser():
 # of the tuple defines the requirements on the elements.
 _OPTION_DEFAULTS = [
     # NAME              , DEFAULT   , TYPE1             , TYPE2
-    # Control options
-    ('directory'        , ''        , str                                   ),
-    ('recursive'        , False     , bool                                  ),
-    ('pattern'          , []        , list, 0, None     , str               ),
-    ('movie'            , False     , bool                                  ),
-    ('versions'         , ''        , str                                   ),
+    # Control options; note that all options except "replace" are handled by picmaker()
     ('replace'          , 'all'     , REPLACE_CHOICES                       ),
-    ('logging'          , 'info'    , _LOGGING_CHOICES                      ),
     # Input options
     ('obj'              , None      , int, 1, None                          ),
     ('pointers'         , []        , list, 0, None     , str               ),
@@ -342,14 +337,11 @@ _OPTION_DEFAULTS = [
 ]
 
 
-def validate_options(options, *, logger=None, _versions_validated=None):
-    """Convert an Namespace to a dict if necessary and validate all values.
+def validate_options(options):
+    """Validate all Picmaker options.
 
     Parameters:
-        options (Namespace or dict): Picmaker inputs.
-        logger (PdsLogger, optional): Logger to use.
-        _versions_validated (str, optional): A version file already validated; this is
-            used to prevent recursive version files.
+        options (dict): Picmaker inputs.
 
     Returns:
         dict: Dictionary of all input options.
@@ -371,12 +363,12 @@ def validate_options(options, *, logger=None, _versions_validated=None):
             if not isinstance(value, (list, tuple)) and minlen <= 1:
                 value = [value]
             elif not isinstance(value, (list, tuple)):
-                raise TypeError(f'invalid type {type(value).__name__} for "{name}": '
+                raise TypeError(f'Invalid type {type(value).__name__} for "{name}": '
                                 f'{value!r}')
             if minlen is not None and len(value) < minlen:
-                raise ValueError(f'invalid "{name}"; minimum length is {minlen}')
+                raise ValueError(f'Invalid "{name}"; minimum length is {minlen}')
             if maxlen is not None and len(value) > maxlen:
-                raise ValueError(f'invalid "{name}"; maximum length is {maxlen}')
+                raise ValueError(f'Invalid "{name}"; maximum length is {maxlen}')
             checked = []
             for subvalue in value:
                 checked.append(check_value(name, subvalue, more))
@@ -384,13 +376,13 @@ def validate_options(options, *, logger=None, _versions_validated=None):
 
         elif type_ in (int, float):
             if not isinstance(value, int if type_ is int else (int, float)):
-                raise TypeError(f'invalid type {type(value).__name__} for "{name}"')
+                raise TypeError(f'Invalid type {type(value).__name__} for "{name}"')
             minval, maxval = more
             if minval is not None and value < minval:
-                raise ValueError(f'invalid value {value!r} for "{name}"; '
+                raise ValueError(f'Invalid value {value!r} for "{name}"; '
                                  f'minimum is {minval!r}')
             if maxval is not None and value > maxval:
-                raise ValueError(f'invalid value {value!r} for "{name}"; '
+                raise ValueError(f'Invalid value {value!r} for "{name}"; '
                                  f'maximum is {maxval!r}')
             return float(value) if type_ is float else value
 
@@ -401,45 +393,22 @@ def validate_options(options, *, logger=None, _versions_validated=None):
 
         elif isinstance(type_, (list, tuple)):
             if value not in type_:
-                raise KeyError(f'unrecognized "{name}" option: {value!r}')
+                raise KeyError(f'Unrecognized "{name}" option: {value!r}')
 
         elif type_ is bool:
             return bool(value)
 
         elif not isinstance(value, type_):
-            raise TypeError(f'invalid type {type(value).__name__} for "{name}": '
+            raise TypeError(f'Invalid type {type(value).__name__} for "{name}": '
                             f'{value!r}')
 
         return value
 
-    # Convert to dict if necessary
-    if not isinstance(options, dict):
-        options = options.__dict__
-
-    try:
-        # Fill in defaults, validate all values
-        for info in _OPTION_DEFAULTS:
-            name, default, *type_info = info
-            value = options.get(name) or default
-            options[name] = check_value(name, value, type_info)
-
-        # movie vs. versions
-        if options['versions'] and options['movie']:
-            raise ValueError('--movie and --versions options are incompatible')
-
-    except Exception as err:
-        logger and logger.exception(err)
-        raise
-
-    # Validate the versions file including recursive call to this function
-    versions = options['versions']
-    if versions:
-        if _versions_validated and _versions_validated != versions:
-            logger and logger.error('recursive --versions are not supported', versions)
-            raise ValueError('recursive --versions are not supported: {versions}')
-
-        logger and logger.debug('parsing version file', versions)
-        _ = get_versions(**options)
+    # Fill in defaults, validate all values, forwarding an exception
+    for info in _OPTION_DEFAULTS:
+        name, default, *type_info = info
+        value = options.get(name) or default
+        options[name] = check_value(name, value, type_info)
 
     return options
 
@@ -457,7 +426,7 @@ def deconflict_options(options):
     This step must wait till after all sets of `versions` have been obtained.
 
     Parameters:
-        options (Namespace or dict): Picmaker inputs.
+        options (dict): Picmaker inputs, already validated.
 
     Returns:
         dict: The `options` dictionary, updated in place.
@@ -466,93 +435,93 @@ def deconflict_options(options):
         ValueError: If any parameter has an invalid or contradictory value.
     """
 
-    logger = options.get('logger')
+    # band vs. bands -> bands
+    band = options['band']
+    if band is not None:
+        bands = options['bands']
+        if not bands:
+            options['bands'] = (band, band)
+        else:
+            raise ValueError('--band and --bands options are incompatible')
+    del options['band']
 
-    try:
-        # band vs. bands -> bands
-        band = options['band']
-        if band is not None:
-            bands = options['bands']
-            if not bands:
-                options['bands'] = (band, band)
-            else:
-                raise ValueError('--band and --bands options are incompatible')
-        del options['band']
+    # scale vs. (wscale, hscale) -> scale, a pair of values (wscale, hscale)
+    scale = options['scale']
+    wscale = options['wscale']
+    hscale = options['hscale']
+    if scale is None:
+        # A scalar --scale is normalized by get_size; here we only consolidate
+        # per-axis --wscale / --hscale into a (width, height) pair.
+        if wscale is not None or hscale is not None:
+            options['scale'] = (wscale if wscale is not None else 100.,
+                                hscale if hscale is not None else 100.)
+    elif wscale is not None:
+        raise ValueError('--scale and --wscale options are incompatible')
+    elif hscale is not None:
+        raise ValueError('--scale and --hscale options are incompatible')
+    del options['wscale']
+    del options['hscale']
 
-        # scale vs. (wscale, hscale) -> scale, a pair of values (wscale, hscale)
-        scale = options['scale']
-        wscale = options['wscale']
-        hscale = options['hscale']
-        if scale is None:
-            # A scalar --scale is normalized by get_size; here we only consolidate
-            # per-axis --wscale / --hscale into a (width, height) pair.
-            if wscale is not None or hscale is not None:
-                options['scale'] = (wscale if wscale is not None else 100.,
-                                    hscale if hscale is not None else 100.)
-        elif wscale is not None:
-            raise ValueError('--scale and --wscale options are incompatible')
-        elif hscale is not None:
-            raise ValueError('--scale and --hscale options are incompatible')
-        del options['wscale']
-        del options['hscale']
+    # overlap vs. overlaps -> overlaps as two values
+    overlap = options['overlap']
+    overlaps = options['overlaps']
+    if overlap is not None and overlaps is not None:
+        raise ValueError('--overlap and --overlaps options are incompatible')
+    overlap = overlap or 0.
+    if overlaps is None:
+        options['overlaps'] = (overlap, overlap)
+    del options['overlap']
 
-        # overlap vs. overlaps -> overlaps as two values
-        overlap = options['overlap']
-        overlaps = options['overlaps']
-        if overlap is not None and overlaps is not None:
-            raise ValueError('--overlap and --overlaps options are incompatible')
-        overlap = overlap or 0.
-        if overlaps is None:
-            options['overlaps'] = (overlap, overlap)
-        del options['overlap']
+    # display_upward vs. display_downward -> display_upward
+    display_downward = options['display_downward']
+    if display_downward is not None:
+        if options['display_upward'] is None:
+            options['display_upward'] = not display_downward
+        else:
+            raise ValueError('--up and --down options are incompatible')
+    del options['display_downward']
 
-        # display_upward vs. display_downward -> display_upward
-        display_downward = options['display_downward']
-        if display_downward is not None:
-            if options['display_upward'] is None:
-                options['display_upward'] = not display_downward
-            else:
-                raise ValueError('--up and --down options are incompatible')
-        del options['display_downward']
+    # frame vs. size
+    if options['frame'] is not None and options['size'] is not None:
+        raise ValueError('--frame and --size options are incompatible')
 
-        # frame vs. size
-        if options['frame'] is not None and options['size'] is not None:
-            raise ValueError('--frame and --size options are incompatible')
-
-        # twobyte option and default extension
-        extension = options['extension']
-        if extension is None:
-            if options['twobytes']:
-                options['extension'] = 'tiff'
-            else:
-                options['extension'] = 'jpg'
-        elif options['twobytes'] and extension.lower() not in {'tif', 'tiff'}:
-            raise ValueError('only tiffs can be written in 16-bit mode')
-
-    except Exception as err:
-        logger and logger.exception(err)
-        raise
+    # twobyte option and default extension
+    extension = options['extension']
+    if extension is None:
+        if options['twobytes']:
+            options['extension'] = 'tiff'
+        else:
+            options['extension'] = 'jpg'
+    elif options['twobytes'] and extension.lower() not in {'tif', 'tiff'}:
+        raise ValueError('Only tiffs can be written in 16-bit mode')
 
     return options
 
 
-def get_versions(versions=None, **options):
+def get_versions(versions=None, *, files=None, **options):
     """Read the versions file and return a list of options dictionaries.
+
+    The options are not validated or deconflicted.
 
     Parameters:
         versions (str or Path, optional): Path to a "versions" file with alternative sets
             of command-line options, one set per row.
+        files (list, optional): Placeholder to ensure `options` does not still contain a
+            list of files to process.
         **options: Additional picmaker input parameters.
 
     Returns:
-        list[dict]: One or more dictionaries of alternative input parameters, deconfliced.
+        list[dict]: One or more dictionaries of alternative input parameters.
 
     Raises:
-        ValueError: If any parameter has an invalid or contradictory value.
+        argparse.ArgumentError: If an error occurs parsing a line of the versions file.
+        OSError: If a versions file does not exist or cannot be read.
+        ValueError: If the versions file refers to additional input files or another
+            versions file.
     """
 
     if not versions:
-        return [deconflict_options(options)]
+        return [options]
 
     parser = get_parser()
 
@@ -566,21 +535,59 @@ def get_versions(versions=None, **options):
     options_list = []
     for line in lines:
         new_args = line.split()
-        if not new_args:
+        if not new_args:  # ignore a blank line in the file
             continue
 
+        # Parse the line starting from the original namespace
         namespace = argparse.Namespace(**options)
         alt_namespace = parser.parse_args(new_args, namespace=namespace)
-        alt_options = validate_options(alt_namespace, _versions_validated=versions)
-        options_list.append(alt_options)
+
+        # Apply restrictions on the content of the versions file
+        if alt_namespace.files:
+            raise ValueError(f'Versions file {versions} cannot list new input files: "'
+                             + ", ".join(alt_namespace.files) + '"')
+        for name in ('directory', 'recursive', 'patterns', 'movie', 'versions',
+                     'logging'):
+            if getattr(alt_namespace, name):
+                raise ValueError(f'Versions file {versions} cannot redefine --{name}')
+
+        options_list.append(alt_namespace.__dict__)
 
     if not options_list:
         options_list = [options]
 
-    options_list = [deconflict_options(opts) for opts in options_list]
     return options_list
 
 
-__all__ = ['deconflict_options', 'get_parser', 'get_versions', 'validate_options']
+_ONE_BASED_PAIRS   = ('samples', 'lines', 'bands')
+_ONE_BASED_SCALARS = ('obj', 'band')
+
+
+def shift_to_zero_origin(options):
+    """Convert 1-based CLI index options to picmaker's 0-based convention.
+
+    The command line and version files present "--obj", "--band", "--bands", "--lines",
+    and "--samples" as 1-based (their validated minimum is 1); picmaker works in 0-based
+    indices.
+
+    This function mutates and returns the `options` dict, shifting each index option
+    present with a non-None value.
+    """
+
+    for name in _ONE_BASED_PAIRS:
+        value = options.get(name)
+        if value is not None:
+            options[name] = (value[0] - 1, value[1])
+
+    for name in _ONE_BASED_SCALARS:
+        value = options.get(name)
+        if value is not None:
+            options[name] = value - 1
+
+    return options
+
+
+__all__ = ['deconflict_options', 'get_parser', 'get_versions',  'shift_to_zero_origin',
+           'validate_options']
 
 ##########################################################################################

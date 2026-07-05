@@ -6,11 +6,17 @@ wrong type, and ``ValueError`` for an invalid or contradictory value. These
 tests exercise those documented contracts as a black box.
 """
 
+from pathlib import Path
 from typing import Any
 
 import pytest
 
-from picmaker.options import deconflict_options, get_parser, validate_options
+from picmaker.options import (
+    deconflict_options,
+    get_parser,
+    get_versions,
+    validate_options,
+)
 
 
 def _validated(**overrides: Any) -> dict[str, Any]:
@@ -23,7 +29,7 @@ def _validated(**overrides: Any) -> dict[str, Any]:
 
 def test_off_list_choice_raises_keyerror() -> None:
     """A value outside a choice list is rejected (``--extension`` choices)."""
-    with pytest.raises(KeyError, match='unrecognized'):
+    with pytest.raises(KeyError, match='Unrecognized'):
         _validated(extension='xyz')
 
 
@@ -40,9 +46,9 @@ def test_wrong_scalar_type_raises_typeerror() -> None:
 
 
 def test_wrong_string_type_raises_typeerror() -> None:
-    """A non-string where a string is required (``directory``)."""
+    """A non-string where a string is required (``suffix``)."""
     with pytest.raises(TypeError):
-        _validated(directory=123)
+        _validated(suffix=123)
 
 
 def test_pair_too_short_raises_valueerror() -> None:
@@ -75,10 +81,14 @@ def test_element_out_of_range_raises_valueerror() -> None:
         _validated(bands=[0, 3])       # band indices start at 1
 
 
-def test_recursive_versions_rejected() -> None:
-    """A ``--versions`` file may not itself request a different versions file."""
-    with pytest.raises(ValueError, match='recursive'):
-        validate_options({'versions': 'a.txt'}, _versions_validated='b.txt')
+def test_recursive_versions_rejected(tmp_path: Path) -> None:
+    """A versions file may not itself request another versions file."""
+    inner = tmp_path / 'inner.txt'
+    inner.write_text('--gamma 2\n')
+    outer = tmp_path / 'outer.txt'
+    outer.write_text(f'--versions {inner}\n')
+    with pytest.raises(ValueError, match='cannot redefine --versions'):
+        get_versions(versions=str(outer))
 
 
 # --- documented defaulting -------------------------------------------------
@@ -97,12 +107,12 @@ def test_defaults_are_filled() -> None:
 def test_deconflict_defaults_extension_to_jpg() -> None:
     """With no ``--16`` and no extension, the output defaults to jpg."""
     out = deconflict_options(validate_options(
-        get_parser().parse_args(['in.vic'])))
+        vars(get_parser().parse_args(['in.vic']))))
     assert out['extension'] == 'jpg'
 
 
 def test_deconflict_defaults_16bit_to_tiff() -> None:
     """``--16`` with no explicit extension defaults to tiff."""
     out = deconflict_options(validate_options(
-        get_parser().parse_args(['in.vic', '--16'])))
+        vars(get_parser().parse_args(['in.vic', '--16']))))
     assert out['extension'] == 'tiff'

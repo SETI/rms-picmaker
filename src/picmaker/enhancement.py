@@ -22,7 +22,8 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
             samples).
         valid_limits (tuple[float, float]): The values that correspond to the minimum and
             maximum of the mapping.
-        invalid_mask (array[bool], optional): Boolean mask of invalid pixels.
+        invalid_mask (array[bool], optional): Boolean mask of invalid pixels, including
+            all NaNs in `array`.
         default_tint (str, tuple[int, int, int], or list of these, optional): The default
             colormap to use as defined by the instrument. This is used if not overridden
             by `colormap` and if `tint` is True.

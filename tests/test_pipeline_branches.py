@@ -13,13 +13,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from picmaker.options import get_parser, validate_options
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
 
 
 def _run(infiles: list[str], tmp_path: Path, *extra: str) -> None:
     """Build a complete options dict the CLI way and run the pipeline."""
-    options = validate_options(get_parser().parse_args(
+    options = vars(get_parser().parse_args(
         [*infiles, '--directory', str(tmp_path), *extra]
     ))
     picmaker(**options)
@@ -45,7 +45,7 @@ def test_twobytes_requires_tiff_extension(
     """``--16`` with an explicit non-TIFF extension is rejected; only tiffs may
     be written in 16-bit mode. (``--16`` alone defaults the extension to tiff.)
     """
-    with pytest.raises(ValueError, match='only tiffs can be written'):
+    with pytest.raises(ValueError, match='Only tiffs can be written'):
         _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
              '--16', '--extension', 'jpg')
 
@@ -214,7 +214,7 @@ def test_pds3_label_redirects_to_vicar(
 
 def test_no_input_files_raises(tmp_path: Path) -> None:
     """When no input files resolve, ``picmaker`` raises ``ValueError``."""
-    with pytest.raises(ValueError, match='no input files identified'):
+    with pytest.raises(ValueError, match='No input files identified'):
         _run([], tmp_path)
 
 

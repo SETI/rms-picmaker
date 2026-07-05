@@ -84,7 +84,7 @@ def get_fits_image_hdu(hdulist, obj=None, pointers=None, **kwargs):
             raise IndexError(f'{obj} is out of range for {hdulist.filename()}')
 
     if not hdu_is_image(selected_hdu):
-        raise ValueError(f'selected HDU is not an IMAGE in {hdulist.filename()}')
+        raise ValueError(f'Selected HDU is not an IMAGE in {hdulist.filename()}')
 
     return selected_hdu
 

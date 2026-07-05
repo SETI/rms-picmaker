@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from picmaker.options import get_parser, validate_options
+from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
 
 # hst_acs.fits and hst_wfpc2.fits are omitted from the end-to-end pipeline
@@ -29,7 +29,7 @@ ALL_FIXTURES = [
 
 def _run(infile: Path, tmp_path: Path, *extra: str) -> None:
     """Build a complete options dict the CLI way and run the pipeline."""
-    options = validate_options(get_parser().parse_args(
+    options = vars(get_parser().parse_args(
         [str(infile), '--directory', str(tmp_path), *extra]
     ))
     picmaker(**options)
@@ -121,7 +121,7 @@ def test_proceed_continues_past_unreadable_file(
     bad.write_bytes(b'not a vicar file')
     out = tmp_path / 'out'
     # Both input files must precede the options for argparse to collect them.
-    options = validate_options(get_parser().parse_args([
+    options = vars(get_parser().parse_args([
         str(bad), str(fixtures_dir / 'cassini_iss.vic'),
         '--directory', str(out), '--proceed',
     ]))
@@ -140,7 +140,7 @@ def test_movie_proceed_continues_past_unreadable_file(
     bad = src / 'bad.vic'
     bad.write_bytes(b'not a vicar file')
     out = tmp_path / 'out'
-    options = validate_options(get_parser().parse_args([
+    options = vars(get_parser().parse_args([
         str(bad), str(fixtures_dir / 'cassini_iss.vic'),
         '--directory', str(out), '--movie', '--proceed',
     ]))

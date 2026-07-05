@@ -56,11 +56,16 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
                 array = array[..., rows[0]:rows[-1]+1, cols[0]:cols[-1]+1]
                 antimask = antimask[..., rows[0]:rows[-1]+1, cols[0]:cols[-1]+1]
 
+        # Check for empty array
+        unmasked = array[antimask]
+        if not len(unmasked):
+            return (0., 1.)
+
         # Apply footprint if any; leave antimask unchanged
         if footprint:
             # Confine masked (out-of-range or NaN) pixels to the valid data range first,
             # so the median filter cannot bleed extreme masked values into valid pixels.
-            array = np.clip(array, np.min(array[antimask]), np.max(array[antimask]))
+            array = np.clip(array, np.min(unmasked), np.max(unmasked))
             circle_footprint = _circle_mask(footprint)
             if array.ndim == 3:
                 if array.shape[0] > 3:  # for more than three bands, collapse to 2-D
@@ -74,13 +79,11 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
             else:
                 array = median_filter(array, footprint=circle_footprint)
 
-        # Get the extrema
-        unmasked = array[antimask]
-        if not len(unmasked):   # fully masked
-            return (0., 1.)
+            unmasked = array[antimask]
 
-        array_min = np.min(array[antimask])
-        array_max = np.max(array[antimask])
+        # Get the extrema
+        array_min = np.min(unmasked)
+        array_max = np.max(unmasked)
 
         # Return for the case of a single-valued array
         if array_min == array_max:

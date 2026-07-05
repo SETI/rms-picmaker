@@ -93,6 +93,9 @@ class ZZZ_Generic(ImageData):
         Returns:
             ZZZ_Generic or None: The ImageData subclass if the format of `file` is
             recognized; otherwise, None.
+
+        Raises:
+            NotImplementedError: If a 16-bit TIFF file uses the "palette" option.
         """
 
         # Handle a PDS3 file with an attached label. A ".lbl" file is recognized earlier
@@ -130,7 +133,7 @@ class ZZZ_Generic(ImageData):
                 pass
 
             if palette is not None:
-                raise OSError('16-bit palette option is not supported')
+                raise NotImplementedError('16-bit palette option is not supported')
 
             return ZZZ_Generic(array, False, None)
 
