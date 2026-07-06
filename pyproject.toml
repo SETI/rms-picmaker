@@ -62,7 +62,6 @@ Issues = "https://github.com/SETI/rms-picmaker/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# TODO Update desired parallelism
 addopts = ["-n", "auto", "--cov=picmaker", "--strict-markers", "--strict-config"]
 markers = []
 # Surface unexpected runtime warnings as test failures. Add targeted

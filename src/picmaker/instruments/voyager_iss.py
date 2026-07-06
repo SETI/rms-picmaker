@@ -48,7 +48,7 @@ class Voyager_ISS(ImageData):
         except (KeyError, TypeError, IndexError):
             return None
 
-        array = read_pds3_image_array(label, **kwargs)
+        array = read_pds3_image_array(label, filepath, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
         return Voyager_ISS(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name, None))
 

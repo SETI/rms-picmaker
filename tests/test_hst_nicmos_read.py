@@ -53,6 +53,26 @@ def test_nicmos_fits_reads_science_extension() -> None:
     assert tuple(data.default_tint) == (255, 61, 61)
 
 
+def test_nicmos_tinted_render_applies_red_tint(tmp_path: Path) -> None:
+    """The real NICMOS FITS renders (losslessly, to PNG) with its F187N red tint
+    actually applied to the pixels: the black->tint->white ramp gives G == B
+    everywhere and R strictly greater than G somewhere, and the render carries real
+    structure. A missing tint (a grayscale render) would fail this — unlike the
+    geometry-only preview checks below, which the unbundled references force."""
+    generate_previews(IMAGE, tmp_path, extra_args=(
+        '--percentiles', '0.02', '99.98', '--gamma', '0.5',
+        '--frame', '128', '128', '--tint', '--extension', 'png'))
+    with Image.open(tmp_path / 'nb06030a0_mos.png') as im:
+        out = np.asarray(im)
+
+    assert out.ndim == 3
+    assert out.shape[2] == 3                         # tinted -> RGB
+    r, g, b = out[..., 0], out[..., 1], out[..., 2]
+    assert np.array_equal(g, b)                      # red tint (255, 61, 61): G tracks B
+    assert (r != g).any()                            # colored, not gray (tint applied)
+    assert out.std() > 0                             # real image structure, not blank
+
+
 @pytest.mark.parametrize(('suffix', 'version_args', 'reference', 'mode'), PREVIEWS)
 def test_nicmos_preview_geometry(suffix: str, version_args: tuple[str, ...],
                                  reference: str, mode: str, tmp_path: Path) -> None:

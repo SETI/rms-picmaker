@@ -41,7 +41,7 @@ class ZZZ_Generic(ImageData):
             otherwise, None.
         """
 
-        array = read_pds3_image_array(label, obj)
+        array = read_pds3_image_array(label, filepath, obj)
         return ZZZ_Generic(array, False, None)
 
     @staticmethod
@@ -107,7 +107,7 @@ class ZZZ_Generic(ImageData):
         if _PDS3_LABEL_SIGNATURE.search(head):
             method = kwargs.get('pds3_method', DEFAULT_PDS3_METHOD)
             label = pdsparser.Pds3Label(filepath, method=method)
-            array = read_pds3_image_array(label, kwargs.get('obj'))
+            array = read_pds3_image_array(label, filepath, kwargs.get('obj'))
             return ZZZ_Generic(array, False, None)
 
         # Handle pickle file
@@ -130,12 +130,11 @@ class ZZZ_Generic(ImageData):
             try:
                 (array, palette) = read_tiff16(filepath)
             except Exception:
-                pass
-
-            if palette is not None:
-                raise NotImplementedError('16-bit palette option is not supported')
-
-            return ZZZ_Generic(array, False, None)
+                pass                # not a TIFF16; fall through to the PIL handler
+            else:
+                if palette is not None:
+                    raise NotImplementedError('16-bit palette option is not supported')
+                return ZZZ_Generic(array, False, None)
 
         # Handle PIL Image
         try:

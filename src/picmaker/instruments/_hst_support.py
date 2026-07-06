@@ -20,8 +20,7 @@ def get_hst_filter_digits(filter_name):
 
 def is_science_hdu(hdu):
     """True if the HDU is a science ('SCI') extension."""
-    if hdu.header.get('EXTNAME', '') == 'SCI':
-        return True
+    return hdu.header.get('EXTNAME', '') == 'SCI'
 
 
 __all__ = ['get_hst_filter_digits', 'is_science_hdu']

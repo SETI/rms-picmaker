@@ -109,7 +109,6 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
     best_axis = 0
     best_unwrapped = unwrapped_size
     best_wrapped = unwrapped_size
-    best_overlap = 0.
 
     quality_1x1 = quality
 
@@ -137,7 +136,6 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
                 (unwrapped_size, quality,
                  expand) = _get_size_for_size(array_size, temp_size, axis,
                                               expand_min, expand_max)
-                test_overlap = (expand - 1.) / tweak * 100.
 
                 wrapped_size = size
 
@@ -150,7 +148,6 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
                 (unwrapped_size, expanded_size, quality,
                  expand) = _get_size_for_frame(array_size, temp_frame, axis,
                                                expand_min, expand_max)
-                test_overlap = (expand - 1.) / tweak * 100.
 
                 wrapped_size = [expanded_size[0], expanded_size[1]]
                 wrapped_size[axis] = (wrapped_size[axis] + (k-1)) // k
@@ -171,14 +168,11 @@ def get_size(array_rgb_shape, *, size=None, scale=(100., 100.), frame=None, wrap
             best_axis = axis
             best_unwrapped = unwrapped_size
             best_wrapped = wrapped_size
-            best_overlap = test_overlap
 
-    quality = best_quality
     sections = best_sections
     axis = best_axis
     unwrapped_size = best_unwrapped
     wrapped_size = best_wrapped
-    test_overlap = best_overlap
 
     return (unwrapped_size, wrapped_size, sections, axis)
 

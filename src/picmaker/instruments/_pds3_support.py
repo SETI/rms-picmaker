@@ -12,11 +12,16 @@ PDS3_METHODS = ['fast', 'strict', 'loose', 'compound']
 DEFAULT_PDS3_METHOD = 'fast'
 
 
-def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
+def read_pds3_image_array(label, filepath=None, obj=None, pointers=None, **kwargs):
     """Return the image array described by a PDS3 label.
 
     Parameters:
         label (Pds3Label): A parsed PDS3 label.
+        filepath (str or Path, optional): Path of the label's own file. A detached data
+            pointer is resolved relative to this file's directory, and an attached pointer
+            reads the data from this file. If None (e.g. the label was parsed from a
+            content string), a detached pointer is resolved relative to the current
+            working directory and an attached pointer raises.
         obj (int, optional): An object index within the file, needed if the label
             describes more than one image object.
         pointers (list[str], optional): Alternative list of names of the IMAGE object
@@ -104,9 +109,9 @@ def read_pds3_image_array(label, obj=None, pointers=None, **kwargs):
     # interpreted relative to the directory containing the label file; if the label was
     # parsed from a content string rather than a file, fall back to the current working
     # directory.
-    label_path = getattr(label, '_filepath', '')
+    label_path = str(filepath) if filepath else ''
     if label_path:
-        base_dir = pathlib.Path(str(label_path)).parent
+        base_dir = pathlib.Path(label_path).parent
     else:
         base_dir = pathlib.Path('.')
 

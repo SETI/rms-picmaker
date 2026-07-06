@@ -25,6 +25,7 @@ _INSTRUMENTS = []
 def _register_instrument(subclass):
     if subclass not in _INSTRUMENTS:
         _INSTRUMENTS.append(subclass)
+        # Note that ZZZ_Generic has to come last in the list
         _INSTRUMENTS.sort(key=lambda k: k.__name__)
 
 
@@ -102,6 +103,8 @@ def read_image_array(filepath, **kwargs):
     arrays = [r.array for r in results]
     arrays = [np.reshape(a, (1, *a.shape)) if len(a.shape) < 3 else a for a in arrays]
     array3d = np.vstack(arrays)
+    # Note that the `default_upward` and `default_tint` are defined by the first filepath
+    # in cases where there is more than one.
     return ImageData(array3d, results[0].default_upward, results[0].default_tint)
 
 
@@ -167,14 +170,11 @@ def _read_one_image_array(filepath, **kwargs):
                         return test
 
     # Handle another file format
-    try:
-        for instrument in _INSTRUMENTS:
-            if hasattr(instrument, 'detect_in_file'):
-                test = instrument.detect_in_file(filepath, **kwargs)
-                if test:
-                    return test
-    except Exception:
-        pass
+    for instrument in _INSTRUMENTS:
+        if hasattr(instrument, 'detect_in_file'):
+            test = instrument.detect_in_file(filepath, **kwargs)
+            if test:
+                return test
 
     raise OSError(f'unrecognized file format in {filepath}')
 

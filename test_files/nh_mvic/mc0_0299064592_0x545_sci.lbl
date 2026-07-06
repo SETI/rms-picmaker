@@ -2,14 +2,14 @@ PDS_VERSION_ID       = PDS3
                                                                               
 RECORD_TYPE          = FIXED_LENGTH                                           
 RECORD_BYTES         = 2880                                                   
-FILE_RECORDS         = 11960                                                  
+FILE_RECORDS         = 198                                                  
                                                                               
 ^HEADER = "MC0_0299064592_0X545_SCI.FIT"                                      
 ^IMAGE = ("MC0_0299064592_0X545_SCI.FIT", 9)                                  
-^EXTENSION_ERROR_EST_HEADER = ("MC0_0299064592_0X545_SCI.FIT", 4789)          
-^EXTENSION_ERROR_EST_IMAGE = ("MC0_0299064592_0X545_SCI.FIT", 4790)           
-^EXTENSION_QUALITY_HEADER = ("MC0_0299064592_0X545_SCI.FIT", 9570)            
-^EXTENSION_QUALITY_IMAGE = ("MC0_0299064592_0X545_SCI.FIT", 9571)             
+^EXTENSION_ERROR_EST_HEADER = ("MC0_0299064592_0X545_SCI.FIT", 84)          
+^EXTENSION_ERROR_EST_IMAGE = ("MC0_0299064592_0X545_SCI.FIT", 85)           
+^EXTENSION_QUALITY_HEADER = ("MC0_0299064592_0X545_SCI.FIT", 160)            
+^EXTENSION_QUALITY_IMAGE = ("MC0_0299064592_0X545_SCI.FIT", 161)             
 NOTE = "                                                                      
                                                                               
                                                                               
@@ -377,8 +377,8 @@ OBJECT                          = IMAGE
   AXIS_ORDER_TYPE                 = "FIRST_INDEX_FASTEST"                     
   LINE_DISPLAY_DIRECTION          = "UP"                                      
   SAMPLE_DISPLAY_DIRECTION        = "RIGHT"                                   
-  LINE_SAMPLES                    = 5024                                      
-  LINES                           = 685                                       
+  LINE_SAMPLES                    = 628                                      
+  LINES                           = 85                                       
   OFFSET                          = 0.00000000000                             
   SCALING_FACTOR                  = 1.00000000000                             
 END_OBJECT                      = IMAGE                                       
@@ -410,8 +410,8 @@ OBJECT                          = EXTENSION_ERROR_EST_IMAGE
   AXIS_ORDER_TYPE                 = "FIRST_INDEX_FASTEST"                     
   LINE_DISPLAY_DIRECTION          = "UP"                                      
   SAMPLE_DISPLAY_DIRECTION        = "RIGHT"                                   
-  LINE_SAMPLES                    = 5024                                      
-  LINES                           = 685                                       
+  LINE_SAMPLES                    = 628                                      
+  LINES                           = 85                                       
 END_OBJECT                      = EXTENSION_ERROR_EST_IMAGE                   
                                                                               
 OBJECT                          = EXTENSION_QUALITY_HEADER                    
@@ -450,7 +450,7 @@ OBJECT                          = EXTENSION_QUALITY_IMAGE
   AXIS_ORDER_TYPE                 = "FIRST_INDEX_FASTEST"                     
   LINE_DISPLAY_DIRECTION          = "UP"                                      
   SAMPLE_DISPLAY_DIRECTION        = "RIGHT"                                   
-  LINE_SAMPLES                    = 5024                                      
-  LINES                           = 685                                       
+  LINE_SAMPLES                    = 628                                      
+  LINES                           = 85                                       
 END_OBJECT                      = EXTENSION_QUALITY_IMAGE                     
 END                                                                           

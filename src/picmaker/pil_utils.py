@@ -181,7 +181,7 @@ def write_pil(image, outfile, quality=75):
         array = np.dstack((newarrays[0], newarrays[1], newarrays[2]))
 
         # Reshape, clip and convert back to two bytes
-        array = array.reshape((image[c].size[1], image[c].size[0], 3))
+        array = array.reshape((image[0].size[1], image[0].size[0], 3))
         array = array.clip(0, 65535).astype('uint16')
 
         # Write file

@@ -149,6 +149,18 @@ def test_unrecognized_format_raises(tmp_path: Path) -> None:
         read_image_array(str(src))
 
 
+def test_corrupt_tiff_falls_through_to_unrecognized(tmp_path: Path) -> None:
+    """A ``.tif`` that ``read_tiff16`` cannot parse falls through the generic
+    reader to the clean 'unrecognized file format' error, rather than leaking an
+    ``UnboundLocalError`` from the left-unbound ``array``/``palette`` (regression:
+    the 16-bit TIFF branch used to reference them after a failed read).
+    """
+    bad = tmp_path / 'bad.tif'
+    bad.write_bytes(b'this is not a TIFF file at all')
+    with pytest.raises(OSError, match='unrecognized file format'):
+        read_image_array(str(bad))
+
+
 def test_directory_path_raises_is_a_directory_error(tmp_path: Path) -> None:
     """A path that exists but is a directory raises IsADirectoryError."""
     with pytest.raises(IsADirectoryError):

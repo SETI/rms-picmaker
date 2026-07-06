@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from picmaker.options import get_parser
 from picmaker.picmaker import picmaker
@@ -23,6 +24,16 @@ def _run(infiles: list[str], tmp_path: Path, *extra: str) -> None:
         [*infiles, '--directory', str(tmp_path), *extra]
     ))
     picmaker(**options)
+
+
+def _render(arr: np.ndarray, tmp_path: Path, *extra: str, name: str = 'in') -> np.ndarray:
+    """Render a numpy array through the pipeline to a lossless PNG and read the
+    result back as an array, so pixel-level assertions are exact (no JPEG loss)."""
+    src = tmp_path / f'{name}.npy'
+    np.save(src, arr)
+    _run([str(src)], tmp_path, '--extension', 'png', *extra)
+    with Image.open(tmp_path / f'{name}.png') as im:
+        return np.asarray(im)
 
 
 # ---------------------------------------------------------------------------
@@ -66,10 +77,26 @@ def test_extension_default_jpg(fixtures_dir: Path, tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_zebra_path(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``--zebra`` runs ``fill_zebra_stripes`` without crashing."""
-    _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path, '--zebra')
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_zebra_fills_edge_zero_stripe(tmp_path: Path) -> None:
+    """``--zebra`` interpolates leading/trailing zero stripes from the neighboring
+    rows: the zeroed edge pixels become bright, unlike the un-zebra'd render.
+    """
+    # All 100 except row 4's first and last pixels, which are a zero "zebra" stripe.
+    # Rows 3 and 5 are nonzero at those columns, so fill_zebra_stripes averages them.
+    arr = np.full((8, 8), 100, dtype='uint8')
+    arr[4, 0] = 0
+    arr[4, 7] = 0
+    # Fixed limits so both renders share one stretch and pixels compare directly.
+    plain = _render(arr, tmp_path, '--limits', '0', '200', name='plain')
+    zebra = _render(arr, tmp_path, '--limits', '0', '200', '--zebra', name='zebra')
+
+    assert not np.array_equal(plain, zebra)                 # zebra changed the pixels
+    # The zero stripe is dark without zebra and filled (bright) with it.
+    assert plain[4, 0] == plain[4, 7] == 0
+    assert zebra[4, 0] > 100
+    assert zebra[4, 7] > 100
+    # Interior pixels (never part of a stripe) are untouched.
+    assert np.array_equal(plain[:, 3], zebra[:, 3])
 
 
 # ---------------------------------------------------------------------------
@@ -152,24 +179,35 @@ def test_versions_writes_each_variant(
 # ---------------------------------------------------------------------------
 
 
-def test_wrap_branch_when_image_elongated(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``--wrap`` plus an elongated ``--size`` triggers ``wrap_pil_image``."""
-    _run(
-        [str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
-        '--wrap', '--size', '120', '16',
-    )
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_wrap_reflows_elongated_image(tmp_path: Path) -> None:
+    """``--wrap`` reflows a very elongated image (under ``--frame``) into stacked
+    sections: the wrapped render is taller and narrower than the frame-fit strip.
+    """
+    # A wide 8x64 strip; --frame 40 40 fits it as a short, wide image.
+    arr = np.tile((np.arange(64, dtype='uint8') * 3)[None, :], (8, 1))
+    plain = _render(arr, tmp_path, '--frame', '40', '40', name='plain')
+    wrapped = _render(arr, tmp_path, '--frame', '40', '40', '--wrap', name='wrapped')
+
+    # np arrays are (H, W): wrap trades width for height (stacks the strip).
+    assert wrapped.shape[0] > plain.shape[0]                # taller
+    assert wrapped.shape[1] < plain.shape[1]                # narrower
 
 
-def test_pad_branch_runs(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``--frame`` plus ``--pad`` writes a padded output."""
-    _run(
-        [str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
-        '--frame', '64', '64', '--pad',
-    )
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_pad_fills_border_with_pad_color(tmp_path: Path) -> None:
+    """``--frame`` + ``--pad`` centers the scaled image and fills the surrounding
+    frame with a uniform pad color, rather than stretching to fill.
+    """
+    # A vertical gradient so image columns vary (distinguishable from flat padding).
+    arr = np.tile((np.arange(8, dtype='uint8') * 30)[:, None], (1, 8))
+    # 8x8 into a 32x16 frame -> scales to 16x16, then pads width to 32 (8px each side).
+    out = _render(arr, tmp_path, '--frame', '32', '16', '--pad', name='pad')
+
+    assert out.shape[:2] == (16, 32)                        # (H, W) == the frame
+    assert np.ptp(out[:, 0]) == 0                           # left pad column uniform
+    assert np.ptp(out[:, -1]) == 0                          # right pad column uniform
+    assert out[0, 0] == out[0, -1]                          # same pad color both sides
+    assert np.ptp(out[:, 16]) > 0                           # center holds the gradient
+    assert out[0, 0] != out[8, 16]                          # pad color != image content
 
 
 # ---------------------------------------------------------------------------
@@ -223,26 +261,44 @@ def test_no_input_files_raises(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_display_upward_override(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``--up`` overrides the per-instrument default orientation."""
-    _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path, '--up')
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_up_and_down_are_vertical_mirrors(tmp_path: Path) -> None:
+    """``--up`` and ``--down`` render the same input as vertical mirror images,
+    with the bright band landing at opposite edges."""
+    # Vertically asymmetric: a bright band across the top three rows only.
+    arr = np.zeros((8, 8), dtype='uint8')
+    arr[:3] = 200
+    up = _render(arr, tmp_path, '--up', name='up')
+    down = _render(arr, tmp_path, '--down', name='down')
+
+    assert not np.array_equal(up, down)                     # orientation actually changed
+    assert np.array_equal(up, np.flipud(down))              # vertical mirrors
+    # --up makes lines increase upward, so the bright band moves to the bottom.
+    assert up[-1].mean() > up[0].mean()
+    assert down[0].mean() > down[-1].mean()
 
 
-def test_display_downward_override(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``--down`` overrides the per-instrument default orientation."""
-    _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path, '--down')
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_rotate_actually_rotates(tmp_path: Path) -> None:
+    """``--rotate`` rearranges pixels the way numpy's rot90 does. A no-op rotate
+    (the old ``rotate``/``rotation`` wiring bug) would fail this outright."""
+    # A distinct value per quadrant so every rotation is detectable.
+    arr = np.zeros((8, 8), dtype='uint8')
+    arr[:4, :4], arr[:4, 4:] = 60, 120
+    arr[4:, :4], arr[4:, 4:] = 180, 240
+
+    none = _render(arr, tmp_path, '--rotate', 'none', name='none')
+    r90 = _render(arr, tmp_path, '--rotate', 'rot90', name='r90')
+    r180 = _render(arr, tmp_path, '--rotate', 'rot180', name='r180')
+
+    assert not np.array_equal(r90, none)                    # not a no-op
+    assert np.array_equal(r90, np.rot90(none, 1))
+    assert np.array_equal(r180, np.rot90(none, 2))
 
 
-def test_tint_with_no_image_info_skips_override(tmp_path: Path) -> None:
-    """``--tint`` on an image with no ``image_info`` leaves the requested
-    colormap in place (the tint override path is a no-op).
-    """
+def test_tint_with_no_image_info_is_a_noop(tmp_path: Path) -> None:
+    """``--tint`` on an image with no instrument ``default_tint`` leaves the render
+    byte-for-byte identical to the un-tinted default (the override is a no-op)."""
     # A plain numpy array carries no instrument metadata for the tint to use.
-    src = tmp_path / 'plain.npy'
-    np.save(src, (np.arange(64).reshape(8, 8) * 4).astype('uint8'))
-    _run([str(src)], tmp_path, '--tint')
-    assert (tmp_path / 'plain.jpg').exists()
+    arr = (np.arange(64).reshape(8, 8) * 4).astype('uint8')
+    plain = _render(arr, tmp_path, name='plain')
+    tinted = _render(arr, tmp_path, '--tint', name='tinted')
+    assert np.array_equal(plain, tinted)

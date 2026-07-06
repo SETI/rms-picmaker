@@ -34,7 +34,7 @@ class Cassini_ISS(ImageData):
         except (KeyError, TypeError, IndexError):
             return None
 
-        array = read_pds3_image_array(label, **kwargs)
+        array = read_pds3_image_array(label, filepath, **kwargs)
         filters = label.get('FILTER_NAME', ('', ''))
         return Cassini_ISS(array, _DEFAULT_UPWARD, Cassini_ISS._default_tint(*filters))
 

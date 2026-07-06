@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pdsparser
 
-from picmaker.instruments import read_pds3_image_array
+from tests import read_pds3_array as _read
 
 
 def test_pds3_list_pointer_with_filename_and_record_offset(tmp_path: Path) -> None:
@@ -31,7 +31,7 @@ def test_pds3_list_pointer_with_filename_and_record_offset(tmp_path: Path) -> No
         'END_OBJECT = IMAGE\r\n'
         'END\r\n'
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     assert arr.shape == (8, 8)
 
 
@@ -55,6 +55,6 @@ def test_pds3_band_sequential_three_dim(tmp_path: Path) -> None:
         'END_OBJECT = IMAGE\r\n'
         'END\r\n'
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     assert arr.shape == (2, 4, 4)
     np.testing.assert_array_equal(arr, pixels.reshape(2, 4, 4))

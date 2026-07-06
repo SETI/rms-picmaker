@@ -3,9 +3,6 @@
 ##########################################################################################
 """New Horizons LORRI detector and reader."""
 
-import pdsparser                # noqa
-import astropy.io.fits as pyfits  # noqa
-
 from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
@@ -37,7 +34,7 @@ class NH_LORRI(ImageData):
         except KeyError:
             return None
 
-        array = read_pds3_image_array(label, **kwargs)
+        array = read_pds3_image_array(label, filepath, **kwargs)
         return NH_LORRI(array, _DEFAULT_UPWARD, None)
 
     @staticmethod

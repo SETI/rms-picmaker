@@ -19,7 +19,8 @@ import pdsparser
 from PIL import Image
 
 from picmaker import write_pil
-from picmaker.instruments import read_image_array, read_pds3_image_array
+from picmaker.instruments import read_image_array
+from tests import read_pds3_array as _read
 
 # A reusable PDS3 IMAGE object describing 8x8 UNSIGNED_INTEGER pixels stored in
 # a detached "data.dat" file alongside the label.
@@ -67,7 +68,7 @@ class TestReadPds3ImageArray:
         single-band IMAGE) given a parsed label.
         """
         label = pdsparser.Pds3Label(str(fixtures_dir / 'pds3_sample.IMG'))
-        arr = read_pds3_image_array(label, 0)
+        arr = _read(label, 0)
         assert arr.shape == (8, 8)
 
 

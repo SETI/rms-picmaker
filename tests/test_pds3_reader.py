@@ -21,7 +21,7 @@ import numpy as np
 import pdsparser
 import pytest
 
-from picmaker.instruments import read_pds3_image_array
+from tests import read_pds3_array as _read
 
 
 def _write_pds3_attached(tmp_path: Path) -> Path:
@@ -56,7 +56,7 @@ def _write_pds3_attached(tmp_path: Path) -> Path:
 def test_attached_integer_pointer(tmp_path: Path) -> None:
     """Attached image: ``^IMAGE = 2`` resolves to record 2 of this file."""
     label = pdsparser.Pds3Label(str(_write_pds3_attached(tmp_path)))
-    arr = read_pds3_image_array(label)
+    arr = _read(label)
     assert arr.shape == (8, 8)
     # The pixels we wrote were 0..63.
     np.testing.assert_array_equal(arr.reshape(-1), np.arange(64, dtype='uint8'))
@@ -66,7 +66,7 @@ def test_attached_obj_index_zero(tmp_path: Path) -> None:
     """The explicit first-image index (``obj=0``) matches the default."""
     label = pdsparser.Pds3Label(str(_write_pds3_attached(tmp_path)))
     np.testing.assert_array_equal(
-        read_pds3_image_array(label, 0), read_pds3_image_array(label)
+        _read(label, 0), _read(label)
     )
 
 
@@ -74,14 +74,14 @@ def test_attached_obj_out_of_range(tmp_path: Path) -> None:
     """``obj=99`` raises ``IndexError`` for a single-image label."""
     label = pdsparser.Pds3Label(str(_write_pds3_attached(tmp_path)))
     with pytest.raises(IndexError, match='out of range'):
-        read_pds3_image_array(label, 99)
+        _read(label, 99)
 
 
 def test_attached_obj_bad_type(tmp_path: Path) -> None:
     """A non-int ``obj`` fails the range comparison with ``TypeError``."""
     label = pdsparser.Pds3Label(str(_write_pds3_attached(tmp_path)))
     with pytest.raises(TypeError, match='not supported between instances'):
-        read_pds3_image_array(label, [1, 2])
+        _read(label, [1, 2])
 
 
 def test_no_image_objects_raises(tmp_path: Path) -> None:
@@ -93,7 +93,7 @@ def test_no_image_objects_raises(tmp_path: Path) -> None:
         "END\r\n"
     )
     with pytest.raises(ValueError, match='does not describe an IMAGE'):
-        read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+        _read(pdsparser.Pds3Label(str(lbl)))
 
 
 def test_detached_string_pointer(tmp_path: Path) -> None:
@@ -114,7 +114,7 @@ def test_detached_string_pointer(tmp_path: Path) -> None:
         "END_OBJECT = IMAGE\r\n"
         "END\r\n"
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     assert arr.shape == (8, 8)
     np.testing.assert_array_equal(arr.reshape(-1), np.arange(64, dtype='uint8'))
 
@@ -139,7 +139,7 @@ def test_detached_tuple_pointer_with_record(tmp_path: Path) -> None:
         "END_OBJECT = IMAGE\r\n"
         "END\r\n"
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     np.testing.assert_array_equal(arr.reshape(-1), pixels)
 
 
@@ -160,7 +160,7 @@ def test_pds3_msb_signed_two_byte(tmp_path: Path) -> None:
         "END_OBJECT = IMAGE\r\n"
         "END\r\n"
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     # The reader converts to native byte order, so the dtype is plain int16.
     assert arr.dtype == np.dtype('int16')
     np.testing.assert_array_equal(arr.reshape(-1), pixels.astype('int16'))
@@ -183,7 +183,7 @@ def test_pds3_lsb_real_four_byte(tmp_path: Path) -> None:
         "END_OBJECT = IMAGE\r\n"
         "END\r\n"
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     assert arr.dtype == np.dtype('float32')
     np.testing.assert_array_equal(arr.reshape(-1), pixels.astype('float32'))
 
@@ -211,6 +211,6 @@ def test_pds3_prefix_suffix_samples_stripped(tmp_path: Path) -> None:
         "END_OBJECT = IMAGE\r\n"
         "END\r\n"
     )
-    arr = read_pds3_image_array(pdsparser.Pds3Label(str(lbl)))
+    arr = _read(pdsparser.Pds3Label(str(lbl)))
     assert arr.shape == (4, 4)
     np.testing.assert_array_equal(arr, real)

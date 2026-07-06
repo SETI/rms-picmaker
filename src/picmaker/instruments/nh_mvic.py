@@ -3,9 +3,6 @@
 ##########################################################################################
 """New Horizons MVIC detector and reader."""
 
-import pdsparser                # noqa
-import astropy.io.fits as pyfits  # noqa
-
 from picmaker.instruments import ImageData
 from picmaker.instruments._pds3_support import read_pds3_image_array
 
@@ -43,7 +40,7 @@ class NH_MVIC(ImageData):
         except KeyError:
             return None
 
-        array = read_pds3_image_array(label, **kwargs)
+        array = read_pds3_image_array(label, filepath, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
         return NH_MVIC(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 

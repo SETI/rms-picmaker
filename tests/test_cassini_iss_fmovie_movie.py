@@ -1,10 +1,11 @@
 """Behavioural test for the ``--recursive``, ``--pattern`` and ``--movie`` options.
 
 The bundled ``cassini_iss_fmovie`` sample holds Cassini ISS VICAR images split
-across two subdirectories. Each frame exists twice: an original
-(``N..._1.IMG``) and a brightness-scaled copy (``N..._1_xNN.IMG``) whose pixels
-were multiplied by 0.5, 0.6, ... 1.0 and clipped back to bytes. ``subdir1``
-holds the 0.5-0.7 copies, ``subdir2`` the 0.8-1.0 copies.
+across two subdirectories. Each of the six frames has a brightness-scaled copy
+(``N..._1_xNN.IMG``) whose pixels were multiplied by 0.5, 0.6, ... 1.0 and
+clipped back to bytes; most also keep their unscaled original (``N..._1.IMG``),
+which exists only so ``--pattern`` has something to exclude. ``subdir1`` holds
+the 0.5-0.7 copies, ``subdir2`` the 0.8-1.0 copies.
 
 Driving picmaker over the directory tree exercises three options together:
 
@@ -49,7 +50,7 @@ def _mean_brightness(path: Path) -> float:
 
 def test_recursive_pattern_selects_only_scaled_frames(tmp_path: Path) -> None:
     """``--recursive`` reaches both subdirectories and ``--pattern`` keeps only
-    the scaled copies, leaving the six unscaled originals untouched."""
+    the scaled copies, leaving the unscaled originals untouched."""
     generate_previews(DATA_DIR, tmp_path, extra_args=[*PATTERN_ARGS, '--movie'])
 
     produced = sorted(p.relative_to(tmp_path).as_posix()

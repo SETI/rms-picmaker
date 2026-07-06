@@ -22,7 +22,7 @@ class HST_WFPC(ImageData):
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1., **kwargs):
-        """Extract HST WFPC2 data from an open HDUList.
+        """Extract HST WFPC data from an open HDUList.
 
         Parameters:
             hdulist (HDUList): The HDUList of the FITS file.
