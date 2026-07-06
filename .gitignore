@@ -71,10 +71,8 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx intermediate build artifacts (keep rendered HTML, drop pickles)
-docs/_build/doctrees/
-docs/_build/html/.doctrees/
-docs/_build/html/.buildinfo
+# Sphinx documentation
+docs/_build/
 
 # PyBuilder
 .pybuilder/
@@ -178,6 +176,3 @@ nohup.out
 *.*.bak
 log.txt
 profile.txt
-
-# Sphinx build output
-docs/_build/
