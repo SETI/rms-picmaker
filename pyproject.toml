@@ -62,6 +62,8 @@ Issues = "https://github.com/SETI/rms-picmaker/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# support/picmaker-v1 is a vendored legacy copy; never collect tests from it.
+norecursedirs = ["support/picmaker-v1"]
 addopts = ["-n", "auto", "--cov=picmaker", "--strict-markers", "--strict-config"]
 markers = []
 # Surface unexpected runtime warnings as test failures. Add targeted
@@ -145,6 +147,9 @@ fail_under = 95
 [tool.mypy]
 strict = true
 disallow_subclassing_any = false
+# support/picmaker-v1 is a vendored legacy copy (an embedded git repo);
+# never type-check it, even if a directory scan reaches it.
+exclude = ['^support/picmaker-v1/']
 
 [[tool.mypy.overrides]]
 # The picmaker source (src/picmaker) is intentionally untyped and permanently
@@ -184,8 +189,13 @@ ignore_missing_imports = true
 [tool.ruff]
 target-version = "py312"
 line-length = 90
+# Honor `exclude` even when an excluded path is passed explicitly on the
+# command line (e.g. `ruff check support/picmaker-v1`).
+force-exclude = true
 exclude = [
-#  "TODO"
+  # support/picmaker-v1 is a vendored legacy copy (an embedded git repo);
+  # it is intentionally exempt from all linting/validation.
+  "support/picmaker-v1",
 ]
 
 [tool.ruff.format]
@@ -233,7 +243,7 @@ enabled = false
 enabled = false
 
 [tool.bandit]
-exclude_dirs = ["tests", "venv", ".venv"]
+exclude_dirs = ["tests", "venv", ".venv", "support/picmaker-v1"]
 targets = ["src"]
 # Pickle scanning is intentional: read_one_image_array accepts pickle inputs
 # as a documented (and README-warned) fallback format. The library doesn't
@@ -245,5 +255,5 @@ skips = ["B301", "B403", "B110"]
 
 [tool.vulture]
 paths = ["src"]
-exclude = ["tests/"]
+exclude = ["tests/", "support/picmaker-v1/"]
 min_confidence = 70
