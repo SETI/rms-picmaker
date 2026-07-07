@@ -39,12 +39,10 @@ class TestNegativeLookups:
         assert '#ff8800' in str(excinfo.value)
 
     def test_non_string_raises_typeerror(self) -> None:
-        # Deliberately passing an int to exercise the TypeError branch — mypy
-        # flags this correctly, which is why we suppress the arg-type warning
-        # here only.
+        # Deliberately passing an int to exercise the TypeError branch.
         with pytest.raises(TypeError) as excinfo:
-            ColorNames.lookup(42)  # type: ignore[arg-type]
-        assert 'Colorname must be a string' in str(excinfo.value)
+            ColorNames.lookup(42)
+        assert 'Color name must be a string' in str(excinfo.value)
 
 
 class TestRgbExpression:
@@ -60,7 +58,7 @@ class TestRgbExpression:
         assert ColorNames.lookup('[100, 100, 100]') == (100, 100, 100)
 
     def test_rgb_out_of_range_raises(self) -> None:
-        with pytest.raises(ValueError, match='Color value out of range'):
+        with pytest.raises(ValueError, match='RGB value cannot exceed 255'):
             ColorNames.lookup('(300, 0, 0)')
 
     def test_rgb_partial_match_raises_keyerror(self) -> None:

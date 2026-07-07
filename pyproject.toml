@@ -7,14 +7,16 @@ name = "rms-picmaker"
 dynamic = ["version"]
 description = "Convert PDS3, VICAR, and FITS astronomy images to JPEG, TIFF, and other display formats."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "astropy>=7.2.0",
   "numpy>=2.4.4",
   "pillow>=12.2.0",
   "scipy>=1.17.1",
+  "rms-pdslogger>=3.2.1",
   "rms-pdsparser>=2.0.0",
   "rms-tabulation>=2.0.0",
+  "rms-vax>=1.0.5",
   "rms-vicar>=1.2.1",
 ]
 license = {text = "Apache-2.0"}
@@ -32,6 +34,7 @@ keywords = [
   "imaging",
   "image conversion",
   "JPEG",
+  "PNG",
   "TIFF",
   "planetary science",
 ]
@@ -43,7 +46,6 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Utilities",
   "License :: OSI Approved :: Apache Software License",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Operating System :: MacOS :: MacOS X",
@@ -60,7 +62,8 @@ Issues = "https://github.com/SETI/rms-picmaker/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# TODO Update desired parallelism
+# support/picmaker-v1 is a vendored legacy copy; never collect tests from it.
+norecursedirs = ["support/picmaker-v1"]
 addopts = ["-n", "auto", "--cov=picmaker", "--strict-markers", "--strict-config"]
 markers = []
 # Surface unexpected runtime warnings as test failures. Add targeted
@@ -80,6 +83,11 @@ filterwarnings = [
   # tests collected per worker and aborts. Ignoring it is safe — the
   # warning is purely informational about astropy's own config path.
   "ignore:XDG_CONFIG_HOME is set:UserWarning",
+  # python-dateutil 2.x uses datetime.utcfromtimestamp() which was
+  # deprecated in Python 3.12.  This fires during boto3 import (pulled
+  # in by the pdsparser → filecache → boto3 dependency chain) and is
+  # not actionable from this codebase.
+  "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning",
 ]
 
 [tool.setuptools]
@@ -112,12 +120,13 @@ dev = [
 docs = [
   "myst-parser",
   "sphinx>=7",
+  "sphinx-argparse",
   "sphinxcontrib-mermaid",
   "sphinx-rtd-theme",
 ]
 
 [project.scripts]
-picmaker = "picmaker.cli:main"
+picmaker = "picmaker.main:main"
 
 # Tool configuration
 
@@ -133,11 +142,31 @@ exclude_lines = [
   "def __repr__",
   "raise NotImplementedError",
 ]
-fail_under = 90
+fail_under = 95
 
 [tool.mypy]
 strict = true
 disallow_subclassing_any = false
+# support/picmaker-v1 is a vendored legacy copy (an embedded git repo);
+# never type-check it, even if a directory scan reaches it.
+exclude = ['^support/picmaker-v1/']
+
+[[tool.mypy.overrides]]
+# The picmaker source (src/picmaker) is intentionally untyped and permanently
+# excluded from mypy: `follow_imports = skip` stops mypy from analyzing it and
+# treats it as `Any` wherever the tests import it, so tests are never flagged
+# for calling into untyped code. `ignore_errors` covers the case where src is
+# still passed to mypy explicitly.
+module = ["picmaker", "picmaker.*"]
+follow_imports = "skip"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# The tests legitimately call into the untyped picmaker package; don't flag
+# those calls. This keeps mypy on tests green regardless of whether src is
+# analyzed (e.g. if it is passed explicitly on the command line).
+module = ["tests", "tests.*"]
+disallow_untyped_calls = false
 
 [[tool.mypy.overrides]]
 module = "picmaker._version"
@@ -148,18 +177,25 @@ module = [
   "astropy.*",
   "PIL.*",
   "scipy.*",
-  "vicar",
   "pdsparser",
+  "pdslogger",
   "tabulation",
+  "vax",
+  "vicar",
 ]
 ignore_missing_imports = true
 
 
 [tool.ruff]
-target-version = "py311"
-line-length = 100
+target-version = "py312"
+line-length = 90
+# Honor `exclude` even when an excluded path is passed explicitly on the
+# command line (e.g. `ruff check support/picmaker-v1`).
+force-exclude = true
 exclude = [
-#  "TODO"
+  # support/picmaker-v1 is a vendored legacy copy (an embedded git repo);
+  # it is intentionally exempt from all linting/validation.
+  "support/picmaker-v1",
 ]
 
 [tool.ruff.format]
@@ -174,13 +210,29 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "A", "N", "PT", "RUF"]
 # PT011 - pytest.raises is too broad.
 # SIM105 - Use contextlib.suppress for suppressions.
 # SIM108 - Use ternary operator for simple if/else.
-extend-ignore = ["PT011", "SIM105", "SIM108"]
+# RUF005 - `(2,) + shape` concatenation is intentional; never rewrite it.
+# N801 - instrument class names (HST_ACS, HST_WFC3, ...) intentionally use
+#        underscores rather than CapWords.
+# E741 - single-letter names like `l` are used intentionally in this codebase.
+# UP015 - explicit open() 'r' mode is kept for readability.
+# RUF012 - class-level lookup dicts are shared constants, not instance
+#          defaults; ClassVar annotations add no value here.
+# SIM910 - explicit `dict.get(key, None)` is kept for clarity.
+extend-ignore = ["PT011", "SIM105", "SIM108", "RUF005", "N801", "E741", "UP015", "RUF012",
+                 "SIM910"]
 
 [tool.ruff.lint.per-file-ignores]
-# N802 = function names should be lowercase. `WriteTiff16` and `ReadTiff16`
-# are public-API entry points pinned by `tests/test_api_compat.py`; the
-# PascalCase spelling is the documented call signature.
-"src/picmaker/tiff16.py" = ["N802"]
+# `filter` is the public keyword-argument / option name here; keep it despite
+# shadowing the builtin (the builtin is not used in this module).
+"src/picmaker/processing.py" = ["A001", "A002"]
+# The TFIELDS check reads more clearly as an explicit `if ...: return False`.
+"src/picmaker/instruments/_fits_support.py" = ["SIM103"]
+# The per-filter tint chain keeps one `elif` per filter for readability rather
+# than merging same-valued branches with `or`.
+"src/picmaker/instruments/cassini_iss.py" = ["SIM114"]
+# The explicit `for` loop over patterns is kept over an `any(...)` generator.
+"src/picmaker/control.py" = ["SIM110"]
+
 
 [tool.pymarkdown.plugins.md013]
 # Line length (disable so README/CONTRIBUTING can use longer lines).
@@ -191,14 +243,17 @@ enabled = false
 enabled = false
 
 [tool.bandit]
-exclude_dirs = ["tests", "venv", ".venv"]
+exclude_dirs = ["tests", "venv", ".venv", "support/picmaker-v1"]
 targets = ["src"]
 # Pickle scanning is intentional: read_one_image_array accepts pickle inputs
 # as a documented (and README-warned) fallback format. The library doesn't
 # unpickle anything by itself.
-skips = ["B301", "B403"]
+# B110 (try/except/pass) is the format-reader cascade: each reader is tried in
+# turn and a failure just means "not this format, move on" -- the pass is
+# deliberate control flow, not a swallowed error.
+skips = ["B301", "B403", "B110"]
 
 [tool.vulture]
 paths = ["src"]
-exclude = ["tests/"]
+exclude = ["tests/", "support/picmaker-v1/"]
 min_confidence = 70

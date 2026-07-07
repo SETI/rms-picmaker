@@ -31,7 +31,7 @@ The repository includes `.vscode/settings.json` so all contributors get consiste
 - **Indent**: 4 spaces (no tabs).
 - **Trailing whitespace**: Trimmed on save.
 - **Final newline**: Exactly one newline at end of file; excess trailing blank lines removed on save.
-- **Line length**: Rulers at 80, 90, and 100 characters (max 100 enforced by Ruff).
+- **Line length**: Rulers at 80 and 90 characters (max 90 enforced by Ruff).
 
 ## 5. Secrets and Configuration
 

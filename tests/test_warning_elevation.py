@@ -1,24 +1,19 @@
-"""warning-to-error elevation in the FITS branch (picmaker.py:1604-1605).
+"""A corrupt FITS file is rejected by the FITS reader and falls through the
+:func:`picmaker.instruments.read_image_array` cascade.
 
-Inside `read_one_image_array`'s FITS branch, the code wraps the
-`pyfits.open(...)` call in `warnings.catch_warnings(): filterwarnings('error')`.
-This is what makes an `AstropyUserWarning`/`VerifyWarning` cause the FITS
-parser to be rejected and let the cascade continue.
+``corrupt_fits.fits`` begins with the ``SIMPLE = `` magic so the FITS branch is
+entered, but its body is garbage. The FITS reader fails (or its
+detect_in_fits hook does), the cascade continues, every other reader also
+fails, and the cascade ends with ``OSError('unrecognized file format ...')``.
 """
 
 from pathlib import Path
 
 import pytest
 
-from picmaker import read_one_image_array
+from picmaker.instruments import read_image_array
 
 
-def test_corrupt_fits_falls_through_via_warning_elevation(
-    fixtures_dir: Path,
-) -> None:
-    # corrupt_fits.fits starts with the SIMPLE  = magic so the FITS branch
-    # gets entered; the body is garbage so astropy raises a warning that the
-    # filterwarnings('error') block elevates → caught by `except (UserWarning,
-    # OSError)` → cascade continues → PIL also fails → final IOError.
-    with pytest.raises(IOError, match=r'Unrecognized image file format'):
-        read_one_image_array(str(fixtures_dir / 'corrupt_fits.fits'), None)
+def test_corrupt_fits_falls_through_to_unrecognized(fixtures_dir: Path) -> None:
+    with pytest.raises(OSError, match=r'unrecognized file format'):
+        read_image_array(str(fixtures_dir / 'corrupt_fits.fits'))

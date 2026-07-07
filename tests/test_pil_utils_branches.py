@@ -60,7 +60,7 @@ def test_one_pil_to_array_unsupported_mode_raises() -> None:
 
 
 def test_write_pil_sixteen_bit_rgb_writes_tiff(tmp_path: Path) -> None:
-    """``write_pil`` on a 3-image list calls ``WriteTiff16`` and produces
+    """``write_pil`` on a 3-image list calls ``write_tiff16`` and produces
     an RGB TIFF.
     """
     ims = [Image.new('I', (4, 4), color=10000 * (c + 1)) for c in range(3)]

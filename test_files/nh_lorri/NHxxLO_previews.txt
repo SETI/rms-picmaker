@@ -1,0 +1,4 @@
+--suffix=_full
+--suffix=_med   --frame 512 512 --crop=0 --frame_max 100
+--suffix=_small --frame 256 256 --crop=0
+--suffix=_thumb --frame 100 100 --crop=0

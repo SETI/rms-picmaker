@@ -7,7 +7,7 @@ padded out to 512 bytes.
 
 NOTE: as of the current pdsparser version, `read_pds_labeled_image_array` does
 not successfully consume this fixture — it iterates `for node in label` and
-expects each element to have a `.name` attribute, which the dict-style PdsLabel
+expects each element to have a `.name` attribute, which the dict-style Pds3Label
 no longer supplies, and it references `pdsparser.PdsOffsetPointer` which no
 longer exists in the package. The fixture is kept for use by the test cascade
 (`read_one_image_array(fn, None)` falls through to the final IOError) and as a

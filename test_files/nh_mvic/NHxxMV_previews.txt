@@ -1,0 +1,4 @@
+--suffix=_full  --wrap-ratio=3 --gap-color=white  --overlap 10
+--suffix=_med   --frame 512 512 --crop=-1 --pad --pad-color=dimgray --tint --wrap --overlaps 10 20
+--suffix=_small --frame 256 256 --crop=-1 --pad --pad-color=dimgray --tint --wrap --overlaps 10 20
+--suffix=_thumb --frame 100 100 --crop=-1 --pad --pad-color=dimgray --tint --wrap --overlaps 10 20

@@ -1,0 +1,78 @@
+PDS_VERSION_ID                  = PDS3
+RECORD_TYPE                     = FIXED_LENGTH
+RECORD_BYTES                    = 800
+FILE_RECORDS                    = 802
+^VICAR_HEADER                   = ("C1124748_CLEANED.IMG", 1)
+^IMAGE                          = ("C1124748_CLEANED.IMG", 3)
+
+DATA_SET_ID                     = "VG2-N-ISS-2/3/4/6-PROCESSED-V1.0"
+PRODUCT_ID                      = "C1124748_CLEANED.IMG"
+PRODUCT_CREATION_TIME           = 2013-10-23T16:00:00
+SOURCE_PRODUCT_ID               = ("C1124748_RAW.IMG",
+                                   "C1124748_RESLOC.DAT",
+                                   "BLEMLOC_VG2_NA.DAT")
+PRODUCT_TYPE                    = CLEANED_IMAGE
+
+/* Image Description  */
+
+INSTRUMENT_HOST_NAME            = "VOYAGER 2"
+INSTRUMENT_HOST_ID              = VG2
+INSTRUMENT_NAME                 = "IMAGING SCIENCE SUBSYSTEM - NARROW ANGLE"
+INSTRUMENT_ID                   = "ISSN"
+MISSION_PHASE_NAME              = "NEPTUNE ENCOUNTER"
+TARGET_NAME                     = "NEPTUNE"
+IMAGE_ID                        = "0444N2-005"
+IMAGE_NUMBER                    = "11247.48"
+IMAGE_TIME                      = 1989-08-20T09:56:45.00
+EARTH_RECEIVED_TIME             = 1989-08-20T14:01:58
+SCAN_MODE_ID                    = "5:1"
+SHUTTER_MODE_ID                 = "BOTSIM"
+GAIN_MODE_ID                    = "LOW"
+EDIT_MODE_ID                    = "1:1"
+FILTER_NAME                     = "ORANGE"
+FILTER_NUMBER                   = "3"
+EXPOSURE_DURATION               = 23.0400 <SECOND>
+
+START_TIME                      = 1989-08-20T09:56:21.96
+STOP_TIME                       = 1989-08-20T09:56:45.00
+SPACECRAFT_CLOCK_START_COUNT    = "11247:47:416"
+SPACECRAFT_CLOCK_STOP_COUNT     = "11247:48:001"
+
+NOTE                            =
+"PLANET CENTERED COLOR PICS FOR ATMOS DYNAMICS."
+
+DESCRIPTION                     = "This image is the result of removing
+apparent flaws from the corresponding RAW image (C1124748_RAW.IMG). It was
+created using the VICAR software package on a Compaq Alpha running OpenVMS.
+Routine RESSAR77 was used to hide the grid of reseau markings by replacing
+each one with an average of its neighboring pixels; the reseau locations had
+been tabulated by program RESLOC into output file C1124748_RESLOC.DAT. Routine
+ADESPIKE was used to remove any residual spikes in the image.
+
+This represents an intermediate step in the processing and calibration of the
+images. See file DOCUMENT/PROCESSING.TXT for more information about the image
+processing."
+
+OBJECT                          = VICAR_HEADER
+  HEADER_TYPE                   = VICAR
+  BYTES                         = 1600
+  RECORDS                       = 2
+  INTERCHANGE_FORMAT            = ASCII
+  DESCRIPTION                   = "VICAR format label for the image."
+END_OBJECT                      = VICAR_HEADER
+
+OBJECT                          = IMAGE
+  LINES                         = 800
+  LINE_SAMPLES                  = 800
+  SAMPLE_TYPE                   = UNSIGNED_INTEGER
+  SAMPLE_BITS                   = 8
+  SAMPLE_DISPLAY_DIRECTION      = RIGHT
+  LINE_DISPLAY_DIRECTION        = DOWN
+  HORIZONTAL_PIXEL_FOV          = 5.2200E-04 <DEGREE> /* approximate */
+  VERTICAL_PIXEL_FOV            = 5.2200E-04 <DEGREE> /* approximate */
+  HORIZONTAL_FOV                = 0.4176     <DEGREE> /* approximate */
+  VERTICAL_FOV                  = 0.4176     <DEGREE> /* approximate */
+  REFLECTANCE_SCALING_FACTOR    = 2.2270E-04          /* approximate */
+END_OBJECT                      = IMAGE
+
+END

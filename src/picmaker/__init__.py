@@ -1,95 +1,57 @@
-"""rms-picmaker — convert PDS3/VICAR/FITS images to JPEG, TIFF, etc.
+##########################################################################################
+# picmaker/__init__.py
+##########################################################################################
+"""Top-level picmaker package.
 
-The package's public surface is re-exported from this module so that
-consumers can write::
-
-    from picmaker import images_to_pics, read_one_image_array
-
-The top-level pipeline entry point is
-:func:`picmaker.pipeline.images_to_pics`; the single-image reader is
-:func:`picmaker.io.read_one_image_array`. The full set of public
-names is in this module's ``__all__`` list.
+Re-exports the public objects defined across the package's public modules so that each
+can be imported directly from ``picmaker``. Private modules (those whose names begin with
+an underscore), the instrument subclasses of :class:`ImageData`, and ALL_CAPS module
+constants are intentionally not re-exported.
 """
 
-try:
-    from importlib.metadata import PackageNotFoundError
-    from importlib.metadata import version as _version
-
-    __version__ = _version('rms-picmaker')
-except PackageNotFoundError:  # pragma: no cover — only fires when the package isn't installed
-    try:
-        from picmaker._version import __version__
-    except ImportError:
-        __version__ = '0.0.0+unknown'
-
-from picmaker._filters import FILTER_DICT, filter_image
-from picmaker.cli import main
-from picmaker.color import BFUNC, GFUNC, RFUNC, RGB_BY_NM, tinted_colormap
-from picmaker.enhance import (
-    apply_colormap,
-    apply_gamma,
-    fill_zebra_stripes,
-    get_limits,
-)
-from picmaker.geometry import (
-    circle_mask,
-    crop_array,
-    get_size,
-    pad_image,
-    resize_image,
-    rotate_array_rgb,
-    slice_array,
-    wrap_image,
-)
-from picmaker.io import (
-    FilterInfo,
-    ReadResult,
-    get_outfile,
-    read_array,
-    read_image_array,
-    read_one_image_array,
-    read_pds_labeled_image_array,
-    read_pil,
-)
-from picmaker.options import PicmakerOptions
-from picmaker.pil_utils import array_to_pil, pil_to_array, write_pil
-from picmaker.pipeline import find_common_path, images_to_pics, process_images
+# ruff: noqa: I001
+from picmaker.colornames  import ColorNames
+from picmaker.control     import get_filepaths, get_outfile
+from picmaker.enhancement import apply_colormap
+from picmaker.instruments import ImageData, read_image_array, tint_by_nm
+from picmaker.layout      import pad_pil_image, wrap_pil_image
+from picmaker.options     import deconflict_options, get_versions, validate_options
+from picmaker.orientation import rotate_rgb_array
+from picmaker.picmaker    import picmaker, picmaker1
+from picmaker.pil_utils   import array_to_pil, pil_to_array, write_pil
+from picmaker.processing  import fill_zebra_stripes, filter_pil_image
+from picmaker.sizing      import get_size, resize_pil_image
+from picmaker.slicing     import slice_array
+from picmaker.stretch     import get_limits
+from picmaker.tiff16      import read_tiff16, write_tiff16
 
 __all__ = [
-    'BFUNC',
-    'FILTER_DICT',
-    'GFUNC',
-    'RFUNC',
-    'RGB_BY_NM',
-    'FilterInfo',
-    'PicmakerOptions',
-    'ReadResult',
-    '__version__',
+    'ColorNames',
+    'ImageData',
     'apply_colormap',
-    'apply_gamma',
     'array_to_pil',
-    'circle_mask',
-    'crop_array',
+    'deconflict_options',
     'fill_zebra_stripes',
-    'filter_image',
-    'find_common_path',
+    'filter_pil_image',
+    'get_filepaths',
     'get_limits',
     'get_outfile',
     'get_size',
-    'images_to_pics',
-    'main',
-    'pad_image',
+    'get_versions',
+    'pad_pil_image',
+    'picmaker',
+    'picmaker1',
     'pil_to_array',
-    'process_images',
-    'read_array',
     'read_image_array',
-    'read_one_image_array',
-    'read_pds_labeled_image_array',
-    'read_pil',
-    'resize_image',
-    'rotate_array_rgb',
+    'read_tiff16',
+    'resize_pil_image',
+    'rotate_rgb_array',
     'slice_array',
-    'tinted_colormap',
-    'wrap_image',
+    'tint_by_nm',
+    'validate_options',
+    'wrap_pil_image',
     'write_pil',
+    'write_tiff16',
 ]
+
+##########################################################################################

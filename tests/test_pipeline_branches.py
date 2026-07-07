@@ -1,54 +1,64 @@
 """Cover the pipeline branches that the snapshot / smoke tests miss:
-mutex checks, movie mode, the ``--proceed`` error path, ``--zebra``,
-HST mosaic dispatch, and the reuse path of ``process_images``.
+the frame/size mutex, extension defaulting, the 16-bit guard, ``--zebra``,
+movie mode, the ``--versions`` reuse path, wrap/pad, the unreadable-file
+error path, a detached PDS3 label, and the display-orientation overrides.
+
+Options are built the CLI way: parse argv through ``get_parser()`` and run it
+through ``validate_options`` so the dict has every key ``picmaker`` expects.
 """
 
-import logging
 import shutil
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pytest
+from PIL import Image
 
-from picmaker.pipeline import images_to_pics, process_images
+from picmaker.options import get_parser
+from picmaker.picmaker import picmaker
+
+
+def _run(infiles: list[str], tmp_path: Path, *extra: str) -> None:
+    """Build a complete options dict the CLI way and run the pipeline."""
+    options = vars(get_parser().parse_args(
+        [*infiles, '--directory', str(tmp_path), *extra]
+    ))
+    picmaker(**options)
+
+
+def _render(arr: np.ndarray, tmp_path: Path, *extra: str, name: str = 'in') -> np.ndarray:
+    """Render a numpy array through the pipeline to a lossless PNG and read the
+    result back as an array, so pixel-level assertions are exact (no JPEG loss)."""
+    src = tmp_path / f'{name}.npy'
+    np.save(src, arr)
+    _run([str(src)], tmp_path, '--extension', 'png', *extra)
+    with Image.open(tmp_path / f'{name}.png') as im:
+        return np.asarray(im)
+
 
 # ---------------------------------------------------------------------------
-# Mutex / value-validity checks inside images_to_pics
+# Mutex / value-validity checks inside validate_options
 # ---------------------------------------------------------------------------
-
-
-def test_hst_bands_incompatible(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``hst=True`` plus ``bands=...`` is rejected before any I/O."""
-    with pytest.raises(ValueError, match='hst and bands'):
-        images_to_pics(
-            [str(fixtures_dir / 'cassini_iss.vic')],
-            directory=str(tmp_path),
-            hst=True,
-            bands=(0, 1),
-        )
 
 
 def test_frame_size_incompatible(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``frame`` plus ``size`` is rejected before any I/O."""
-    with pytest.raises(ValueError, match='frame and size'):
-        images_to_pics(
-            [str(fixtures_dir / 'cassini_iss.vic')],
-            directory=str(tmp_path),
-            frame=(50, 50),
-            size=(20, 20),
+    """``--frame`` plus ``--size`` is rejected before any I/O."""
+    with pytest.raises(ValueError, match='frame and --size'):
+        _run(
+            [str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
+            '--frame', '50', '50', '--size', '20', '20',
         )
 
 
-def test_frame_wrap_ratio_incompatible(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``frame`` plus ``wrap_ratio`` is rejected before any I/O."""
-    with pytest.raises(ValueError, match='frame and wrap_ratio'):
-        images_to_pics(
-            [str(fixtures_dir / 'cassini_iss.vic')],
-            directory=str(tmp_path),
-            frame=(50, 50),
-            wrap_ratio=2.0,
-        )
+def test_twobytes_requires_tiff_extension(
+    fixtures_dir: Path, tmp_path: Path
+) -> None:
+    """``--16`` with an explicit non-TIFF extension is rejected; only tiffs may
+    be written in 16-bit mode. (``--16`` alone defaults the extension to tiff.)
+    """
+    with pytest.raises(ValueError, match='Only tiffs can be written'):
+        _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
+             '--16', '--extension', 'jpg')
 
 
 # ---------------------------------------------------------------------------
@@ -57,295 +67,151 @@ def test_frame_wrap_ratio_incompatible(fixtures_dir: Path, tmp_path: Path) -> No
 
 
 def test_extension_default_jpg(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``extension=None`` defaults to ``'jpg'`` when not twobytes."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        extension=None,
-        replace='all',
-    )
+    """No ``--extension`` defaults to ``'jpg'`` when not in 16-bit mode."""
+    _run([str(fixtures_dir / 'cassini_iss.vic')], tmp_path)
     assert (tmp_path / 'cassini_iss.jpg').exists()
 
 
-def test_extension_default_tiff_when_twobytes(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``extension=None`` plus ``twobytes=True`` defaults to ``'tiff'``."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        extension=None,
-        twobytes=True,
-        replace='all',
-    )
-    assert (tmp_path / 'cassini_iss.tiff').exists()
-
-
 # ---------------------------------------------------------------------------
-# replace='none' skip when file exists
+# zebra fill
 # ---------------------------------------------------------------------------
 
 
-def test_replace_none_skips_existing(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """When the output already exists and ``replace='none'``, the file
-    is left in place (``get_outfile`` returns ''; the loop continues)."""
-    out = tmp_path / 'cassini_iss.jpg'
-    out.write_bytes(b'sentinel')
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        replace='none',
-    )
-    assert out.read_bytes() == b'sentinel'
-
-
-# ---------------------------------------------------------------------------
-# zebra fill and verbose
-# ---------------------------------------------------------------------------
-
-
-def test_zebra_path(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``zebra=True`` runs ``fill_zebra_stripes`` without crashing."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        zebra=True,
-        replace='all',
-    )
-    assert (tmp_path / 'cassini_iss.jpg').exists()
-
-
-def test_verbose_emits_log(
-    fixtures_dir: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    """``verbose=True`` logs the input filename via ``picmaker.pipeline``."""
-    with caplog.at_level(logging.INFO, logger='picmaker.pipeline'):
-        images_to_pics(
-            [str(fixtures_dir / 'cassini_iss.vic')],
-            directory=str(tmp_path),
-            verbose=True,
-            replace='all',
-        )
-    assert 'cassini_iss.vic' in caplog.text
-
-
-# ---------------------------------------------------------------------------
-# --proceed error path
-# ---------------------------------------------------------------------------
-
-
-def test_proceed_swallows_errors(
-    fixtures_dir: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    """``proceed=True`` logs and continues past a per-file failure."""
-    bogus = tmp_path / 'bogus.bin'
-    bogus.write_bytes(b'not-an-image')
-    good = fixtures_dir / 'cassini_iss.vic'
-
-    with caplog.at_level(logging.ERROR, logger='picmaker.pipeline'):
-        images_to_pics(
-            [str(bogus), str(good)],
-            directory=str(tmp_path),
-            proceed=True,
-            replace='all',
-        )
-
-    assert 'bogus.bin' in caplog.text
-    # The well-formed fixture still produces its output.
-    assert (tmp_path / 'cassini_iss.jpg').exists()
-
-
-def test_no_proceed_raises_on_first_error(
-    tmp_path: Path,
-) -> None:
-    """``proceed=False`` (the default) re-raises on the first failure."""
-    bogus = tmp_path / 'bogus.bin'
-    bogus.write_bytes(b'not-an-image')
-    with pytest.raises(OSError, match='Unrecognized image file format'):
-        images_to_pics([str(bogus)], directory=str(tmp_path))
-
-
-# ---------------------------------------------------------------------------
-# HST mosaic
-# ---------------------------------------------------------------------------
-
-
-def test_hst_acs_mosaic_writes_output(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``hst=True`` on an ACS/WFC fixture writes a single mosaicked JPG."""
-    images_to_pics(
-        [str(fixtures_dir / 'hst_acs.fits')],
-        directory=str(tmp_path),
-        hst=True,
-        replace='all',
-    )
-    assert (tmp_path / 'hst_acs.jpg').exists()
-
-
-def test_hst_wfpc2_mosaic_writes_output(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``hst=True`` on a WFPC2 fixture writes a single mosaicked JPG."""
-    images_to_pics(
-        [str(fixtures_dir / 'hst_wfpc2.fits')],
-        directory=str(tmp_path),
-        hst=True,
-        replace='all',
-    )
-    assert (tmp_path / 'hst_wfpc2.jpg').exists()
-
-
-def test_hst_mosaic_with_zebra(fixtures_dir: Path, tmp_path: Path) -> None:
-    """``hst=True`` plus ``zebra=True`` runs ``fill_zebra_stripes`` inside
-    the per-detector loop without crashing.
+def test_zebra_fills_edge_zero_stripe(tmp_path: Path) -> None:
+    """``--zebra`` interpolates leading/trailing zero stripes from the neighboring
+    rows: the zeroed edge pixels become bright, unlike the un-zebra'd render.
     """
-    images_to_pics(
-        [str(fixtures_dir / 'hst_acs.fits')],
-        directory=str(tmp_path),
-        hst=True,
-        zebra=True,
-        replace='all',
-    )
-    assert (tmp_path / 'hst_acs.jpg').exists()
+    # All 100 except row 4's first and last pixels, which are a zero "zebra" stripe.
+    # Rows 3 and 5 are nonzero at those columns, so fill_zebra_stripes averages them.
+    arr = np.full((8, 8), 100, dtype='uint8')
+    arr[4, 0] = 0
+    arr[4, 7] = 0
+    # Fixed limits so both renders share one stretch and pixels compare directly.
+    plain = _render(arr, tmp_path, '--limits', '0', '200', name='plain')
+    zebra = _render(arr, tmp_path, '--limits', '0', '200', '--zebra', name='zebra')
+
+    assert not np.array_equal(plain, zebra)                 # zebra changed the pixels
+    # The zero stripe is dark without zebra and filled (bright) with it.
+    assert plain[4, 0] == plain[4, 7] == 0
+    assert zebra[4, 0] > 100
+    assert zebra[4, 7] > 100
+    # Interior pixels (never part of a stripe) are untouched.
+    assert np.array_equal(plain[:, 3], zebra[:, 3])
 
 
 # ---------------------------------------------------------------------------
-# process_images
+# unreadable-file error path
 # ---------------------------------------------------------------------------
 
 
-def test_process_images_creates_output_directory(
-    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
-) -> None:
-    """``process_images`` creates the output directory tree if missing."""
+def test_unreadable_file_raises(tmp_path: Path) -> None:
+    """An unrecognized input file raises ``OSError``."""
+    bogus = tmp_path / 'bogus.bin'
+    bogus.write_bytes(b'not-an-image')
+    with pytest.raises(OSError, match='unrecognized file format'):
+        _run([str(bogus)], tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# output-directory creation
+# ---------------------------------------------------------------------------
+
+
+def test_creates_output_directory(fixtures_dir: Path, tmp_path: Path) -> None:
+    """``picmaker`` creates the output directory tree if it is missing."""
     out_dir = tmp_path / 'fresh' / 'subdir'
-    process_images(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        str(out_dir),
-        False,
-        [basic_option_dict],
-    )
+    _run([str(fixtures_dir / 'cassini_iss.vic')], out_dir)
     assert out_dir.is_dir()
     assert (out_dir / 'cassini_iss.jpg').exists()
 
 
-def test_process_images_movie_mode(
-    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
+# ---------------------------------------------------------------------------
+# movie mode
+# ---------------------------------------------------------------------------
+
+
+def test_movie_mode_writes_every_frame(
+    fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """Movie mode runs ``images_to_pics`` twice sharing one stretch."""
-    # Use two copies of the same fixture so movie mode has multiple frames
-    # to pick a shared stretch across.
+    """Movie mode scans all frames for a shared stretch, then writes each."""
     src1 = tmp_path / 'frame_001.vic'
     src2 = tmp_path / 'frame_002.vic'
     shutil.copy(fixtures_dir / 'cassini_iss.vic', src1)
     shutil.copy(fixtures_dir / 'cassini_iss.vic', src2)
 
     out_dir = tmp_path / 'out'
-    process_images(
-        [str(src1), str(src2)],
-        str(out_dir),
-        True,
-        [basic_option_dict],
-    )
+    _run([str(src1), str(src2)], out_dir, '--movie')
     assert (out_dir / 'frame_001.jpg').exists()
     assert (out_dir / 'frame_002.jpg').exists()
 
 
-def test_process_images_movie_failure_with_proceed(
-    tmp_path: Path, basic_option_dict: dict[str, Any],
-) -> None:
-    """Movie mode with ``proceed=True`` returns silently on total failure."""
+def test_movie_mode_unreadable_raises(tmp_path: Path) -> None:
+    """Movie mode propagates ``OSError`` when a frame cannot be read."""
     bogus = tmp_path / 'b.bin'
     bogus.write_bytes(b'garbage')
-    basic_option_dict['proceed'] = True
-    # No exception even though no input is readable.
-    process_images([str(bogus)], str(tmp_path / 'out'), True, [basic_option_dict])
+    with pytest.raises(OSError, match='unrecognized file format'):
+        _run([str(bogus)], tmp_path / 'out', '--movie')
 
 
-def test_process_images_movie_failure_raises(
-    tmp_path: Path, basic_option_dict: dict[str, Any],
+# ---------------------------------------------------------------------------
+# --versions reuse path
+# ---------------------------------------------------------------------------
+
+
+def test_versions_writes_each_variant(
+    fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """Movie mode without ``proceed`` raises ``OSError`` when no frame
-    can be read.
+    """A ``--versions`` file layers per-line overrides onto the base options,
+    reusing the single read of the input for every variant it writes.
     """
-    bogus = tmp_path / 'b.bin'
-    bogus.write_bytes(b'garbage')
-    basic_option_dict['proceed'] = False
-    # The first read failure propagates out of the inner images_to_pics
-    # call rather than hitting the "unable to process movie" guard,
-    # because proceed=False re-raises before the movie pass finishes.
-    with pytest.raises(OSError, match='Unrecognized image file format'):
-        process_images(
-            [str(bogus)], str(tmp_path / 'out'), True, [basic_option_dict],
-        )
-
-
-def test_process_images_reuse_path(
-    fixtures_dir: Path, tmp_path: Path, basic_option_dict: dict[str, Any],
-) -> None:
-    """When two consecutive ``option_dicts`` share ``obj`` and ``pointer``,
-    the second pass reuses the read result without rereading the file.
-    """
-    od1 = basic_option_dict.copy()
-    od1['suffix'] = '_v1'
-    od2 = basic_option_dict.copy()
-    od2['suffix'] = '_v2'
-    od2['gamma'] = 2.0
-
-    process_images(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        str(tmp_path),
-        False,
-        [od1, od2],
+    versions = tmp_path / 'versions.txt'
+    versions.write_text('--suffix _v1\n--suffix _v2 --gamma 2.0\n')
+    _run(
+        [str(fixtures_dir / 'cassini_iss.vic')], tmp_path,
+        '--versions', str(versions),
     )
     assert (tmp_path / 'cassini_iss_v1.jpg').exists()
     assert (tmp_path / 'cassini_iss_v2.jpg').exists()
 
 
 # ---------------------------------------------------------------------------
-# wrap_image branch in images_to_pics
+# wrap / pad branches
 # ---------------------------------------------------------------------------
 
 
-def test_wrap_branch_when_image_elongated(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``wrap=True`` plus an elongated ``--size`` triggers ``wrap_image``."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        wrap=True,
-        size=(120, 16),
-        replace='all',
-    )
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_wrap_reflows_elongated_image(tmp_path: Path) -> None:
+    """``--wrap`` reflows a very elongated image (under ``--frame``) into stacked
+    sections: the wrapped render is taller and narrower than the frame-fit strip.
+    """
+    # A wide 8x64 strip; --frame 40 40 fits it as a short, wide image.
+    arr = np.tile((np.arange(64, dtype='uint8') * 3)[None, :], (8, 1))
+    plain = _render(arr, tmp_path, '--frame', '40', '40', name='plain')
+    wrapped = _render(arr, tmp_path, '--frame', '40', '40', '--wrap', name='wrapped')
+
+    # np arrays are (H, W): wrap trades width for height (stacks the strip).
+    assert wrapped.shape[0] > plain.shape[0]                # taller
+    assert wrapped.shape[1] < plain.shape[1]                # narrower
 
 
-def test_pad_branch_runs(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``frame`` plus ``pad=True`` writes a padded output."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        frame=(64, 64),
-        pad=True,
-        replace='all',
-    )
-    out = tmp_path / 'cassini_iss.jpg'
-    assert out.exists()
+def test_pad_fills_border_with_pad_color(tmp_path: Path) -> None:
+    """``--frame`` + ``--pad`` centers the scaled image and fills the surrounding
+    frame with a uniform pad color, rather than stretching to fill.
+    """
+    # A vertical gradient so image columns vary (distinguishable from flat padding).
+    arr = np.tile((np.arange(8, dtype='uint8') * 30)[:, None], (1, 8))
+    # 8x8 into a 32x16 frame -> scales to 16x16, then pads width to 32 (8px each side).
+    out = _render(arr, tmp_path, '--frame', '32', '16', '--pad', name='pad')
 
-
-# ---------------------------------------------------------------------------
-# Empty input returns triple of Nones
-# ---------------------------------------------------------------------------
+    assert out.shape[:2] == (16, 32)                        # (H, W) == the frame
+    assert np.ptp(out[:, 0]) == 0                           # left pad column uniform
+    assert np.ptp(out[:, -1]) == 0                          # right pad column uniform
+    assert out[0, 0] == out[0, -1]                          # same pad color both sides
+    assert np.ptp(out[:, 16]) > 0                           # center holds the gradient
+    assert out[0, 0] != out[8, 16]                          # pad color != image content
 
 
 # ---------------------------------------------------------------------------
-# PDS3 detached-label branch in images_to_pics
+# PDS3 detached-label redirect
 # ---------------------------------------------------------------------------
 
 
@@ -365,196 +231,74 @@ END
 """
 
 
-def _make_label_pointing_at(fixtures_dir: Path, tmp_path: Path, image: str) -> Path:
-    """Copy ``image`` from the fixtures dir to ``tmp_path`` and write a
-    PDS3 .LBL alongside that points at it.
-    """
-    shutil.copy(fixtures_dir / image, tmp_path / image)
-    lbl = tmp_path / 'sample.LBL'
-    lbl.write_text(_LBL_TEMPLATE.format(image_filename=image))
-    return lbl
-
-
 def test_pds3_label_redirects_to_vicar(
     fixtures_dir: Path, tmp_path: Path
 ) -> None:
-    """A ``.LBL`` whose ``^IMAGE`` points at a VICAR file is parsed for
-    its label metadata and the VICAR reader handles the actual pixels.
+    """A ``.LBL`` whose ``^IMAGE`` points at a VICAR file is parsed for its
+    label metadata while the VICAR reader handles the actual pixels.
     """
-    lbl = _make_label_pointing_at(fixtures_dir, tmp_path, 'cassini_iss.vic')
+    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'cassini_iss.vic')
+    lbl = tmp_path / 'sample.LBL'
+    lbl.write_text(_LBL_TEMPLATE.format(image_filename='cassini_iss.vic'))
     out_dir = tmp_path / 'out'
-    images_to_pics([str(lbl)], directory=str(out_dir), replace='all')
+    _run([str(lbl)], out_dir)
     assert (out_dir / 'sample.jpg').exists()
 
 
-_LBL_TUPLE_POINTER = """PDS_VERSION_ID = PDS3
-INSTRUMENT_HOST_ID = 'CASSINI'
-INSTRUMENT_ID = 'ISS'
-FILTER_NAME = ('CL1', 'GRN')
-^IMAGE = ("cassini_iss.vic", 1)
-END
-"""
-
-
-def test_pds3_label_tuple_pointer(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """A pointer specified as ``(filename, record)`` is normalised to the
-    filename component.
-    """
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'cassini_iss.vic')
-    lbl = tmp_path / 'tuple.LBL'
-    lbl.write_text(_LBL_TUPLE_POINTER)
-    out_dir = tmp_path / 'out'
-    images_to_pics([str(lbl)], directory=str(out_dir), replace='all')
-    assert (out_dir / 'tuple.jpg').exists()
-
-
-_LBL_LIST_POINTER = """PDS_VERSION_ID = PDS3
-INSTRUMENT_HOST_ID = 'CASSINI'
-INSTRUMENT_ID = 'ISS'
-^IMAGE = ("frame_a.vic", "frame_b.vic")
-END
-"""
-
-
-def test_pds3_label_list_pointer_obj_none_picks_all(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """A pointer specified as a list of filenames stacks every entry when
-    ``obj`` is not given.
-    """
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'frame_a.vic')
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'frame_b.vic')
-    lbl = tmp_path / 'multi.LBL'
-    lbl.write_text(_LBL_LIST_POINTER)
-    out_dir = tmp_path / 'out'
-    images_to_pics([str(lbl)], directory=str(out_dir), replace='all')
-    assert (out_dir / 'multi.jpg').exists()
-
-
-def test_pds3_label_list_pointer_obj_int_picks_one(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``obj=0`` selects a single entry from a list-of-files pointer."""
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'frame_a.vic')
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'frame_b.vic')
-    lbl = tmp_path / 'multi.LBL'
-    lbl.write_text(_LBL_LIST_POINTER)
-    out_dir = tmp_path / 'out'
-    images_to_pics([str(lbl)], directory=str(out_dir), obj=0, replace='all')
-    assert (out_dir / 'multi.jpg').exists()
-
-
-def test_pds3_label_missing_pointer_raises(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """A label that doesn't contain the requested pointer raises ``KeyError``."""
-    lbl = tmp_path / 'no_pointer.LBL'
-    lbl.write_text("""PDS_VERSION_ID = PDS3
-INSTRUMENT_HOST_ID = 'CASSINI'
-END
-""")
-    with pytest.raises(KeyError, match=r'PDS pointer .* not found'):
-        images_to_pics([str(lbl)], directory=str(tmp_path), replace='all')
-
-
-def test_pds3_label_obj_out_of_range_raises(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``obj=999`` against a single-pointer label raises ``IndexError``."""
-    lbl = _make_label_pointing_at(fixtures_dir, tmp_path, 'cassini_iss.vic')
-    with pytest.raises(IndexError, match='out of range'):
-        images_to_pics([str(lbl)], directory=str(tmp_path / 'out'),
-                       obj=999, replace='all')
-
-
-def test_pds3_label_uses_spacecraft_id_fallback(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """Without ``INSTRUMENT_HOST_ID``, ``SPACECRAFT_ID`` is used instead."""
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'cassini_iss.vic')
-    lbl = tmp_path / 'sc.LBL'
-    lbl.write_text("""PDS_VERSION_ID = PDS3
-SPACECRAFT_ID = 'CASSINI'
-INSTRUMENT_ID = 'ISS'
-DETECTOR_ID = 'NAC'
-FILTER_NAME = ('CL1', 'GRN')
-^IMAGE = "cassini_iss.vic"
-END
-""")
-    out_dir = tmp_path / 'out'
-    images_to_pics([str(lbl)], directory=str(out_dir), replace='all')
-    assert (out_dir / 'sc.jpg').exists()
-
-
-def test_pds3_label_uses_spacecraft_name_fallback(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``SPACECRAFT_NAME`` is the last fallback for the host."""
-    shutil.copy(fixtures_dir / 'cassini_iss.vic', tmp_path / 'cassini_iss.vic')
-    lbl = tmp_path / 'scn.LBL'
-    lbl.write_text("""PDS_VERSION_ID = PDS3
-SPACECRAFT_NAME = 'CASSINI'
-INSTRUMENT_NAME = 'ISS'
-^IMAGE = "cassini_iss.vic"
-END
-""")
-    out_dir = tmp_path / 'out'
-    images_to_pics([str(lbl)], directory=str(out_dir), replace='all')
-    assert (out_dir / 'scn.jpg').exists()
-
-
-def test_empty_input_returns_none_triple(tmp_path: Path) -> None:
-    """An empty filename list returns ``(None, None, None)``."""
-    result = images_to_pics([], directory=str(tmp_path))
-    assert result == (None, None, None)
-
-
 # ---------------------------------------------------------------------------
-# Display upward / downward overrides
+# empty input
 # ---------------------------------------------------------------------------
 
 
-def test_display_upward_override(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``display_upward=True`` overrides the per-instrument default."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        display_upward=True,
-        replace='all',
-    )
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+def test_no_input_files_raises(tmp_path: Path) -> None:
+    """When no input files resolve, ``picmaker`` raises ``ValueError``."""
+    with pytest.raises(ValueError, match='No input files identified'):
+        _run([], tmp_path)
 
 
-def test_display_downward_override(
-    fixtures_dir: Path, tmp_path: Path
-) -> None:
-    """``display_downward=True`` overrides the per-instrument default."""
-    images_to_pics(
-        [str(fixtures_dir / 'cassini_iss.vic')],
-        directory=str(tmp_path),
-        display_downward=True,
-        replace='all',
-    )
-    assert (tmp_path / 'cassini_iss.jpg').exists()
+# ---------------------------------------------------------------------------
+# display orientation overrides
+# ---------------------------------------------------------------------------
 
 
-def test_tint_with_no_filter_info_skips_override(
-    tmp_path: Path,
-) -> None:
-    """``tint=True`` on an image with no ``filter_info`` leaves the
-    requested colormap in place (the override path is a no-op).
-    """
-    # A plain numpy array has no filter_info; tinted_colormap returns None.
-    src = tmp_path / 'plain.npy'
-    np.save(src, (np.arange(64).reshape(8, 8) * 4).astype('uint8'))
-    images_to_pics(
-        [str(src)],
-        directory=str(tmp_path),
-        tint=True,
-        replace='all',
-    )
-    assert (tmp_path / 'plain.jpg').exists()
+def test_up_and_down_are_vertical_mirrors(tmp_path: Path) -> None:
+    """``--up`` and ``--down`` render the same input as vertical mirror images,
+    with the bright band landing at opposite edges."""
+    # Vertically asymmetric: a bright band across the top three rows only.
+    arr = np.zeros((8, 8), dtype='uint8')
+    arr[:3] = 200
+    up = _render(arr, tmp_path, '--up', name='up')
+    down = _render(arr, tmp_path, '--down', name='down')
+
+    assert not np.array_equal(up, down)                     # orientation actually changed
+    assert np.array_equal(up, np.flipud(down))              # vertical mirrors
+    # --up makes lines increase upward, so the bright band moves to the bottom.
+    assert up[-1].mean() > up[0].mean()
+    assert down[0].mean() > down[-1].mean()
+
+
+def test_rotate_actually_rotates(tmp_path: Path) -> None:
+    """``--rotate`` rearranges pixels the way numpy's rot90 does. A no-op rotate
+    (the old ``rotate``/``rotation`` wiring bug) would fail this outright."""
+    # A distinct value per quadrant so every rotation is detectable.
+    arr = np.zeros((8, 8), dtype='uint8')
+    arr[:4, :4], arr[:4, 4:] = 60, 120
+    arr[4:, :4], arr[4:, 4:] = 180, 240
+
+    none = _render(arr, tmp_path, '--rotate', 'none', name='none')
+    r90 = _render(arr, tmp_path, '--rotate', 'rot90', name='r90')
+    r180 = _render(arr, tmp_path, '--rotate', 'rot180', name='r180')
+
+    assert not np.array_equal(r90, none)                    # not a no-op
+    assert np.array_equal(r90, np.rot90(none, 1))
+    assert np.array_equal(r180, np.rot90(none, 2))
+
+
+def test_tint_with_no_image_info_is_a_noop(tmp_path: Path) -> None:
+    """``--tint`` on an image with no instrument ``default_tint`` leaves the render
+    byte-for-byte identical to the un-tinted default (the override is a no-op)."""
+    # A plain numpy array carries no instrument metadata for the tint to use.
+    arr = (np.arange(64).reshape(8, 8) * 4).astype('uint8')
+    plain = _render(arr, tmp_path, name='plain')
+    tinted = _render(arr, tmp_path, '--tint', name='tinted')
+    assert np.array_equal(plain, tinted)

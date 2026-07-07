@@ -36,7 +36,7 @@ formats. It is used by the PDS Ring-Moon Systems Node (SETI Institute) for image
 preview generation.
 
 It ships both as a command-line tool (`picmaker`) and as an importable Python
-library (`from picmaker.picmaker import images_to_pics`). Features include
+library (`from picmaker import picmaker`). Features include
 percentile stretching, gamma correction, histogram equalization, colormap and
 filter-aware tinting, cropping, resizing, padding, and 16-bit TIFF output.
 
@@ -69,15 +69,18 @@ picmaker -r --pattern '*.vic' --extension png \
 Use as a library:
 
 ```python
-from picmaker.picmaker import images_to_pics
+from picmaker import picmaker
+from picmaker.parser import get_parser
 
-images_to_pics(
-    ['input.IMG'],
-    directory='out/',
-    extension='jpg',
-    percentiles=(1.0, 99.0),
-    gamma=0.7,
-)
+# Let the argument parser fill in every default, then run the pipeline.
+options = get_parser().parse_args([
+    'input.IMG',
+    '--directory', 'out/',
+    '--extension', 'jpg',
+    '--percentiles', '1', '99',
+    '--gamma', '0.7',
+])
+picmaker(**vars(options))
 ```
 
 > **Security note:** `picmaker` also accepts Python pickle files as a fallback

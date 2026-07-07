@@ -4,14 +4,19 @@ from typing import Any
 
 
 def test_package_imports_resolve(tiny_array: Any) -> None:
-    """The top-level :mod:`picmaker` re-exports the core entry points."""
+    """Every name in :data:`picmaker.__all__` resolves and is callable."""
     import picmaker
 
-    assert callable(picmaker.images_to_pics)
-    assert callable(picmaker.process_images)
-    assert callable(picmaker.read_one_image_array)
-    assert callable(picmaker.tinted_colormap)
-    assert callable(picmaker.apply_colormap)
-    assert callable(picmaker.get_limits)
+    assert picmaker.__all__, 'picmaker.__all__ should not be empty'
+    for name in picmaker.__all__:
+        obj = getattr(picmaker, name)
+        assert callable(obj), f'picmaker.{name} is not callable'
+
+    # A few representative entry points are present by name.
+    for name in ('picmaker', 'validate_options', 'get_filepaths', 'get_outfile',
+                 'get_versions', 'apply_colormap', 'get_limits'):
+        assert name in picmaker.__all__
+        assert callable(getattr(picmaker, name))
+
     # tiny_array fixture verifies the conftest plumbing still works.
     assert tiny_array.shape == (16, 16)

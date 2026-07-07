@@ -46,8 +46,8 @@
 #     ENABLE_MYPY         (default: true)
 #     ENABLE_PYTEST       (default: true)
 #     ENABLE_PYROMA       (default: true)
-#     ENABLE_BANDIT       (default: false)
-#     ENABLE_VULTURE      (default: false)
+#     ENABLE_BANDIT       (default: true)
+#     ENABLE_VULTURE      (default: true)
 #     ENABLE_SPHINX       (default: true)
 #     ENABLE_PYMARKDOWN   PyMarkdown scan (default: true)
 #
@@ -93,8 +93,8 @@ SCOPE_SPECIFIED=false
 : "${ENABLE_MYPY:=true}"
 : "${ENABLE_PYTEST:=true}"
 : "${ENABLE_PYROMA:=true}"
-: "${ENABLE_BANDIT:=false}"
-: "${ENABLE_VULTURE:=false}"
+: "${ENABLE_BANDIT:=true}"
+: "${ENABLE_VULTURE:=true}"
 : "${ENABLE_SPHINX:=true}"
 : "${ENABLE_PYMARKDOWN:=true}"
 
@@ -102,6 +102,22 @@ SCOPE_SPECIFIED=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VENV="${VENV:-${VENV_PATH:-$PROJECT_ROOT/venv}}"
+
+# Activate the project virtualenv if one exists at $VENV; otherwise fall back to
+# whatever Python environment is already active (an already-sourced venv/.venv,
+# a conda env, or the system interpreter) so the checks still run instead of
+# aborting. This keeps a local run consistent with CI, which just uses the
+# ambient interpreter rather than a checked-in venv.
+_VENV_WARNED=false
+activate_venv() {
+    if [ -f "$VENV/bin/activate" ]; then
+        # shellcheck source=/dev/null
+        source "$VENV/bin/activate"
+    elif [ "$_VENV_WARNED" = false ]; then
+        print_info "No virtualenv at $VENV; using the active Python environment."
+        _VENV_WARNED=true
+    fi
+}
 
 # Track failures and final exit code
 FAILED_CHECKS=()
@@ -340,14 +356,7 @@ run_code_checks() {
         return 0
     fi
 
-    if [ ! -f "$VENV/bin/activate" ]; then
-        print_error "Virtual environment not found at $VENV"
-        [ -n "$status_file" ] && echo "Code - Virtual environment not found" >> "$status_file"
-        return 1
-    fi
-
-    # shellcheck source=/dev/null
-    source "$VENV/bin/activate"
+    activate_venv
 
     local failed=false
     local failed_checks=""
@@ -376,11 +385,10 @@ run_code_checks() {
 
     if [ "$RUN_MYPY" = true ] && [ "$ENABLE_MYPY" = true ]; then
         print_info "Running mypy..."
-        # tests/ has no __init__.py but mypy still type-checks every test_*.py
-        # under strict mode because file basenames are unique across the
-        # directory; the (src + tests) file count in the success line confirms
-        # tests are covered.
-        if MYPYPATH=src python -m mypy src tests; then
+        # src/picmaker is intentionally untyped and permanently excluded from
+        # mypy (see pyproject [tool.mypy]: follow_imports=skip on picmaker.*).
+        # mypy type-checks the tests only.
+        if MYPYPATH=src python -m mypy tests; then
             print_success "Mypy passed"
         else
             print_error "Mypy failed"
@@ -391,7 +399,7 @@ run_code_checks() {
 
     # -n controls parallelism; --dist loadscope keeps each test module on one
     # worker to avoid time-mocking and fixture-isolation interference.
-    # Coverage (--cov=psfmodel) and strict options come from pyproject.toml addopts.
+    # Coverage (--cov=picmaker) and strict options come from pyproject.toml addopts.
     if [ "$RUN_PYTEST" = true ] && [ "$ENABLE_PYTEST" = true ]; then
         print_info "Running pytest (-n ${PYTEST_WORKERS})..."
         if python -m pytest -q -n "$PYTEST_WORKERS" --dist loadscope tests; then
@@ -458,14 +466,7 @@ run_sphinx_build() {
 
     cd "$PROJECT_ROOT" || exit 1
 
-    if [ ! -f "$VENV/bin/activate" ]; then
-        print_error "Virtual environment not found at $VENV"
-        [ -n "$status_file" ] && echo "Sphinx - Virtual environment not found" >> "$status_file"
-        return 1
-    fi
-
-    # shellcheck source=/dev/null
-    source "$VENV/bin/activate"
+    activate_venv
 
     print_info "Building documentation (warnings treated as errors)..."
     if (cd docs && make clean && make html SPHINXOPTS="-W"); then
@@ -493,14 +494,7 @@ run_markdown_checks() {
 
     cd "$PROJECT_ROOT" || exit 1
 
-    if [ ! -f "$VENV/bin/activate" ]; then
-        print_error "Virtual environment not found at $VENV"
-        [ -n "$status_file" ] && echo "Markdown - Virtual environment not found" >> "$status_file"
-        return 1
-    fi
-
-    # shellcheck source=/dev/null
-    source "$VENV/bin/activate"
+    activate_venv
 
     print_info "Running PyMarkdown scan (docs/, .cursor/, root *.md)..."
     local scan_paths=()

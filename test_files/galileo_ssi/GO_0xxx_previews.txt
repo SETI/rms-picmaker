@@ -1,0 +1,4 @@
+--suffix=_full
+--suffix=_med   --frame 400 400 --crop=0 --pad --pad-color=dimgray --tint
+--suffix=_small --frame 200 200 --crop=0 --pad --pad-color=dimgray --tint
+--suffix=_thumb --frame 100 100 --crop=0 --pad --pad-color=dimgray --tint
