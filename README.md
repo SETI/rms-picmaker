@@ -70,7 +70,7 @@ Use as a library:
 
 ```python
 from picmaker import picmaker
-from picmaker.parser import get_parser
+from picmaker.options import get_parser
 
 # Let the argument parser fill in every default, then run the pipeline.
 options = get_parser().parse_args([
