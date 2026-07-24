@@ -1,0 +1,67 @@
+PDS_VERSION_ID                = PDS3
+
+/* FILE CHARACTERISTICS */
+
+RECORD_TYPE                   = FIXED_LENGTH
+RECORD_BYTES                  = 3296
+FILE_RECORDS                  = 768
+
+/* POINTERS TO DATA OBJECTS */
+
+^IMAGE                        = "JNCR_2024134_61T00209_V01.IMG"
+
+/* IDENTIFICATION DATA ELEMENTS */
+
+FILE_NAME                     = "JNCR_2024134_61T00209_V01.IMG"
+SPACECRAFT_NAME               = JUNO
+MISSION_PHASE_NAME            = "SCIENCE ORBITS"
+TARGET_NAME                   = "JUPITER"
+INSTRUMENT_ID                 = "JNC"
+INSTRUMENT_HOST_NAME          = "JUNO"
+INSTRUMENT_NAME               = "JUNO EPO CAMERA"
+PRODUCER_ID                   = JUNO_JUNOCAM_TEAM
+DATA_SET_ID                   = "JUNO-J-JUNOCAM-3-RDR-L1A-V1.0"
+STANDARD_DATA_PRODUCT_ID      = "JUNOCAM-RDR"
+PRODUCT_CREATION_TIME         = 2024-09-18T19:14:29
+PRODUCT_VERSION_ID            = "01"
+PRODUCT_ID                    = "JNCR_2024134_61T00209_V01"
+SOURCE_PRODUCT_ID             = "3D-09003D00D1-2024-142T15.42.22"
+START_TIME                    = 2024-05-13T08:15:03.120
+IMAGE_TIME                    = 2024-05-13T08:15:03.120
+STOP_TIME                     = 2024-05-13T08:15:04.245
+SPACECRAFT_CLOCK_START_COUNT  = "768860588:38"
+SPACECRAFT_CLOCK_STOP_COUNT   = "N/A"
+
+/* DESCRIPTIVE DATA ELEMENTS */
+
+ORBIT_NUMBER                  = 61
+SOFTWARE_NAME                 = "JUNOMAKEPDS.PY 0.12"
+PROCESSING_LEVEL_ID           = "3"
+FOCAL_PLANE_TEMPERATURE       = 318.1 <K>
+INTERFRAME_DELAY              = 0.375 <s>
+SUB_SPACECRAFT_LATITUDE       = -70.8904
+SUB_SPACECRAFT_LONGITUDE      = 256.7949
+SPACECRAFT_ALTITUDE           = 1568948.7 <km>
+SOLAR_DISTANCE                = 7.5015e+08 <km>
+SAMPLE_BIT_MODE_ID            = "SQROOT"
+EXPOSURE_DURATION             = 6.400000 <ms>
+JNO:TDI_STAGES_COUNT          = 2
+SAMPLING_FACTOR               = 1
+FILTER_NAME                   = ('BLUE', 'RED')
+COMPRESSION_TYPE              = "INTEGER COSINE TRANSFORM"
+RATIONALE_DESC                = "Marble movie outbound imaging - partial 
+(relative time: PJ61+001T04:36)"
+
+/* DATA OBJECT DEFINITIONS */
+
+OBJECT                        = IMAGE
+  LINES                       = 768
+  LINE_SAMPLES                = 1648
+  SAMPLE_TYPE                 = UNSIGNED_INTEGER
+  LINE_PREFIX_BYTES           = 0
+  LINE_SUFFIX_BYTES           = 0
+  SAMPLE_BITS                 = 16
+  SAMPLE_BIT_MASK             = 2#1111111111111111#
+  MD5_CHECKSUM                = "4573b826a00766e0152773ca30d3f319"
+END_OBJECT                    = IMAGE
+END

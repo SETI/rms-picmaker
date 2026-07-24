@@ -9,9 +9,10 @@ from scipy.stats import rankdata
 from picmaker.colornames import ColorNames
 
 
-def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
-                   histogram=False, colormap=None, tint=False, below_color=None,
-                   above_color=None, invalid_color='black', gamma=1., **kwargs):
+def apply_colormap(array, valid_limits, invalid_mask=None, *, layer=None,
+                   default_tint=None, histogram=False, colormap=None, tint=False,
+                   below_color=None, above_color=None, invalid_color='black', gamma=1.,
+                   **kwargs):
     """Apply a colormap to up to three grayscale images.
 
     Produces a 3-D array with one channel (grayscale) or three channels (RGB), in axis
@@ -24,6 +25,7 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
             maximum of the mapping.
         invalid_mask (array[bool], optional): Boolean mask of invalid pixels, including
             all NaNs in `array`.
+        layer (int, None): The layer selection of the overall data array, if any.
         default_tint (str, tuple[int, int, int], or list of these, optional): The default
             colormap to use as defined by the instrument. This is used if not overridden
             by `colormap` and if `tint` is True.
@@ -172,7 +174,7 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
     # Apply the colormap
     if colormap:
         xbins = np.arange(len(colormap)) / (len(colormap) - 1)
-        rgb_maps = [[c[k]/255. for c in colormap] for k in range(3)]
+        rgb_maps = [[c[k] / 255. for c in colormap] for k in range(3)]
         for b in range(channels):
             rgb_array[..., b] = np.interp(rgb_array[..., b], xbins, rgb_maps[b])
 
@@ -183,7 +185,7 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, default_tint=None,
                                  (any_invalid, invalid_color, invalid_mask)]:
         if has_any:
             spatial = np.any(mask, axis=0)
-            rgb_array[spatial] = [color[b]/255. for b in range(channels)]
+            rgb_array[spatial] = [color[b] / 255. for b in range(channels)]
 
     return rgb_array
 

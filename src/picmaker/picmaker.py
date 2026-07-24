@@ -293,7 +293,8 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
         array = fill_zebra_stripes(array, **options)
 
     # Assemble a mosaic if necessary; convert to RGB or grayscale arrays scaled 0-1
-    mosaic = options.get('mosaic', False)
+    mosaic = (image_data.mosaic if hasattr(image_data, 'mosaic')
+              else options.get('mosaic', False))
     if mosaic and array.ndim == 3 and hasattr(image_data, 'apply_mosaic'):
         # Get the scaling limits and apply the colormap to each band
         rgb_arrays = []
@@ -304,7 +305,7 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
             # when there is a mask.
             mask_b = None if invalid_mask is None else invalid_mask[b]
             limits = get_limits(array[b], mask_b, **options)
-            array_rgb = image_data.apply_colormap(array[b], limits,
+            array_rgb = image_data.apply_colormap(array, limits, layer=b,
                                                   invalid_mask=mask_b, **options)
             rgb_arrays.append(array_rgb)
             min_limits.append(limits[0])

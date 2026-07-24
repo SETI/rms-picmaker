@@ -46,9 +46,9 @@ def _register_all_instruments():
 
 class ImageData:
     def __init_subclass__(cls, **kwargs):
-        # Every ImageData subclass is an instrument reader; register it as soon
-        # as its class body runs (i.e. when its module is imported), so modules
-        # never have to call _register_instrument themselves.
+        # Every ImageData subclass is an instrument reader; register it as soon as its
+        # class body runs (i.e. when its module is imported), so modules never have to
+        # call _register_instrument themselves.
         super().__init_subclass__(**kwargs)
         _register_instrument(cls)
 

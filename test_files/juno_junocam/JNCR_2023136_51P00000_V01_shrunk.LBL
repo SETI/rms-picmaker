@@ -1,0 +1,82 @@
+PDS_VERSION_ID                  = PDS3
+
+/* 8x8 block-averaged version of JNCR_2023136_51P00000_V01.IMG, 2880x5760 -> 360x720 */
+
+/* FILE CHARACTERISTICS */
+
+FILE_NAME                       = "JNCR_2023136_51P00000_V01_shrunk.IMG"
+RECORD_TYPE                     = FIXED_LENGTH
+RECORD_BYTES                    = 720
+FILE_RECORDS                    = 360
+^IMAGE                          = "JNCR_2023136_51P00000_V01_shrunk.IMG"
+
+/* IDENTIFICATION DATA ELEMENTS */
+
+SPACECRAFT_NAME                 = JUNO
+MISSION_PHASE_NAME              = "SCIENCE ORBITS"
+TARGET_NAME                     = "JUPITER"
+INSTRUMENT_ID                   = "JNC"
+INSTRUMENT_HOST_NAME            = "JUNO"
+INSTRUMENT_NAME                 = "JUNO EPO CAMERA"
+PRODUCER_ID                     = JUNO_JUNOCAM_TEAM
+DATA_SET_ID                     = "JUNO-J-JUNOCAM-4-RDR-L1B-V1.0"
+STANDARD_DATA_PRODUCT_ID        = "JUNOCAM-RDR"
+PROCESSING_LEVEL_ID             = "4"
+PRODUCT_CREATION_TIME           = 2023-11-20T22:03:27
+START_TIME                      = 2023-05-16T07:03:58.120
+STOP_TIME                       = 2023-05-16T11:30:21.880
+SPACECRAFT_CLOCK_START_COUNT    = "737493081:62"
+SPACECRAFT_CLOCK_STOP_COUNT     = "N/A"
+PRODUCT_VERSION_ID              = "01"
+PRODUCT_ID                      = "JNCR_2023136_51P00000_V01"
+SOURCE_PRODUCT_ID               = ("JNCE_2023136_51C00086_V01",
+"JNCE_2023136_51C00116_V01")
+FILTER_NAME                     = ('BLUE', 'GREEN', 'RED')
+RATIONALE_DESC                  = "PJ51 Global Map product"
+
+/* MAP PROJECTION INFORMATION */
+
+OBJECT                          = IMAGE_MAP_PROJECTION
+  ^DATA_SET_MAP_PROJECTION      = "DSMAP.CAT"
+  COORDINATE_SYSTEM_TYPE        = "BODY-FIXED ROTATING"
+  COORDINATE_SYSTEM_NAME        = "PLANETOGRAPHIC"
+  MAP_PROJECTION_ROTATION       = "N/A"
+  MAP_PROJECTION_TYPE           = "SIMPLE CYLINDRICAL"
+  MAP_RESOLUTION                = 2 <pixel/degree>
+  MAP_SCALE                     = 30.000 <km/pixel>
+  MAXIMUM_LATITUDE              = 90.0
+  MINIMUM_LATITUDE              = -90.0
+  EASTERNMOST_LONGITUDE         = 360.0
+  WESTERNMOST_LONGITUDE         = 0.0
+  LINE_PROJECTION_OFFSET        = 180.0
+  SAMPLE_PROJECTION_OFFSET      = 360.0
+  A_AXIS_RADIUS                 = 71492.0 <km>
+  B_AXIS_RADIUS                 = 71492.0 <km>
+  C_AXIS_RADIUS                 = 66854.0 <km>
+  FIRST_STANDARD_PARALLEL       = "N/A"
+  SECOND_STANDARD_PARALLEL      = "N/A"
+  POSITIVE_LONGITUDE_DIRECTION  = WEST
+  CENTER_LATITUDE               = 0.0
+  CENTER_LONGITUDE              = 0.0
+  REFERENCE_LATITUDE            = "N/A"
+  REFERENCE_LONGITUDE           = "N/A"
+  LINE_FIRST_PIXEL              = 1
+  SAMPLE_FIRST_PIXEL            = 1
+  LINE_LAST_PIXEL               = 720
+  SAMPLE_LAST_PIXEL             = 360
+END_OBJECT                      = IMAGE_MAP_PROJECTION
+
+/* IMAGE DATA ELEMENTS */
+
+OBJECT                          = IMAGE
+  LINES                         = 360
+  LINE_SAMPLES                  = 720
+  SAMPLE_TYPE                   = UNSIGNED_INTEGER
+  SAMPLE_BITS                   = 8
+  BANDS                         = 3
+  BAND_STORAGE_TYPE             = BAND_SEQUENTIAL
+  SAMPLE_BIT_MASK               = 16#ff#
+  MD5_CHECKSUM                  = "3715c28caabeedb2d2765fbfaa546f7e"
+END_OBJECT                      = IMAGE
+
+END

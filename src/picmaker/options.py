@@ -56,8 +56,7 @@ def get_parser():
              'mode.')
     _control.add_argument(
         '--logging', type=str, choices=_LOGGING_CHOICES,
-        help='Logging level, one of "warning", "info", "debug", or "error". Default is '
-             '"info".')
+        help='Logging level; default is "info".')
 
     _input_ = parser.add_argument_group('Input options')
     _input_.add_argument(
@@ -70,9 +69,8 @@ def get_parser():
              'or the HDU in a FITS file.')
     _input_.add_argument(
         '--pds3-method', type=str, choices=PDS3_METHODS,
-        help='Pds3Label parsing strictness for PDS3 .LBL inputs, one of "'
-             + '", "'.join(PDS3_METHODS[:-1]) + f'" and "{PDS3_METHODS[-1]}". '
-             + f'Default is "{DEFAULT_PDS3_METHOD}".')
+        help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is '
+             '"{DEFAULT_PDS3_METHOD}".')
 
     _preprocessing = parser.add_argument_group('Pre-processing options')
     _preprocessing.add_argument(
@@ -174,9 +172,7 @@ def get_parser():
              'default for the instrument.')
     _orientation.add_argument(
         '--rotate', type=str, choices=ROTATE_CHOICES,
-        help='Rotate or flip the image from its default orientation. Options are "'
-             + '", "'.join(ROTATE_CHOICES[:-1]) + f'" and "{ROTATE_CHOICES[-1]}". '
-             + 'The default is "none".')
+        help='Rotate or flip the image from its default orientation; default is "none".')
 
     _sizing = parser.add_argument_group('Sizing options')
     _sizing.add_argument(
@@ -236,17 +232,14 @@ def get_parser():
     _processing = parser.add_argument_group('Post-processing options')
     _processing.add_argument(
         '--filter', type=str, choices=FILTER_CHOICES,
-        help='Apply an image processing filter to the image. Options are "'
-             + '", "'.join(FILTER_CHOICES[:-1]) + f'" and "{FILTER_CHOICES[-1]}". '
-             + 'The default is "none".')
+        help='Apply an image processing filter to the image; default is "none".')
 
     _output = parser.add_argument_group('Output options')
     _output.add_argument(
         '-x', '--extension', type=str, choices=PIL_EXTENSIONS,
         help='File name extension for the image produced; this also defines the output '
-             'file format. Options are "'
-             + '", "'.join(PIL_EXTENSIONS[:-1]) + f'" and "{PIL_EXTENSIONS[-1]}". '
-             + 'The default is "jpg" for 8-bit outputs and "tiff" for 16-bit outputs.')
+             'file format. The default is "jpg" for 8-bit output and "tiff" for 16-bit '
+             'outputs.')
     _output.add_argument(
         '--directory', type=str,
         help='Directory in which to place converted files. If the recursive option is '

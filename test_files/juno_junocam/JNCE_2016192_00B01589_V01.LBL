@@ -1,0 +1,66 @@
+PDS_VERSION_ID                = PDS3
+
+/* FILE CHARACTERISTICS */
+
+RECORD_TYPE                   = FIXED_LENGTH
+RECORD_BYTES                  = 1648
+FILE_RECORDS                  = 1024
+
+/* POINTERS TO DATA OBJECTS */
+
+^IMAGE                        = "JNCE_2016192_00B01589_V01.IMG"
+
+/* IDENTIFICATION DATA ELEMENTS */
+
+FILE_NAME                     = "JNCE_2016192_00B01589_V01.IMG"
+SPACECRAFT_NAME               = JUNO
+MISSION_PHASE_NAME            = "SCIENCE ORBITS"
+TARGET_NAME                   = JUPITER
+INSTRUMENT_ID                 = "JNC"
+INSTRUMENT_HOST_NAME          = "JUNO"
+INSTRUMENT_NAME               = "JUNO EPO CAMERA"
+PRODUCER_ID                   = JUNO_JUNOCAM_TEAM
+DATA_SET_ID                   = "JUNO-J-JUNOCAM-2-EDR-L0-V1.0"
+STANDARD_DATA_PRODUCT_ID      = "JUNOCAM-EDR"
+PRODUCT_CREATION_TIME         = 2017-05-10T22:29:44
+PRODUCT_VERSION_ID            = "01"
+PRODUCT_ID                    = "JNCE_2016192_00B01589_V01"
+SOURCE_PRODUCT_ID             = "3D-0900010635-2016-192T06.37.52"
+START_TIME                    = 2016-07-10T05:15:30.691
+IMAGE_TIME                    = 2016-07-10T05:15:30.691
+STOP_TIME                     = 2016-07-10T05:15:33.667
+SPACECRAFT_CLOCK_START_COUNT  = "521399901:167"
+SPACECRAFT_CLOCK_STOP_COUNT   = "N/A"
+
+/* DESCRIPTIVE DATA ELEMENTS */
+
+ORBIT_NUMBER                  = 0
+SOFTWARE_NAME                 = "JUNOMAKEPDS.PY 0.4"
+PROCESSING_LEVEL_ID           = "2"
+FOCAL_PLANE_TEMPERATURE       = 273.0 <K>
+INTERFRAME_DELAY              = 0.372 <s>
+SUB_SPACECRAFT_LATITUDE       = -14.1822
+SUB_SPACECRAFT_LONGITUDE      = 334.8930
+SPACECRAFT_ALTITUDE           = 4061068.7 <km>
+SOLAR_DISTANCE                = 8.1450e+08 <km>
+SAMPLE_BIT_MODE_ID            = "SQROOT"
+EXPOSURE_DURATION             = 3.200000 <ms>
+JNO:TDI_STAGES_COUNT          = 1
+SAMPLING_FACTOR               = 1
+FILTER_NAME                   = ('BLUE')
+COMPRESSION_TYPE              = "INTEGER COSINE TRANSFORM"
+RATIONALE_DESC                = "Marble Movie"
+
+/* DATA OBJECT DEFINITIONS */
+
+OBJECT                        = IMAGE
+  LINES                       = 1024
+  LINE_SAMPLES                = 1648
+  SAMPLE_TYPE                 = UNSIGNED_INTEGER
+  LINE_PREFIX_BYTES           = 0
+  LINE_SUFFIX_BYTES           = 0
+  SAMPLE_BITS                 = 8
+  SAMPLE_BIT_MASK             = 2#11111111#
+  MD5_CHECKSUM                = "848843d2fb4c128597665f69167eef14"
+END_OBJECT                    = IMAGE
+END
