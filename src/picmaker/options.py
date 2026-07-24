@@ -70,7 +70,7 @@ def get_parser():
     _input_.add_argument(
         '--pds3-method', type=str, choices=PDS3_METHODS,
         help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is '
-             '"{DEFAULT_PDS3_METHOD}".')
+             f'"{DEFAULT_PDS3_METHOD}".')
 
     _preprocessing = parser.add_argument_group('Pre-processing options')
     _preprocessing.add_argument(
