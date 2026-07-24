@@ -125,7 +125,7 @@ are applied to each image in the following order:
 10. ``--rotate`` — flip or rotate the image.
 11. ``--filter`` — apply an optional image processing filter, followed by
     ``--brighten``, ``--contrast``, ``--saturation``, and ``--sharpen``, the
-    Pillow ImageEnhance adjustments. Each takes a factor where 1 leaves the
+    Pillow :mod:`~PIL.ImageEnhance` adjustments. Each takes a factor where 1 leaves the
     image unchanged and 0 is the degenerate case (black, flat gray, grayscale,
     or blurred, respectively); they are applied in the order listed here.
 12. ``--size``, ``--scale``, ``--wscale``, ``--hscale``, ``--frame``,
@@ -458,5 +458,5 @@ top-level package — for example, ``read_image_array`` reads a file into an
   ``--16``.
 * ``image adjustments are not supported for 2-byte images`` — Likewise for
   the ``--brighten``, ``--contrast``, ``--saturation``, and ``--sharpen``
-  options, which go through Pillow's ImageEnhance; drop them when using
+  options, which go through Pillow's :mod:`~PIL.ImageEnhance`; drop them when using
   ``--16``.
