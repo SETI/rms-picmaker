@@ -224,7 +224,7 @@ extend-ignore = ["PT011", "SIM105", "SIM108", "RUF005", "N801", "E741", "UP015",
 [tool.ruff.lint.per-file-ignores]
 # `filter` is the public keyword-argument / option name here; keep it despite
 # shadowing the builtin (the builtin is not used in this module).
-"src/picmaker/processing.py" = ["A001", "A002"]
+"src/picmaker/postprocessing.py" = ["A001", "A002"]
 # The TFIELDS check reads more clearly as an explicit `if ...: return False`.
 "src/picmaker/instruments/_fits_support.py" = ["SIM103"]
 # The per-filter tint chain keeps one `elif` per filter for readability rather

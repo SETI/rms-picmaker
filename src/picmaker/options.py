@@ -12,7 +12,7 @@ from picmaker.control     import REPLACE_CHOICES
 from picmaker.instruments import DEFAULT_PDS3_METHOD, PDS3_METHODS
 from picmaker.orientation import ROTATE_CHOICES
 from picmaker.pil_utils   import PIL_EXTENSIONS
-from picmaker.processing  import FILTER_CHOICES
+from picmaker.postprocessing import ADJUST_OPTIONS, FILTER_CHOICES
 
 _LOGGING_CHOICES = ['warning', 'info', 'debug', 'error']
 
@@ -233,6 +233,22 @@ def get_parser():
     _processing.add_argument(
         '--filter', type=str, choices=FILTER_CHOICES,
         help='Apply an image processing filter to the image; default is "none".')
+    _processing.add_argument(
+        '--brighten', type=float, metavar='FACTOR',
+        help='Scale the image brightness by this factor, where 1 leaves it unchanged and '
+             '0 is black. Default is to leave it unchanged.')
+    _processing.add_argument(
+        '--contrast', type=float, metavar='FACTOR',
+        help='Scale the image contrast by this factor, where 1 leaves it unchanged and 0 '
+             'is a solid gray. Default is to leave it unchanged.')
+    _processing.add_argument(
+        '--saturation', type=float, metavar='FACTOR',
+        help='Scale the color saturation by this factor, where 1 leaves it unchanged and '
+             '0 is grayscale. Default is to leave it unchanged.')
+    _processing.add_argument(
+        '--sharpen', type=float, metavar='FACTOR',
+        help='Scale the image sharpness by this factor, where 1 leaves it unchanged, 0 '
+             'is blurred, and 2 is sharpened. Default is to leave it unchanged.')
 
     _output = parser.add_argument_group('Output options')
     _output.add_argument(
@@ -263,9 +279,9 @@ def get_parser():
 
 
 # This is a table of (name, default, type1[, min1, max1[, type2[, min2, max2]]])
-# If `type1` is int or float, the next two values are its limits (or None for no limits).
-# If `type1` is a list, then min1 and max1 are the length requirements and the remainder
-# of the tuple defines the requirements on the elements.
+# If `type1` is `int` or `float`, the next two values are its limits (or None for no
+# limits). If `type1` is `list`, then min1 and max1 are the length requirements and the
+# remainder of the tuple defines the requirements on the elements.
 _OPTION_DEFAULTS = [
     # NAME              , DEFAULT   , TYPE1             , TYPE2
     # Control options; note that all options except "replace" are handled by picmaker()
@@ -321,6 +337,10 @@ _OPTION_DEFAULTS = [
     ('mosaic'           , False     , bool                                  ),
     # Post-processing options
     ('filter'           , 'none'    , FILTER_CHOICES                        ),
+    ('brighten'         , None      , float, 0, None                        ),
+    ('contrast'         , None      , float, 0, None                        ),
+    ('saturation'       , None      , float, 0, None                        ),
+    ('sharpen'          , None      , float, 0, None                        ),
     # Output options
     ('extension'        , None      , PIL_EXTENSIONS                        ),
     ('suffix'           , ''        , str                                   ),
@@ -397,10 +417,15 @@ def validate_options(options):
 
         return value
 
-    # Fill in defaults, validate all values, forwarding an exception
+    # Fill in defaults, validate all values, forwarding an exception. A supplied value
+    # that is falsy normally falls back to the default, which is what most options want
+    # (an empty suffix, an unset flag). The adjustment factors are the exception: 0 is a
+    # meaningful request there -- grayscale, black, blurred -- so only None means "unset".
     for info in _OPTION_DEFAULTS:
         name, default, *type_info = info
-        value = options.get(name) or default
+        value = options.get(name)
+        if value is None or (not value and name not in ADJUST_OPTIONS):
+            value = default
         options[name] = check_value(name, value, type_info)
 
     return options

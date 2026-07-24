@@ -55,7 +55,8 @@ Layout
    │   ├── sizing.py             # get_size + resize_pil_image.
    │   ├── layout.py             # wrap_pil_image + pad_pil_image.
    │   ├── pil_utils.py          # numpy ↔ PIL bridges + write_pil.
-   │   ├── processing.py         # filter_pil_image + fill_zebra_stripes.
+   │   ├── preprocessing.py      # fill_zebra_stripes (pre-stretch cleanup).
+   │   ├── postprocessing.py     # filter_pil_image + adjust_pil_image.
    │   ├── tiff16.py             # 16-bit TIFF reader / writer.
    │   ├── colornames.py         # X11 color-name lookup (ColorNames).
    │   ├── instruments/          # Per-mission file readers + tint chains.

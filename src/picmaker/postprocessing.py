@@ -1,10 +1,9 @@
 ##########################################################################################
-# picmaker/processing.py
+# picmaker/postprocessing.py
 ##########################################################################################
-"""Image processing options."""
+"""Post-stretch PIL-image processing: named filters and the adjustment operations."""
 
-import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter
 
 _FILTER_DICT = {
     'none'             : None,
@@ -30,6 +29,17 @@ _FILTER_DICT = {
 }
 
 FILTER_CHOICES = list(_FILTER_DICT.keys())
+
+# The Pillow ImageEnhance classes, keyed by the option that selects each one. The order
+# is the order in which they are applied; see adjust_pil_image.
+_ADJUSTERS = {
+    'brighten'  : ImageEnhance.Brightness,
+    'contrast'  : ImageEnhance.Contrast,
+    'saturation': ImageEnhance.Color,
+    'sharpen'   : ImageEnhance.Sharpness,
+}
+
+ADJUST_OPTIONS = list(_ADJUSTERS.keys())
 
 
 def filter_pil_image(image, filter=None, **kwargs):
@@ -70,62 +80,52 @@ def filter_pil_image(image, filter=None, **kwargs):
     return image
 
 
-def fill_zebra_stripes(array, **kwargs):
-    """Fill zero zebra stripes around the edges of rows.
+def adjust_pil_image(image, **kwargs):
+    """Apply the Pillow ImageEnhance adjustments to a PIL image.
 
-    Fills lines of zeros at the beginning and end of each row when the rows immediately
-    above and below have nonzero values at the same columns. This removes an artifact
-    associated with some spacecraft compression procedures.
+    Each adjustment takes a factor, where 1.0 leaves the image unchanged, 0.0 reduces it
+    to the degenerate case (black for `brighten`, solid gray for `contrast`, grayscale for
+    `saturation`, blurred for `sharpen`), and values above 1.0 exaggerate the property. An
+    option left at None is skipped entirely, so the common case of no adjustment does no
+    work.
+
+    When more than one is given they are applied in a fixed order -- `brighten`,
+    `contrast`, `saturation`, then `sharpen` -- because these operations do not commute,
+    and sharpening after the tonal and color adjustments is what a photo pipeline
+    conventionally does.
+
+    Two-byte (16-bit) images are not supported and raise ValueError, as for
+    :func:`filter_pil_image`.
 
     Parameters:
-        array (array): A 2-D or 3-D array. It is not modified.
-        **kwargs: Additional input options, ignored here.
+        image (PIL.Image): A PIL image as 8-bit RGB or grayscale.
+        **kwargs: Additional input options. The ones used here are `brighten`, `contrast`,
+            `saturation`, and `sharpen`, each an optional float >= 0, where 1.0 is neutral
+            and None means "leave alone".
 
     Returns:
-        array[float]: A new floating-point array with the zebra stripes filled. The input
-        is never modified, so a caller may reuse it (e.g. for a following version in which
-        "--zebra" is not set).
+        PIL.Image: The adjusted PIL image. If no adjustment option is set, the input
+        image is returned unchanged.
+
+    Raises:
+        ValueError: If `image` is a list (16-bit two-byte image) and any adjustment was
+            requested.
     """
 
-    # Get the dimensions
-    lines, samples = array.shape[-2:]
-    if lines <= 2:
-        return array
+    factors = [(name, kwargs.get(name)) for name in _ADJUSTERS]
+    factors = [(name, factor) for name, factor in factors if factor is not None]
+    if not factors:
+        return image
 
-    # Work on a float copy; the caller's array (shared across versions) is left untouched.
-    array = array.astype('float')
-    if array.ndim == 2:
-        arrays = [array]
-    else:
-        arrays = [array[b] for b in range(array.shape[0])]
+    if not isinstance(image, Image.Image):
+        raise ValueError('Image adjustments are not supported for 2-byte images')
 
-    # Loop through lines
-    # lprev starts at 1 (row 0 peeks at row 1 as its "above" neighbor)
-    for array2d in arrays:
-        lprev = 1
-        for line in range(lines):
-            lnext = line + 1 if line + 1 < lines else line - 1
+    for name, factor in factors:
+        image = _ADJUSTERS[name](image).enhance(factor)
 
-            row = array2d[line]
-            above = array2d[lprev]
-            below = array2d[lnext]
-
-            nonzero = np.flatnonzero(row)
-            if len(nonzero):
-                ranges = [(0, nonzero[0]), (nonzero[-1]+1, samples)]
-            else:
-                ranges = [(0, samples)]
-
-            for (s0, s1) in ranges:
-                srange = np.arange(s0, s1)
-                srange = srange[(above[srange] != 0) & (below[srange] != 0)]
-                row[srange] = (above[srange] + below[srange]) / 2
-
-            lprev = line
-
-    return array
+    return image
 
 
-__all__ = ['FILTER_CHOICES', 'fill_zebra_stripes', 'filter_pil_image']
+__all__ = ['ADJUST_OPTIONS', 'FILTER_CHOICES', 'adjust_pil_image', 'filter_pil_image']
 
 ##########################################################################################

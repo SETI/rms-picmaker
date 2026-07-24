@@ -9,6 +9,7 @@ per-instrument readers.
 .. autofunction:: picmaker.picmaker.picmaker
 .. autofunction:: picmaker.picmaker.picmaker1
 
+.. autofunction:: picmaker.adjust_pil_image
 .. autofunction:: picmaker.apply_colormap
 .. autofunction:: picmaker.array_to_pil
 .. autofunction:: picmaker.fill_zebra_stripes

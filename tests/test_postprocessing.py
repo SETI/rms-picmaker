@@ -1,9 +1,9 @@
-"""Cover the ``picmaker.processing.filter_pil_image`` branches."""
+"""Cover the ``picmaker.postprocessing.filter_pil_image`` branches."""
 
 import pytest
 from PIL import Image
 
-from picmaker.processing import filter_pil_image
+from picmaker.postprocessing import filter_pil_image
 
 
 def test_filter_pil_image_none_is_identity() -> None:
