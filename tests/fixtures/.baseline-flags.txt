@@ -3,7 +3,9 @@
 --band
 --bands
 --below
+--brighten
 --colormap
+--contrast
 --crop
 --directory
 --down
@@ -40,7 +42,9 @@
 --retint
 --rotate
 --samples
+--saturation
 --scale
+--sharpen
 --size
 --strip
 --suffix

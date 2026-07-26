@@ -137,15 +137,23 @@ to disk, routing 16-bit output through
 :data:`picmaker.pil_utils.PIL_EXTENSIONS` is the set of recognized
 output extensions used by :func:`picmaker.picmaker.validate_options`.
 
-:mod:`picmaker.processing` (``src/picmaker/processing.py``)
------------------------------------------------------------
+:mod:`picmaker.preprocessing` (``src/picmaker/preprocessing.py``)
+-----------------------------------------------------------------
 
-Optional pixel-level processing.
-:func:`picmaker.processing.filter_pil_image` applies a named
-:mod:`PIL.ImageFilter` preset (:data:`picmaker.processing.FILTER_CHOICES`)
-to a PIL image. :func:`picmaker.processing.fill_zebra_stripes` is the
-optional pre-stretch cleanup for legacy spacecraft compression
-artifacts.
+Optional array cleanup applied before the limits and colormap are
+computed. :func:`picmaker.preprocessing.fill_zebra_stripes` is the
+pre-stretch cleanup for legacy spacecraft compression artifacts.
+
+:mod:`picmaker.postprocessing` (``src/picmaker/postprocessing.py``)
+-------------------------------------------------------------------
+
+Optional PIL-image processing applied after the stretch.
+:func:`picmaker.postprocessing.filter_pil_image` applies a named
+:mod:`PIL.ImageFilter` preset
+(:data:`picmaker.postprocessing.FILTER_CHOICES`) to a PIL image.
+:func:`picmaker.postprocessing.adjust_pil_image` applies the Pillow
+:mod:`PIL.ImageEnhance` adjustments selected by ``--brighten``,
+``--contrast``, ``--saturation``, and ``--sharpen``.
 
 :mod:`picmaker.tiff16` (``src/picmaker/tiff16.py``)
 ---------------------------------------------------

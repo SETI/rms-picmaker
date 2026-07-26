@@ -19,7 +19,8 @@ from picmaker.options     import deconflict_options, get_versions, validate_opti
 from picmaker.orientation import rotate_rgb_array
 from picmaker.picmaker    import picmaker, picmaker1
 from picmaker.pil_utils   import array_to_pil, pil_to_array, write_pil
-from picmaker.processing  import fill_zebra_stripes, filter_pil_image
+from picmaker.postprocessing import adjust_pil_image, filter_pil_image
+from picmaker.preprocessing  import fill_zebra_stripes
 from picmaker.sizing      import get_size, resize_pil_image
 from picmaker.slicing     import slice_array
 from picmaker.stretch     import get_limits
@@ -28,6 +29,7 @@ from picmaker.tiff16      import read_tiff16, write_tiff16
 __all__ = [
     'ColorNames',
     'ImageData',
+    'adjust_pil_image',
     'apply_colormap',
     'array_to_pil',
     'deconflict_options',

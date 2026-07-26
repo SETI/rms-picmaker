@@ -16,7 +16,8 @@ from picmaker.options     import (deconflict_options, get_versions, shift_to_zer
                                   validate_options)
 from picmaker.orientation import rotate_rgb_array
 from picmaker.pil_utils   import array_to_pil, write_pil
-from picmaker.processing  import fill_zebra_stripes, filter_pil_image
+from picmaker.postprocessing import adjust_pil_image, filter_pil_image
+from picmaker.preprocessing  import fill_zebra_stripes
 from picmaker.sizing      import get_size, resize_pil_image
 from picmaker.slicing     import slice_array
 from picmaker.stretch     import get_limits
@@ -161,6 +162,18 @@ def picmaker(*, logger=None, _shift_origins=False, **options):
             "find_edges", "smooth", "smooth_more", "sharpen", or one of "median_N",
             "minimum_N", or "maximum_N" where N is a window size of 3, 5, or 7 pixels.
             Default is "none".
+        brighten (float, optional): Factor by which to scale the image brightness, where 1
+            leaves it unchanged and 0 is black. Default is None, leaving it unchanged.
+        contrast (float, optional): Factor by which to scale the image contrast, where 1
+            leaves it unchanged and 0 is a solid gray. Default is None, leaving it
+            unchanged.
+        saturation (float, optional): Factor by which to scale the color saturation, where
+            1 leaves it unchanged and 0 is grayscale. Default is None, leaving it
+            unchanged.
+        sharpen (float, optional): Factor by which to scale the image sharpness, where 1
+            leaves it unchanged, 0 is blurred, and 2 is sharpened. Default is None,
+            leaving it unchanged. When several of these are given they are applied in the
+            order brighten, contrast, saturation, sharpen.
         extension (str, optional): The extension of the output file name, which also
             defines the format of the output file. Options are "bmp", "dib", "gif", "jpg",
             "jpeg", "png", "tif", or "tiff", in lower- or upper-case. Default is "tiff"
@@ -293,7 +306,8 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
         array = fill_zebra_stripes(array, **options)
 
     # Assemble a mosaic if necessary; convert to RGB or grayscale arrays scaled 0-1
-    mosaic = options.get('mosaic', False)
+    mosaic = (image_data.mosaic if hasattr(image_data, 'mosaic')
+              else options.get('mosaic', False))
     if mosaic and array.ndim == 3 and hasattr(image_data, 'apply_mosaic'):
         # Get the scaling limits and apply the colormap to each band
         rgb_arrays = []
@@ -304,7 +318,7 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
             # when there is a mask.
             mask_b = None if invalid_mask is None else invalid_mask[b]
             limits = get_limits(array[b], mask_b, **options)
-            array_rgb = image_data.apply_colormap(array[b], limits,
+            array_rgb = image_data.apply_colormap(array, limits, layer=b,
                                                   invalid_mask=mask_b, **options)
             rgb_arrays.append(array_rgb)
             min_limits.append(limits[0])
@@ -335,6 +349,9 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
 
     # Apply filter
     image = filter_pil_image(image, **options)
+
+    # Apply the brightness / contrast / saturation / sharpness adjustments
+    image = adjust_pil_image(image, **options)
 
     # Resize PIL image
     image = resize_pil_image(image, unwrapped_size)

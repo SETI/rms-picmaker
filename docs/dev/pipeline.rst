@@ -55,7 +55,8 @@ zoom controls to read the labels at any size.
        RR --> GS[get_size]
        GS --> AP[array_to_pil]
        AP --> FI[filter_pil_image]
-       FI --> RS[resize_pil_image]
+       FI --> EN[adjust_pil_image]
+       EN --> RS[resize_pil_image]
        RS --> CC{sections > 1?}
        CC -->|yes| WR[wrap_pil_image]
        CC -->|no| SKW[skip wrap]
@@ -219,7 +220,7 @@ output image, running the phases shown in the flowchart:
    :func:`picmaker.slicing.slice_array`, which returns the 2-D or 3-D
    array plus an optional invalid-pixel mask.
 3. Optionally fill zebra stripes with
-   :func:`picmaker.processing.fill_zebra_stripes` when ``--zebra`` is
+   :func:`picmaker.preprocessing.fill_zebra_stripes` when ``--zebra`` is
    set.
 4. Choose the colormap path:
 
@@ -246,8 +247,10 @@ output image, running the phases shown in the flowchart:
    override.
 6. Plan the output size with :func:`picmaker.sizing.get_size`, convert
    to a PIL image with :func:`picmaker.pil_utils.array_to_pil`, apply
-   the PIL filter with :func:`picmaker.processing.filter_pil_image`,
-   resize with :func:`picmaker.sizing.resize_pil_image`, wrap with
+   the PIL filter with :func:`picmaker.postprocessing.filter_pil_image`
+   and the brightness / contrast / saturation / sharpness adjustments
+   with :func:`picmaker.postprocessing.adjust_pil_image`, resize with
+   :func:`picmaker.sizing.resize_pil_image`, wrap with
    :func:`picmaker.layout.wrap_pil_image` when ``sections > 1``, and pad
    with :func:`picmaker.layout.pad_pil_image`.
 7. Write the file with :func:`picmaker.pil_utils.write_pil`, which
@@ -337,7 +340,7 @@ instrument's ``default_tint`` when ``tint=True`` and no explicit
 colormap is given. It also applies the ``gamma`` power-law correction
 and the out-of-range / invalid-pixel highlight colors.
 
-:func:`picmaker.processing.fill_zebra_stripes` cleans up leading- and
+:func:`picmaker.preprocessing.fill_zebra_stripes` cleans up leading- and
 trailing-zero artifacts in compressed spacecraft images.
 
 Geometry and layout helpers
@@ -371,7 +374,10 @@ PIL bridges
 :func:`picmaker.pil_utils.write_pil` are the numpy ↔ PIL bridges.
 :func:`~picmaker.pil_utils.write_pil` dispatches 16-bit output through
 :func:`picmaker.tiff16.write_tiff16` and the 8-bit path through
-:meth:`PIL.Image.Image.save`. :func:`picmaker.processing.filter_pil_image`
-applies one of the named PIL filter presets to a PIL image.
+:meth:`PIL.Image.Image.save`.
+:func:`picmaker.postprocessing.filter_pil_image` applies one of the
+named PIL filter presets to a PIL image, and
+:func:`picmaker.postprocessing.adjust_pil_image` applies the Pillow
+ImageEnhance brightness / contrast / saturation / sharpness adjustments.
 </content>
 </invoke>

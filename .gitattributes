@@ -1,0 +1,20 @@
+# Sample data and fixtures are archival bytes: never rewrite their line endings.
+# PDS3 labels in particular are stored CRLF, as the standard requires, and a
+# checkout or commit that normalized them to LF would corrupt them.
+test_files/**     -text
+tests/fixtures/** -text
+
+# Payload files are binary, so suppress textual diffs as well. Git's own
+# heuristic reads only the first 8000 bytes and misclassifies an image whose
+# leading block happens to hold no NUL byte (JNCE_2011238_00A00002_V01.IMG is
+# one), which is what makes declaring these necessary rather than cosmetic.
+*.IMG  binary
+*.fit  binary
+*.fits binary
+*.vic  binary
+*.bin  binary
+
+# The preview driver scripts and versions files are hand-edited text.
+test_files/**/*.sh  text eol=lf
+test_files/**/*.txt text eol=lf
+tests/fixtures/**/*.txt text eol=lf
