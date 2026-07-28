@@ -164,24 +164,26 @@ class Juno_JunoCam(ImageData):
 
         Parameters:
             arrays_rgb (list[array]): Arrays for the separate filters in the order given
-                in the file, each of shape (fields * 128, 1648, 3) or, for a band tinted
-                a neutral gray, (fields * 128, 1648, 1).
+                in the file, each of shape (frames * :data:`_HEIGHT`, :data:`_WIDTH`, 3)
+                or, for a band tinted a neutral gray, (frames * :data:`_HEIGHT`,
+                :data:`_WIDTH`, 1).
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            array: The array re-assembled to its original shape, (fields * bands * 128,
-            1648).
+            array: The array re-assembled to its original shape,
+            (frames * bands * :data:`_HEIGHT`, :data:`_WIDTH`, 3), with the frames for
+            each filter interleaved as they appear in the file.
         """
 
         # The METHANE channel shape might not match RED, GREEN, and BLUE
         arrays_rgb = [np.broadcast_to(a, a.shape[:-1] + (3,)) for a in arrays_rgb]
 
-        array = np.array(arrays_rgb)        # (bands, frames*128, 1648, 3)
+        array = np.array(arrays_rgb)        # (bands, frames*_HEIGHT, _WIDTH, 3)
 
         bands = len(arrays_rgb)
         frames = array.shape[1] // _HEIGHT
         array = array.reshape((bands, frames, _HEIGHT, _WIDTH, 3))
-        array = array.swapaxes(0, 1)        # (frames, bands, 128, 1648, 3)
+        array = array.swapaxes(0, 1)        # (frames, bands, _HEIGHT, _WIDTH, 3)
         array = array.reshape((frames * bands * _HEIGHT, _WIDTH, 3))
         return array
 
@@ -193,12 +195,24 @@ class Juno_JunoCam(ImageData):
 
     @staticmethod
     def _reshape_for_mosaic(array, filter_names):
-        """Reshape the array into (bands, frames*128, 1648)."""
+        """Reshape a stacked array so that each filter occupies its own band.
+
+        Parameters:
+            array (array): The image array as read from the file, of shape
+                (frames * bands * :data:`_HEIGHT`, :data:`_WIDTH`), with the frames for
+                each filter interleaved.
+            filter_names (list[str]): The filter names in the order they appear in the
+                file; its length defines the number of bands.
+
+        Returns:
+            array: The array reshaped to (bands, frames * :data:`_HEIGHT`,
+            :data:`_WIDTH`), with every frame of a given filter contiguous.
+        """
 
         bands = len(filter_names)
         frames = array.shape[0] // (_HEIGHT * bands)
         array = array.reshape(frames, bands, _HEIGHT, _WIDTH)
-        array = array.swapaxes(0, 1)    # (bands, frames, 128, 1648)
+        array = array.swapaxes(0, 1)    # (bands, frames, _HEIGHT, _WIDTH)
         array = array.reshape(bands, frames * _HEIGHT, _WIDTH)
         return array
 

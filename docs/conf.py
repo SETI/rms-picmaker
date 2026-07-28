@@ -129,6 +129,12 @@ nitpick_ignore = [
     ('py:data', 'picmaker.instruments.galileo_ssi.FILTER_DICT'),
     ('py:data', 'picmaker.instruments.galileo_ssi.FILTER_NAMES'),
     ('py:data', 'picmaker.instruments.nh_mvic.FILTER_DICT'),
+    # Juno JunoCam framelet dimensions, referenced by name from the
+    # apply_mosaic docstrings so the shapes stay tied to the constants.
+    # They are private module-level assignments, so autodoc never emits
+    # a target for them to link to.
+    ('py:data', '_HEIGHT'),
+    ('py:data', '_WIDTH'),
     ('py:data', 'picmaker.instruments.voyager_iss.FILTER_DICT'),
     # ColorNames is a singleton-style class whose only public surface
     # is a staticmethod; autodoc treats the ClassVar dicts as primary
