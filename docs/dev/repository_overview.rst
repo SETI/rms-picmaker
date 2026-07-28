@@ -71,6 +71,7 @@ Layout
    │   │   ├── hst_wfc3.py       # HST WFC3.
    │   │   ├── hst_wfpc2.py      # HST WFPC2 (+ optional 4-detector mosaic).
    │   │   ├── hst_nicmos.py     # HST NICMOS.
+   │   │   ├── juno_junocam.py   # Juno JunoCam (+ per-filter framelet mosaic).
    │   │   ├── nh_lorri.py       # New Horizons LORRI.
    │   │   ├── nh_mvic.py        # New Horizons MVIC.
    │   │   └── zzz_generic.py    # Generic fallback reader (sorts last).

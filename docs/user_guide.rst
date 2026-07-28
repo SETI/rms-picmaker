@@ -206,6 +206,7 @@ Supported instruments:
 * **HST WFC3** (UVIS / IR) — FITS.
 * **HST WFPC** (WFPC1) — FITS.
 * **HST WFPC2** — FITS.
+* **Juno JunoCam** — PDS3, or a raw ``.IMG`` file recognized by its name.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.
 
@@ -301,6 +302,32 @@ single image with ``--mosaic``. For WFPC2 and WF/PC this produces a 2x2
 grid of the four detectors (for WFPC2 the PC1 image is placed at upper right and
 is not re-sized relative to the others). For ACS/WFC and WFC3/UVIS, images
 involving both chips are stacked one above the other.
+
+Juno JunoCam
+~~~~~~~~~~~~
+
+Recognized from JunoCam PDS3 labels, and — for a raw ``.IMG`` file carrying
+no label — from the JunoCam file naming convention, in which the name
+begins with ``JNCE_`` or ``JNCR_`` and ends with a ``_V0n.IMG`` version
+suffix. Supported filters and their tints:
+
+* ``RED`` → (200, 100, 100)
+* ``GREEN`` → (100, 200, 100)
+* ``BLUE`` → (100, 100, 200)
+* ``METHANE`` → (128, 128, 128), a neutral gray
+
+JunoCam builds up an image as a sequence of narrow framelets, cycling
+through its filters as the spacecraft spins, so a single file interleaves
+the framelets of every filter it used. When ``--tint`` is given and
+``--colormap`` is not, ``rms-picmaker`` separates those framelets by
+filter, tints each one, and reassembles them in their original order, so
+each strip carries the color of the filter that produced it.
+
+This happens automatically for framelet products; the ``--mosaic`` flag
+does not control it and has no effect on JunoCam files. Map-projected
+products (the ``P`` and ``H`` file-name codes) are already stored as
+separate bands and are left as they are. Passing ``--colormap``
+suppresses the per-filter tinting in favor of the colormap you specify.
 
 New Horizons LORRI
 ~~~~~~~~~~~~~~~~~~
