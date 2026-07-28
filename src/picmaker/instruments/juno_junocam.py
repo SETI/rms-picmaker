@@ -3,6 +3,7 @@
 ##########################################################################################
 """Juno JunoCam detector and reader."""
 
+import pathlib
 import re
 
 import numpy as np
@@ -35,6 +36,8 @@ _SHAPES = {
     'H': (2880, 5760),
 }
 _DEFAULT_SHAPE = (-1, 1648)
+_WIDTH = 1648
+_HEIGHT = 128  # height of one strip
 
 _DEFAULT_UPWARD = False
 _BASENAME_PATTERN = re.compile(r'JNC([ER])_20[123]\d[0-3]\d\d_\d\d([ABCGMRTPH])\d{5}'
@@ -98,7 +101,7 @@ class Juno_JunoCam(ImageData):
             recognized; otherwise, None.
         """
 
-        basename = filepath.name
+        basename = pathlib.Path(filepath).name
         match = _BASENAME_PATTERN.fullmatch(basename.upper())
         if not match:
             return None
@@ -176,10 +179,10 @@ class Juno_JunoCam(ImageData):
         array = np.array(arrays_rgb)        # (bands, frames*128, 1648, 3)
 
         bands = len(arrays_rgb)
-        frames = array.shape[1] // 128
-        array = array.reshape((bands, frames, 128, 1648, 3))
+        frames = array.shape[1] // _HEIGHT
+        array = array.reshape((bands, frames, _HEIGHT, _WIDTH, 3))
         array = array.swapaxes(0, 1)        # (frames, bands, 128, 1648, 3)
-        array = array.reshape((frames * bands * 128, 1648, 3))
+        array = array.reshape((frames * bands * _HEIGHT, _WIDTH, 3))
         return array
 
     @staticmethod
@@ -193,10 +196,10 @@ class Juno_JunoCam(ImageData):
         """Reshape the array into (bands, frames*128, 1648)."""
 
         bands = len(filter_names)
-        frames = array.shape[0] // (128 * bands)
-        array = array.reshape(frames, bands, 128, 1648)
+        frames = array.shape[0] // (_HEIGHT * bands)
+        array = array.reshape(frames, bands, _HEIGHT, _WIDTH)
         array = array.swapaxes(0, 1)    # (bands, frames, 128, 1648)
-        array = array.reshape(bands, frames*128, 1648)
+        array = array.reshape(bands, frames * _HEIGHT, _WIDTH)
         return array
 
 
