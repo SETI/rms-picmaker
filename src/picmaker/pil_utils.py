@@ -131,7 +131,7 @@ def _one_pil_to_array(image, rescale):
 
     # 32-bit case...
     if image.mode == 'I':
-        array = np.array(image.getdata(), dtype='uint32')
+        array = np.array(image.get_flattened_data(), dtype='uint32')
         array = array.reshape((image.size[1], image.size[0]))
 
         if rescale:
@@ -143,7 +143,7 @@ def _one_pil_to_array(image, rescale):
 
     # 8-bit grayscale case...
     if image.mode == 'L':
-        array = np.array(image.getdata(), dtype='uint8')
+        array = np.array(image.get_flattened_data(), dtype='uint8')
         array = array.reshape((image.size[1], image.size[0]))
 
         if rescale:
@@ -176,7 +176,7 @@ def write_pil(image, outfile, quality=75):
         # Convert images back to a numpy arrays
         newarrays = []
         for c in range(3):
-            newarrays.append(np.array(image[c].getdata(), dtype='int32'))
+            newarrays.append(np.array(image[c].get_flattened_data(), dtype='int32'))
 
         array = np.dstack((newarrays[0], newarrays[1], newarrays[2]))
 
@@ -189,7 +189,7 @@ def write_pil(image, outfile, quality=75):
 
     # If it's a single 32-bit image, write a grayscale Tiff
     elif image.mode == 'I':
-        array = np.array(image.getdata(), dtype='int32')
+        array = np.array(image.get_flattened_data(), dtype='int32')
         array = array.reshape((image.size[1], image.size[0], 1))
         array = array.clip(0, 65535).astype('uint16')
 

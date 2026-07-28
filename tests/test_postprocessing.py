@@ -32,9 +32,10 @@ def test_filter_pil_image_named_filter_applies() -> None:
     im.putpixel((4, 4), 255)
     out = filter_pil_image(im, 'blur')
     # The blur spreads the single bright pixel, so the output differs.
-    assert list(out.getdata()) != list(im.getdata())
+    assert list(out.get_flattened_data()) != list(im.get_flattened_data())
     # Filter names are case-insensitive.
-    assert list(filter_pil_image(im, 'BLUR').getdata()) == list(out.getdata())
+    assert (list(filter_pil_image(im, 'BLUR').get_flattened_data())
+            == list(out.get_flattened_data()))
 
 
 def test_filter_pil_image_two_byte_list_raises_valueerror() -> None:

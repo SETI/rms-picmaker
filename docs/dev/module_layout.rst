@@ -53,7 +53,8 @@ options through :func:`picmaker.picmaker.validate_options`, shifts the
 one-based ``--samples`` / ``--lines`` / ``--bands`` / ``--obj``
 command-line indices to zero-based, and calls
 :func:`picmaker.picmaker.picmaker`. Warnings are promoted to errors
-here (``warnings.simplefilter('error')``).
+here (``warnings.simplefilter('error')``), except for
+``DeprecationWarning``, which is reported without escalating.
 
 :mod:`picmaker.options` (``src/picmaker/options.py``)
 -----------------------------------------------------
