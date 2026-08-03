@@ -16,6 +16,14 @@ from picmaker.postprocessing import ADJUST_OPTIONS, FILTER_CHOICES
 
 _LOGGING_CHOICES = ['warning', 'info', 'debug', 'error']
 
+# Options for which a falsy value is a request in its own right rather than "unset", and
+# so must never be replaced by the option's default. Zero means no adjustment for the
+# post-processing factors (grayscale, black, unblurred), "crop away the zero-valued
+# border" for --crop, which is that option's most useful value and the example given in
+# its own help text, no gap between the strips of a wrapped image for --gap-size, and no
+# required overlap for --overlap.
+_ZERO_IS_MEANINGFUL = frozenset(ADJUST_OPTIONS) | {'crop', 'gap_size', 'overlap'}
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -419,12 +427,12 @@ def validate_options(options):
 
     # Fill in defaults, validate all values, forwarding an exception. A supplied value
     # that is falsy normally falls back to the default, which is what most options want
-    # (an empty suffix, an unset flag). The adjustment factors are the exception: 0 is a
-    # meaningful request there -- grayscale, black, blurred -- so only None means "unset".
+    # (an empty suffix, an unset flag). For the options in _ZERO_IS_MEANINGFUL, 0 is a
+    # request rather than an omission, so there only None means "unset".
     for info in _OPTION_DEFAULTS:
         name, default, *type_info = info
         value = options.get(name)
-        if value is None or (not value and name not in ADJUST_OPTIONS):
+        if value is None or (not value and name not in _ZERO_IS_MEANINGFUL):
             value = default
         options[name] = check_value(name, value, type_info)
 

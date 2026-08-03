@@ -194,11 +194,22 @@ def test_negative_factor_rejected(option: str) -> None:
 
 
 @pytest.mark.parametrize(('option', 'default'),
-                         [('quality', 75), ('gap_size', 1)])
-def test_other_options_keep_falsy_fallback(option: str, default: int) -> None:
-    """The zero-is-meaningful carve-out is limited to the adjustment factors;
-    every other option still falls back to its default on a falsy value."""
+                         [('quality', 75), ('gamma', 1.), ('retint', 1.)])
+def test_other_options_keep_falsy_fallback(option: str, default: float) -> None:
+    """Outside _ZERO_IS_MEANINGFUL, a falsy value still falls back to the default."""
     assert validate_options({option: 0})[option] == default
+
+
+@pytest.mark.parametrize(('option', 'zero', 'unset'),
+                         [('crop', 0., None), ('gap_size', 0, 1), ('overlap', 0., None)])
+def test_zero_is_meaningful_beyond_the_adjustments(option: str, zero: float,
+                                                   unset: float | None) -> None:
+    """Zero is a real request for these too, not an omission: crop away the
+    zero-valued border, no gap between strips, no required overlap. Each used to
+    collapse to its default -- ``--crop 0``, the example in that option's own help
+    text, silently did nothing at all. Omitting the option still gives the default."""
+    assert validate_options({option: zero})[option] == zero
+    assert validate_options({})[option] == unset
 
 
 # --- end to end ----------------------------------------------------------------------
