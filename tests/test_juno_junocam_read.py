@@ -63,6 +63,12 @@ INPUTS = [pytest.param(product, ext, id=f'{product.stem}-{ext}')
           for product in PRODUCTS
           for ext in (('LBL', 'IMG') if product.has_raw else ('LBL',))]
 
+# Just the framelet stacks. A global map arrives band-separated, so --tint assembles
+# no mosaic and it has no framelet boundaries for a line slice to fall across.
+MOSAIC_INPUTS = [pytest.param(product, ext, id=f'{product.stem}-{ext}')
+                 for product in PRODUCTS if product.mosaic
+                 for ext in (('LBL', 'IMG') if product.has_raw else ('LBL',))]
+
 
 # --- reading the bundled products ----------------------------------------------------
 
@@ -142,6 +148,45 @@ def test_tint_renders_rgb(product: Product, ext: str, tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(('product', 'ext'), INPUTS)
+def test_tint_renders_sliced_mosaic(product: Product, ext: str, tmp_path: Path) -> None:
+    """``--tint`` survives a sample slice. Dropping the leading columns is the way
+    to keep JunoCam's near-saturated per-framelet marker block out of a percentile
+    stretch, which otherwise pins the upper limit near 255 and leaves the faintest
+    band -- usually BLUE -- rendered far too dark."""
+    trimmed = 8
+    generate_previews(DATA_DIR / f'{product.stem}.{ext}', tmp_path,
+                      extra_args=('--tint', '--extension=jpg',
+                                  '--samples', str(trimmed),
+                                  str(product.jpeg_size[0])))
+
+    rendered_path = tmp_path / f'{product.stem}.jpg'
+    assert rendered_path.exists(), 'the sliced mosaic must render, not be skipped'
+    with Image.open(rendered_path) as rendered:
+        width, height = product.jpeg_size
+        assert rendered.size == (width - trimmed, height)
+        assert rendered.mode == 'RGB'
+
+
+@pytest.mark.parametrize(('product', 'ext'), MOSAIC_INPUTS)
+def test_tint_renders_unaligned_line_slice(product: Product, ext: str,
+                                           tmp_path: Path) -> None:
+    """A ``--lines`` slice that neither starts on a framelet boundary nor spans whole
+    framelets renders, and renders at the height the interleave implies: one band's
+    worth of lines per filter. Lines here count within a band, not within the file,
+    so the mosaic comes out `len(filters)` times as tall as the slice."""
+    row0, row1 = 100, 300                           # 200 lines, both ends mid-framelet
+    generate_previews(DATA_DIR / f'{product.stem}.{ext}', tmp_path,
+                      extra_args=('--tint', '--extension=jpg',
+                                  '--lines', str(row0), str(row1)))
+
+    rendered_path = tmp_path / f'{product.stem}.jpg'
+    assert rendered_path.exists(), 'the unaligned mosaic must render, not be skipped'
+    with Image.open(rendered_path) as rendered:
+        assert rendered.size == (product.jpeg_size[0],
+                                 (row1 - row0) * len(product.filters))
+
+
+@pytest.mark.parametrize(('product', 'ext'), INPUTS)
 def test_plain_render_keeps_size(product: Product, ext: str, tmp_path: Path) -> None:
     """Without ``--tint`` the same input renders at the same size, grayscale for a
     framelet stack and RGB for the three-band map."""
@@ -181,6 +226,88 @@ def test_apply_mosaic_interleaves_framelets() -> None:
     assert mosaic[0, 0, 0] == 0.25                  # framelet 0, band 0 = BLUE
     assert mosaic[128, 0, 0] == 0.75                # framelet 0, band 1 = RED
     assert mosaic[256, 0, 0] == 0.25                # framelet 1, band 0 = BLUE
+
+
+def test_apply_mosaic_accepts_a_narrower_array() -> None:
+    """Assembly takes its sample count from the arrays it is handed, not from the
+    detector width. Slicing (``--samples``, ``--crop``) narrows the bands before
+    they reach here, and a hard-coded 1648 made the reshape fail outright."""
+    narrow = 1648 - 8                               # e.g. --samples 8 1648
+    blue = np.full((256, narrow, 3), 0.25)
+    red = np.full((256, narrow, 3), 0.75)
+
+    mosaic = Juno_JunoCam.apply_mosaic([blue, red])
+
+    assert mosaic.shape == (512, narrow, 3)
+    assert mosaic[0, 0, 0] == 0.25                  # framelet 0, band 0 = BLUE
+    assert mosaic[128, 0, 0] == 0.75                # framelet 0, band 1 = RED
+    assert mosaic[256, 0, 0] == 0.25                # framelet 1, band 0 = BLUE
+
+
+def _tagged_bands(bands: int, rows: int, samples: int = 4) -> list[np.ndarray]:
+    """One array per band, every line tagged with its band and its line number.
+
+    Channel 0 carries the band index and channel 1 the line index, so a line that
+    lands in the wrong place in the mosaic says exactly where it came from.
+    """
+    tagged = []
+    for band in range(bands):
+        array = np.zeros((rows, samples, 3))
+        array[..., 0] = band
+        array[..., 1] = np.arange(rows)[:, np.newaxis]
+        tagged.append(array)
+    return tagged
+
+
+def _expected_mosaic(bands: list[np.ndarray], row0: int) -> np.ndarray:
+    """Interleave `bands` the long way round: walk the lines framelet by framelet,
+    emitting every band's share of each framelet before moving to the next."""
+    pieces = []
+    row = row0
+    end_row = row0 + bands[0].shape[0]
+    while row < end_row:
+        edge = min(end_row, (row // 128 + 1) * 128)
+        pieces += [band[row-row0:edge-row0] for band in bands]
+        row = edge
+    return np.concatenate(pieces, axis=0)
+
+
+@pytest.mark.parametrize(('row0', 'rows'), [
+    (0, 512),       # aligned, whole framelets: the ordinary case
+    (64, 256),      # unaligned start, whole number of framelets' worth of lines
+    (0, 300),       # aligned start, partial framelet at the end
+    (64, 236),      # unaligned at both ends
+    (200, 50),      # entirely inside one framelet
+    (127, 2),       # straddling a boundary by a single line
+])
+def test_apply_mosaic_regroups_at_framelet_boundaries(row0: int, rows: int) -> None:
+    """Assembly splits the lines at framelet boundaries, wherever the slice starts.
+
+    Reshaping against a fixed 128 instead used to assume line 0 was the top of a
+    framelet. A ``--lines`` slice starting mid-framelet then spliced the bottom of
+    one framelet onto the top of the next -- and when the line count happened to be
+    a multiple of 128 it did so without raising, quietly scrambling the mosaic.
+    """
+    sliced = _tagged_bands(3, rows)
+
+    mosaic = Juno_JunoCam.apply_mosaic(sliced, lines=(row0, row0 + rows))
+
+    assert mosaic.shape == (3 * rows, 4, 3)
+    np.testing.assert_array_equal(mosaic, _expected_mosaic(sliced, row0))
+
+
+def test_apply_mosaic_rejects_crop() -> None:
+    """Cropping runs after the line slice and removes lines by value, so it destroys
+    the only means of locating the framelet boundaries. Better to say so than to
+    interleave against an offset that is no longer true.
+
+    The value here is deliberately non-zero: ``validate_options`` treats a falsy
+    ``crop`` as unset, so ``--crop 0`` never reaches this code at all.
+    """
+    bands = _tagged_bands(2, 256)
+
+    with pytest.raises(ValueError, match='crop'):
+        Juno_JunoCam.apply_mosaic(bands, crop=5.)
 
 
 def test_apply_mosaic_broadcasts_neutral_band() -> None:

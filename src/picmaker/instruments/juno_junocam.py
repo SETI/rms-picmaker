@@ -159,33 +159,62 @@ class Juno_JunoCam(ImageData):
                                       default_tint=tint, **kwargs)
 
     @staticmethod
-    def apply_mosaic(arrays_rgb, **kwargs):
+    def apply_mosaic(arrays_rgb, *, lines=None, crop=None, **kwargs):
         """Assemble the mosaic, applying the proper tint to each band.
+
+        The bands arrive sliced, so they need not hold whole framelets, and their first
+        line need not be the top of one. Lines are therefore regrouped at the framelet
+        boundaries rather than reshaped against :data:`_HEIGHT`, which would silently
+        splice the bottom of one framelet onto the top of the next whenever `lines`
+        starts mid-framelet.
+
+        Note that `lines` counts lines within a band, not lines within the file: the
+        bands were separated at read time, so ``--lines 1 256`` selects the first two
+        framelets of *every* filter, and the assembled mosaic is `bands` times as tall.
 
         Parameters:
             arrays_rgb (list[array]): Arrays for the separate filters in the order given
-                in the file, each of shape (frames * :data:`_HEIGHT`, :data:`_WIDTH`, 3)
-                or, for a band tinted a neutral gray, (frames * :data:`_HEIGHT`,
-                :data:`_WIDTH`, 1).
+                in the file, each of shape (lines, samples, 3) or, for a band tinted a
+                neutral gray, (lines, samples, 1). The line and sample counts are those
+                of the sliced array, so they need not be multiples of :data:`_HEIGHT` or
+                equal to :data:`_WIDTH`.
+            lines (tuple[int, int], optional): Zero-based line limits already applied to
+                the bands, used to locate the framelet boundaries within them; None if
+                the bands start at the top of a framelet.
+            crop (float, optional): Rejected if not None; see Raises.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            array: The array re-assembled to its original shape,
-            (frames * bands * :data:`_HEIGHT`, :data:`_WIDTH`, 3), with the frames for
-            each filter interleaved as they appear in the file.
+            array: The array re-assembled to its original shape, (lines * bands, samples,
+            3), with the frames for each filter interleaved as they appear in the file.
+            A framelet clipped by the slice contributes correspondingly fewer lines.
+
+        Raises:
+            ValueError: If `crop` is not None. Cropping removes lines by value, and it
+                runs after the `lines` slice, so the framelet boundaries can no longer be
+                located and the interleave would be silently wrong.
         """
+
+        if crop is not None:
+            raise ValueError('--crop cannot be combined with a JunoCam framelet mosaic: '
+                             'it removes lines by value, so the framelet boundaries can '
+                             'no longer be located')
 
         # The METHANE channel shape might not match RED, GREEN, and BLUE
         arrays_rgb = [np.broadcast_to(a, a.shape[:-1] + (3,)) for a in arrays_rgb]
 
-        array = np.array(arrays_rgb)        # (bands, frames*_HEIGHT, _WIDTH, 3)
+        array = np.array(arrays_rgb)        # (bands, lines, samples, 3)
+        rows = array.shape[1]
 
-        bands = len(arrays_rgb)
-        frames = array.shape[1] // _HEIGHT
-        array = array.reshape((bands, frames, _HEIGHT, _WIDTH, 3))
-        array = array.swapaxes(0, 1)        # (frames, bands, _HEIGHT, _WIDTH, 3)
-        array = array.reshape((frames * bands * _HEIGHT, _WIDTH, 3))
-        return array
+        # Line 0 of the slice sits `row0` lines into its framelet, so the first boundary
+        # falls after (-row0) % _HEIGHT lines, or a whole framelet if already aligned.
+        row0 = lines[0] if lines else 0
+        edges = list(range((-row0) % _HEIGHT or _HEIGHT, rows, _HEIGHT))
+
+        # Each chunk is one framelet, or the part of one that survived the slice; folding
+        # the bands into the line axis interleaves the filters as the file stores them.
+        chunks = np.split(array, edges, axis=1)
+        return np.concatenate([c.reshape((-1,) + c.shape[2:]) for c in chunks], axis=0)
 
     @staticmethod
     def _default_tint(filter_names):
