@@ -428,11 +428,15 @@ def validate_options(options):
     # Fill in defaults, validate all values, forwarding an exception. A supplied value
     # that is falsy normally falls back to the default, which is what most options want
     # (an empty suffix, an unset flag). For the options in _ZERO_IS_MEANINGFUL, 0 is a
-    # request rather than an omission, so there only None means "unset".
+    # request rather than an omission, so there only None means "unset". Every one of
+    # them is numeric, and False is not a numeric zero however much Python says it is:
+    # it reads as "off", so let it fall back like any other unset value. Falsy values
+    # of the wrong type altogether are left alone for check_value to reject.
     for info in _OPTION_DEFAULTS:
         name, default, *type_info = info
         value = options.get(name)
-        if value is None or (not value and name not in _ZERO_IS_MEANINGFUL):
+        keep_zero = name in _ZERO_IS_MEANINGFUL and not isinstance(value, bool)
+        if value is None or (not value and not keep_zero):
             value = default
         options[name] = check_value(name, value, type_info)
 

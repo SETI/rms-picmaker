@@ -12,12 +12,21 @@ import numpy as np
 import pytest
 from PIL import Image, ImageFilter
 
-from picmaker.options import get_parser, validate_options
+from picmaker.options import (
+    _OPTION_DEFAULTS,
+    _ZERO_IS_MEANINGFUL,
+    get_parser,
+    validate_options,
+)
 from picmaker.postprocessing import ADJUST_OPTIONS, adjust_pil_image
 from tests import generate_previews
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'juno_junocam'
 MAP = DATA_DIR / 'JNCR_2023136_51P00000_V01_shrunk.LBL'   # a color (RGB) product
+
+# Every option's default, so the falsy-fallback tests below stay tied to the table
+# rather than to a hand-copied list that can drift away from it.
+_DEFAULTS = {name: default for name, default, *_ in _OPTION_DEFAULTS}
 
 
 def _colorful() -> Image.Image:
@@ -196,7 +205,8 @@ def test_negative_factor_rejected(option: str) -> None:
 @pytest.mark.parametrize(('option', 'default'),
                          [('quality', 75), ('gamma', 1.), ('retint', 1.)])
 def test_other_options_keep_falsy_fallback(option: str, default: float) -> None:
-    """Outside _ZERO_IS_MEANINGFUL, a falsy value still falls back to the default."""
+    """For most options a falsy value is an omission rather than a request: passing 0
+    gives the same result as leaving the option out altogether."""
     assert validate_options({option: 0})[option] == default
 
 
@@ -210,6 +220,30 @@ def test_zero_is_meaningful_beyond_the_adjustments(option: str, zero: float,
     text, silently did nothing at all. Omitting the option still gives the default."""
     assert validate_options({option: zero})[option] == zero
     assert validate_options({})[option] == unset
+
+
+@pytest.mark.parametrize('option', sorted(_ZERO_IS_MEANINGFUL))
+def test_false_is_not_a_meaningful_zero(option: str) -> None:
+    """False is not a numeric zero, whatever ``isinstance(False, int)`` says. On
+    these options it reads as "off", so it falls back like any other unset value
+    rather than being taken for a deliberate 0 -- which would turn ``crop=False``
+    into "crop away the zero-valued border" and leave ``gap_size=False`` a bool
+    standing in for an int."""
+    result = validate_options({option: False})[option]
+
+    assert result == _DEFAULTS[option]
+    assert not isinstance(result, bool)
+
+
+@pytest.mark.parametrize('option', sorted(_ZERO_IS_MEANINGFUL))
+@pytest.mark.parametrize('value', ['', [], ()])
+def test_falsy_values_of_the_wrong_type_still_rejected(option: str,
+                                                       value: object) -> None:
+    """Being in the carve-out buys an option nothing but the right to keep a real
+    zero. A falsy value that is not numeric at all is still a type error, not a
+    silent fallback to the default."""
+    with pytest.raises(TypeError, match='Invalid type'):
+        validate_options({option: value})
 
 
 # --- end to end ----------------------------------------------------------------------
