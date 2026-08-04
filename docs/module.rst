@@ -71,6 +71,9 @@ Instruments
 .. automodule:: picmaker.instruments.hst_wfpc2
    :members:
    :member-order: bysource
+.. automodule:: picmaker.instruments.juno_junocam
+   :members:
+   :member-order: bysource
 .. automodule:: picmaker.instruments.nh_lorri
    :members:
    :member-order: bysource

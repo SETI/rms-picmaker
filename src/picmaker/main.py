@@ -18,6 +18,7 @@ def main():
     """Parse command-line arguments and run picmaker."""
 
     warnings.simplefilter('error')
+    warnings.filterwarnings('default', category=DeprecationWarning)   # don't escalate
     warnings.filterwarnings('always', category=FileOverwriteWarning)  # don't escalate
 
     parser = get_parser()

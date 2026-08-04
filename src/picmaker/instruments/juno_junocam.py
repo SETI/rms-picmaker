@@ -3,6 +3,7 @@
 ##########################################################################################
 """Juno JunoCam detector and reader."""
 
+import pathlib
 import re
 
 import numpy as np
@@ -35,6 +36,8 @@ _SHAPES = {
     'H': (2880, 5760),
 }
 _DEFAULT_SHAPE = (-1, 1648)
+_WIDTH = 1648
+_HEIGHT = 128  # height of one strip
 
 _DEFAULT_UPWARD = False
 _BASENAME_PATTERN = re.compile(r'JNC([ER])_20[123]\d[0-3]\d\d_\d\d([ABCGMRTPH])\d{5}'
@@ -98,7 +101,7 @@ class Juno_JunoCam(ImageData):
             recognized; otherwise, None.
         """
 
-        basename = filepath.name
+        basename = pathlib.Path(filepath).name
         match = _BASENAME_PATTERN.fullmatch(basename.upper())
         if not match:
             return None
@@ -156,31 +159,62 @@ class Juno_JunoCam(ImageData):
                                       default_tint=tint, **kwargs)
 
     @staticmethod
-    def apply_mosaic(arrays_rgb, **kwargs):
+    def apply_mosaic(arrays_rgb, *, lines=None, crop=None, **kwargs):
         """Assemble the mosaic, applying the proper tint to each band.
+
+        The bands arrive sliced, so they need not hold whole framelets, and their first
+        line need not be the top of one. Lines are therefore regrouped at the framelet
+        boundaries rather than reshaped against :data:`_HEIGHT`, which would silently
+        splice the bottom of one framelet onto the top of the next whenever `lines`
+        starts mid-framelet.
+
+        Note that `lines` counts lines within a band, not lines within the file: the
+        bands were separated at read time, so ``--lines 1 256`` selects the first two
+        framelets of *every* filter, and the assembled mosaic is `bands` times as tall.
 
         Parameters:
             arrays_rgb (list[array]): Arrays for the separate filters in the order given
-                in the file, each of shape (fields * 128, 1648, 3) or, for a band tinted
-                a neutral gray, (fields * 128, 1648, 1).
+                in the file, each of shape (lines, samples, 3) or, for a band tinted a
+                neutral gray, (lines, samples, 1). The line and sample counts are those
+                of the sliced array, so they need not be multiples of :data:`_HEIGHT` or
+                equal to :data:`_WIDTH`.
+            lines (tuple[int, int], optional): Zero-based line limits already applied to
+                the bands, used to locate the framelet boundaries within them; None if
+                the bands start at the top of a framelet.
+            crop (float, optional): Rejected if not None; see Raises.
             **kwargs: Additional input options, ignored here.
 
         Returns:
-            array: The array re-assembled to its original shape, (fields * bands * 128,
-            1648).
+            array: The array re-assembled to its original shape, (lines * bands, samples,
+            3), with the frames for each filter interleaved as they appear in the file.
+            A framelet clipped by the slice contributes correspondingly fewer lines.
+
+        Raises:
+            ValueError: If `crop` is not None. Cropping removes lines by value, and it
+                runs after the `lines` slice, so the framelet boundaries can no longer be
+                located and the interleave would be silently wrong.
         """
+
+        if crop is not None:
+            raise ValueError('--crop cannot be combined with a JunoCam framelet mosaic: '
+                             'it removes lines by value, so the framelet boundaries can '
+                             'no longer be located')
 
         # The METHANE channel shape might not match RED, GREEN, and BLUE
         arrays_rgb = [np.broadcast_to(a, a.shape[:-1] + (3,)) for a in arrays_rgb]
 
-        array = np.array(arrays_rgb)        # (bands, frames*128, 1648, 3)
+        array = np.array(arrays_rgb)        # (bands, lines, samples, 3)
+        rows = array.shape[1]
 
-        bands = len(arrays_rgb)
-        frames = array.shape[1] // 128
-        array = array.reshape((bands, frames, 128, 1648, 3))
-        array = array.swapaxes(0, 1)        # (frames, bands, 128, 1648, 3)
-        array = array.reshape((frames * bands * 128, 1648, 3))
-        return array
+        # Line 0 of the slice sits `row0` lines into its framelet, so the first boundary
+        # falls after (-row0) % _HEIGHT lines, or a whole framelet if already aligned.
+        row0 = lines[0] if lines else 0
+        edges = list(range((-row0) % _HEIGHT or _HEIGHT, rows, _HEIGHT))
+
+        # Each chunk is one framelet, or the part of one that survived the slice; folding
+        # the bands into the line axis interleaves the filters as the file stores them.
+        chunks = np.split(array, edges, axis=1)
+        return np.concatenate([c.reshape((-1,) + c.shape[2:]) for c in chunks], axis=0)
 
     @staticmethod
     def _default_tint(filter_names):
@@ -190,13 +224,25 @@ class Juno_JunoCam(ImageData):
 
     @staticmethod
     def _reshape_for_mosaic(array, filter_names):
-        """Reshape the array into (bands, frames*128, 1648)."""
+        """Reshape a stacked array so that each filter occupies its own band.
+
+        Parameters:
+            array (array): The image array as read from the file, of shape
+                (frames * bands * :data:`_HEIGHT`, :data:`_WIDTH`), with the frames for
+                each filter interleaved.
+            filter_names (list[str]): The filter names in the order they appear in the
+                file; its length defines the number of bands.
+
+        Returns:
+            array: The array reshaped to (bands, frames * :data:`_HEIGHT`,
+            :data:`_WIDTH`), with every frame of a given filter contiguous.
+        """
 
         bands = len(filter_names)
-        frames = array.shape[0] // (128 * bands)
-        array = array.reshape(frames, bands, 128, 1648)
-        array = array.swapaxes(0, 1)    # (bands, frames, 128, 1648)
-        array = array.reshape(bands, frames*128, 1648)
+        frames = array.shape[0] // (_HEIGHT * bands)
+        array = array.reshape(frames, bands, _HEIGHT, _WIDTH)
+        array = array.swapaxes(0, 1)    # (bands, frames, _HEIGHT, _WIDTH)
+        array = array.reshape(bands, frames * _HEIGHT, _WIDTH)
         return array
 
 

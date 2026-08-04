@@ -3,6 +3,7 @@
 ##########################################################################################
 """Generic image reader."""
 
+import pathlib
 import pickle
 import re
 
@@ -97,6 +98,8 @@ class ZZZ_Generic(ImageData):
         Raises:
             NotImplementedError: If a 16-bit TIFF file uses the "palette" option.
         """
+
+        filepath = pathlib.Path(filepath)
 
         # Handle a PDS3 file with an attached label. A ".lbl" file is recognized earlier
         # in the reader cascade; a data file that is not named ".lbl" but carries a PDS3

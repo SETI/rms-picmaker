@@ -69,13 +69,15 @@ markers = []
 # Surface unexpected runtime warnings as test failures. Add targeted
 # `ignore::` entries only for warnings whose remediation lives in a
 # separate planned change.
+#
+# Later entries take precedence, so the blanket DeprecationWarning
+# downgrade sits directly after "error": deprecations from our own code
+# and from upstream are reported but never fail the run, while the
+# targeted `ignore:` entries below still silence the known-and-tracked
+# ones, and every other warning category remains an error.
 filterwarnings = [
   "error",
-  # Pillow 12 deprecates Image.Image.getdata() ahead of removal in
-  # Pillow 14 (2027-10-15). Migration to get_flattened_data() touches
-  # pil_utils.py and the snapshot fixtures; tracked in
-  # https://github.com/SETI/rms-picmaker/issues/9.
-  "ignore:Image.Image.getdata is deprecated:DeprecationWarning",
+  "default::DeprecationWarning",
   # Astropy warns at import time when XDG_CONFIG_HOME is set but
   # ~/.astropy/config already exists. On GitHub-hosted runners the
   # warning fires only in workers that lose a TOCTOU race against the

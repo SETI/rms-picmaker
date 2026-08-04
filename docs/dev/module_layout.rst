@@ -53,7 +53,8 @@ options through :func:`picmaker.picmaker.validate_options`, shifts the
 one-based ``--samples`` / ``--lines`` / ``--bands`` / ``--obj``
 command-line indices to zero-based, and calls
 :func:`picmaker.picmaker.picmaker`. Warnings are promoted to errors
-here (``warnings.simplefilter('error')``).
+here (``warnings.simplefilter('error')``), except for
+``DeprecationWarning``, which is reported without escalating.
 
 :mod:`picmaker.options` (``src/picmaker/options.py``)
 -----------------------------------------------------
@@ -238,6 +239,8 @@ Each of the following modules defines exactly one
 * ``hst_wfpc2.py`` — HST WFPC2 (FITS, with optional four-detector
   mosaic assembly).
 * ``hst_nicmos.py`` — HST NICMOS (FITS).
+* ``juno_junocam.py`` — Juno JunoCam (PDS3, or a raw ``.IMG`` matched by
+  file name, with per-filter framelet mosaic assembly).
 * ``nh_lorri.py`` — New Horizons LORRI (PDS3 and FITS).
 * ``nh_mvic.py`` — New Horizons MVIC (PDS3 and FITS).
 * ``zzz_generic.py`` — the generic fallback reader (PDS3, VICAR, FITS,
