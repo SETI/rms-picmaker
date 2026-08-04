@@ -62,7 +62,8 @@ Issues = "https://github.com/SETI/rms-picmaker/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# support/picmaker-v1 is a vendored legacy copy; never collect tests from it.
+# support/picmaker-v1 is a frozen copy of the pre-rewrite picmaker, kept only
+# for reproducing prior results; never collect tests from it.
 norecursedirs = ["support/picmaker-v1"]
 addopts = ["-n", "auto", "--cov=picmaker", "--strict-markers", "--strict-config"]
 markers = []
@@ -149,8 +150,9 @@ fail_under = 95
 [tool.mypy]
 strict = true
 disallow_subclassing_any = false
-# support/picmaker-v1 is a vendored legacy copy (an embedded git repo);
-# never type-check it, even if a directory scan reaches it.
+# support/picmaker-v1 is a frozen copy of the pre-rewrite picmaker, kept only
+# for reproducing prior results; never type-check it, even if a directory scan
+# reaches it.
 exclude = ['^support/picmaker-v1/']
 
 [[tool.mypy.overrides]]
@@ -195,8 +197,9 @@ line-length = 90
 # command line (e.g. `ruff check support/picmaker-v1`).
 force-exclude = true
 exclude = [
-  # support/picmaker-v1 is a vendored legacy copy (an embedded git repo);
-  # it is intentionally exempt from all linting/validation.
+  # support/picmaker-v1 is a frozen copy of the pre-rewrite picmaker, kept only
+  # for reproducing prior results; it is intentionally exempt from all
+  # linting/validation.
   "support/picmaker-v1",
 ]
 

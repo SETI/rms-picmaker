@@ -1,0 +1,9 @@
+astropy
+coverage
+numpy
+pytest
+scipy
+pillow
+rms-pdsparser
+rms-tabulation
+rms-vicar
