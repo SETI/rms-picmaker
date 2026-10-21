@@ -1,7 +1,6 @@
 # rms-picmaker
 
 <!-- pyml disable MD025 -->
-
 [![GitHub release; latest by date](https://img.shields.io/github/v/release/SETI/rms-picmaker)](https://github.com/SETI/rms-picmaker/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/SETI/rms-picmaker)](https://github.com/SETI/rms-picmaker/releases)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/SETI/rms-picmaker/run-tests.yml?branch=main)](https://github.com/SETI/rms-picmaker/actions)
