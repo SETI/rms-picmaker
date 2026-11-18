@@ -205,7 +205,7 @@ Supported instruments:
 * **HST STIS** — FITS.
 * **HST WFC3** (UVIS / IR) — FITS.
 * **HST WFPC** (WFPC1) — FITS.
-* **HST WFPC2** — FITS.
+* **HST WFPC2** — FITS, either "waiver" (``_c0f`` etc.) or multi-extension (``_c0m`` etc.).
 * **Juno JunoCam** — PDS3, or a raw ``.IMG`` file recognized by its name.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.

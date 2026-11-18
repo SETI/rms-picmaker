@@ -169,3 +169,82 @@ def test_all_undiagnostic_filters_have_no_tint() -> None:
     hdulist = _synth_wfpc2(np.zeros((4, 4)), FILTNAM1='POL0', FILTNAM2='')
     data = HST_WFPC2.detect_in_fits(hdulist, 'u_c0f.fits')
     assert data.default_tint is None
+
+
+# --- multi-extension FITS (_c0m) layout -----------------------------------------------
+
+def _synth_wfpc2_mef(planes: list[np.ndarray], detectors: list[int],
+                     **header: str) -> pyfits.HDUList:
+    """A minimal multi-extension WFPC2 HDUList: an empty PRIMARY HDU followed by one
+    SCI image extension per detector, each carrying a DETECTOR keyword."""
+    primary = pyfits.PrimaryHDU()
+    primary.header['TELESCOP'] = 'HST'
+    primary.header['INSTRUME'] = 'WFPC2'
+    for key, value in header.items():
+        primary.header[key] = value
+    hdus: list[pyfits.PrimaryHDU | pyfits.ImageHDU] = [primary]
+    for plane, det in zip(planes, detectors, strict=True):
+        ext = pyfits.ImageHDU(plane.astype('float32'), name='SCI')
+        ext.header['DETECTOR'] = det
+        hdus.append(ext)
+    return pyfits.HDUList(hdus)
+
+
+def test_mef_reads_detectors_from_extensions() -> None:
+    """A _c0m file (empty PRIMARY, one SCI extension per detector) reads the first
+    detector by default, ``obj=N`` selects the Nth, and the filter tint applies."""
+    planes = [np.full((4, 4), float(v)) for v in (1, 2, 3, 4)]
+    hdulist = _synth_wfpc2_mef(planes, [1, 2, 3, 4], FILTNAM1='F673N')
+
+    data = HST_WFPC2.detect_in_fits(hdulist, 'u_c0m.fits')
+    np.testing.assert_array_equal(np.asarray(data.array), planes[0])
+    assert tuple(data.default_tint) == tuple(tint_by_nm(673))
+
+    data = HST_WFPC2.detect_in_fits(hdulist, 'u_c0m.fits', obj=2)
+    np.testing.assert_array_equal(np.asarray(data.array), planes[2])
+
+
+def test_mef_mosaic_places_detectors_by_keyword() -> None:
+    """A partial _c0m mosaic places each extension by its DETECTOR keyword."""
+    planes = [np.full((4, 4), 1.0), np.full((4, 4), 2.0)]
+    hdulist = _synth_wfpc2_mef(planes, [2, 4])
+    cube = np.asarray(HST_WFPC2.detect_in_fits(hdulist, 'u_c0m.fits', mosaic=True).array)
+
+    assert cube.shape == (4, 4, 4)
+    assert cube[1, 0, 0] == 1.0     # detector 2 -> plane 1
+    assert cube[3, 0, 0] == 2.0     # detector 4 -> plane 3
+    assert cube[0].sum() == 0.0
+    assert cube[2].sum() == 0.0
+
+
+def test_mef_full_mosaic_returns_all_planes() -> None:
+    """A complete four-detector _c0m mosaic stacks the extensions in order."""
+    planes = [np.full((4, 4), float(v)) for v in (1, 2, 3, 4)]
+    hdulist = _synth_wfpc2_mef(planes, [1, 2, 3, 4])
+    cube = np.asarray(HST_WFPC2.detect_in_fits(hdulist, 'u_c0m.fits', mosaic=True).array)
+    np.testing.assert_array_equal(cube, np.stack(planes))
+
+
+def test_mef_without_image_data_raises() -> None:
+    """A WFPC2 file with neither PRIMARY data nor image extensions is rejected."""
+    hdulist = _synth_wfpc2_mef([], [])
+    with pytest.raises(ValueError, match='No WFPC2 image data'):
+        HST_WFPC2.detect_in_fits(hdulist, 'u_c0m.fits')
+
+
+@pytest.mark.parametrize('detectors', [[1, 2, 3, 4], [1, 3], [2, 4], [4]])
+@pytest.mark.parametrize('options', [{}, {'obj': 0}, {'obj': -1}, {'mosaic': True}])
+def test_waiver_and_mef_layouts_are_read_identically(detectors: list[int],
+                                                     options: dict[str, object]) -> None:
+    """The same detectors stored as a _c0f cube or as _c0m extensions yield the same
+    array and tint for every selection mode."""
+    planes = [np.full((4, 4), 10.0 * det) for det in detectors]
+    c0f = _synth_wfpc2(np.stack(planes), detectors=detectors, FILTNAM1='F555W')
+    c0m = _synth_wfpc2_mef(planes, detectors, FILTNAM1='F555W')
+
+    data_f = HST_WFPC2.detect_in_fits(c0f, 'u_c0f.fits', **options)
+    data_m = HST_WFPC2.detect_in_fits(c0m, 'u_c0m.fits', **options)
+
+    np.testing.assert_array_equal(np.asarray(data_f.array), np.asarray(data_m.array))
+    assert np.asarray(data_f.array).shape == np.asarray(data_m.array).shape
+    assert data_f.default_tint == data_m.default_tint
