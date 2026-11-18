@@ -25,7 +25,9 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, layer=None,
             maximum of the mapping.
         invalid_mask (array[bool], optional): Boolean mask of invalid pixels, including
             all NaNs in `array`.
-        layer (int, None): The layer selection of the overall data array, if any.
+        layer (int, optional): For a 3-D `array`, the index of a single band to render
+            on its own as one grayscale (or colormapped) band, e.g., one detector of a
+            mosaic. If None, up to the first three bands are merged into RGB.
         default_tint (str, tuple[int, int, int], or list of these, optional): The default
             colormap to use as defined by the instrument. This is used if not overridden
             by `colormap` and if `tint` is True.
@@ -72,6 +74,11 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, layer=None,
         array = array[np.newaxis]
         if invalid_mask is not None:
             invalid_mask = invalid_mask[np.newaxis]
+        bands = 1
+    elif layer is not None:
+        array = array[layer:layer+1]
+        if invalid_mask is not None and invalid_mask.ndim == 3:
+            invalid_mask = invalid_mask[layer:layer+1]
         bands = 1
     else:
         array = array[:3]   # no more than three bands here

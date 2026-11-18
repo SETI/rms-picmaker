@@ -119,7 +119,8 @@ def test_apply_mosaic_assembles_four_quadrants() -> None:
 def test_mosaic_pipeline_renders_2x2(name: str, tmp_path: Path) -> None:
     """``--mosaic`` renders a full 2x2 detector mosaic, twice the single-chip
     size. Both files are exercised: the ``_c1f`` file has no masked pixels, which
-    once crashed the per-band mosaic loop (invalid_mask was ``None``)."""
+    once crashed the per-band mosaic loop (invalid_mask was ``None``). The output is
+    grayscale because each quadrant renders only its own detector."""
     options = vars(get_parser().parse_args([
         str(DATA_DIR / name), '--directory', str(tmp_path),
         '--mosaic', '--percentiles', '1', '99',
@@ -130,6 +131,9 @@ def test_mosaic_pipeline_renders_2x2(name: str, tmp_path: Path) -> None:
     assert out.exists()
     with Image.open(out) as img:
         assert img.size == (800, 800)   # 2 x the 400x400 single detector
+        # Each quadrant is its own detector in grayscale, not an RGB composite of the
+        # first three detectors
+        assert img.mode == 'L'
 
 
 # --- partial-mosaic / no-tint branches, via synthetic in-memory HDULists --------------
