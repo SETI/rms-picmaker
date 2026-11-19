@@ -116,3 +116,14 @@ def test_apply_colormap_layer_slices_a_3d_invalid_mask() -> None:
     assert out.shape == (2, 2, 3)
     np.testing.assert_allclose(out[1, 1], (1., 0., 0.))     # layer-1 mask -> red
     np.testing.assert_allclose(out[0, 0], (.5, .5, .5))     # layer-0 mask ignored
+
+
+def test_apply_colormap_layer_with_a_2d_invalid_mask() -> None:
+    """A 2-D invalid mask passed with ``layer`` (as the mosaic loop does) colors just
+    its own pixels, not every pixel in the same column."""
+    cube = np.full((2, 3, 3), 1.)
+    mask = np.zeros((3, 3), dtype=bool)
+    mask[1, 1] = True
+    out = apply_colormap(cube, (0., 2.), mask, layer=1, invalid_color='red')
+    red = np.all(out == (1., 0., 0.), axis=-1)
+    np.testing.assert_array_equal(red, mask)

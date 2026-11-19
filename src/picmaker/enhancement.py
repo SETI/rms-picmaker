@@ -77,8 +77,10 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, layer=None,
         bands = 1
     elif layer is not None:
         array = array[layer:layer+1]
-        if invalid_mask is not None and invalid_mask.ndim == 3:
-            invalid_mask = invalid_mask[layer:layer+1]
+        if invalid_mask is not None:
+            # A 3-D mask covers every band; a 2-D mask is already for this layer alone
+            invalid_mask = (invalid_mask[layer:layer+1] if invalid_mask.ndim == 3
+                            else invalid_mask[np.newaxis])
         bands = 1
     else:
         array = array[:3]   # no more than three bands here
