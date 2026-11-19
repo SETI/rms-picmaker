@@ -108,8 +108,10 @@ are applied to each image in the following order:
 2. ``--bands``, ``--lines``, ``--samples``, ``--crop`` — coadd the selected
    bands and reduce the array to the requested sub-region, optionally cropping constant
    borders.
-3. ``--valid`` — mark pixels outside the valid range (and NaNs) as invalid,
-   to be colored later, in step 8.
+3. ``--valid``, ``--mask`` — mark pixels outside the valid range, pixels inside
+   any masked range (e.g., ``--mask 0 0`` for zero-valued pixels; repeat ``--mask``
+   for more ranges), and NaNs as invalid. Invalid pixels are excluded from the
+   stretch and colored later, in step 8.
 4. Only when ``--limits`` is *not* given, the stretch endpoints are derived
    from the pixel statistics: ``--trim``, ``--trim-zeros``, ``--footprint``,
    ``--percentiles``.
@@ -402,6 +404,7 @@ reading and processing each one, and writing the output pictures. It returns
 Each keyword is the option's long name with dashes turned into underscores,
 except for a few whose keyword differs from the flag: ``patterns``
 (``--pattern``), ``obj`` (``--object``), ``pointers`` (``--pointer``),
+``mask_ranges`` (``--mask``),
 ``below_color`` / ``above_color`` / ``invalid_color`` (``--below`` /
 ``--above`` / ``--invalid``), ``display_upward`` / ``display_downward``
 (``--up`` / ``--down``), and ``twobytes`` (``--16``). Every keyword is

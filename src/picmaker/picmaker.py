@@ -83,6 +83,10 @@ def picmaker(*, logger=None, _shift_origins=False, **options):
             this value.
         valid (tuple[float, float], optional): Numeric range of valid pixel values; pixels
             outside these limits are treated as invalid.
+        mask_ranges (list[tuple[float, float]], optional): Numeric ranges of pixel
+            values, inclusive, that are always treated as invalid, e.g., [(0, 0)] to
+            exclude zero-valued pixels from the stretch. A single (min, max) pair is also
+            accepted. Set by one or more `--mask` options on the command line.
         limits (tuple[float, float], optional): Pixel values defining the stretch
             endpoints.
         percentiles (tuple[float, float], optional): Percentiles into the histogram of

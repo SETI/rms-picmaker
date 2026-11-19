@@ -302,3 +302,38 @@ def test_tint_with_no_image_info_is_a_noop(tmp_path: Path) -> None:
     plain = _render(arr, tmp_path, name='plain')
     tinted = _render(arr, tmp_path, '--tint', name='tinted')
     assert np.array_equal(plain, tinted)
+
+
+# ---------------------------------------------------------------------------
+# --mask
+# ---------------------------------------------------------------------------
+
+
+def test_mask_excludes_values_from_the_stretch(tmp_path: Path) -> None:
+    """``--mask 0 0`` drops the zero-valued pixels from the stretch, so the darkest
+    remaining value maps to black and the zeros take the ``--invalid`` color."""
+    arr = np.zeros((4, 4), dtype='float32')
+    arr[:, 2:] = np.array([100., 200.])               # columns: 0, 0, 100, 200
+    plain = _render(arr, tmp_path, name='plain')
+    masked = _render(arr, tmp_path, '--mask', '0', '0', '--invalid', 'red',
+                     name='masked')
+
+    assert plain.ndim == 2                           # grayscale; stretch is 0..200
+    assert 100 <= plain[0, 2] <= 155                 # 100 sits mid-scale
+
+    assert masked.shape[-1] == 3                     # red invalid color -> RGB
+    assert tuple(masked[0, 0]) == (255, 0, 0)        # zeros are masked
+    assert tuple(masked[0, 2]) == (0, 0, 0)          # stretch is now 100..200
+    assert tuple(masked[0, 3]) == (255, 255, 255)
+
+
+def test_repeated_mask_excludes_every_range(tmp_path: Path) -> None:
+    """Each ``--mask`` adds a range: masking both 0 and 255 leaves 100..200 to set the
+    stretch."""
+    arr = np.array([[0., 100., 200., 255.]] * 4, dtype='float32')
+    out = _render(arr, tmp_path, '--mask', '0', '0', '--mask', '255', '255',
+                  '--invalid', 'red', name='multi')
+    assert tuple(out[0, 0]) == (255, 0, 0)
+    assert tuple(out[0, 1]) == (0, 0, 0)
+    assert tuple(out[0, 2]) == (255, 255, 255)
+    assert tuple(out[0, 3]) == (255, 0, 0)

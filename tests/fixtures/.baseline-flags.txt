@@ -24,6 +24,7 @@
 --limits
 --lines
 --logging
+--mask
 --mosaic
 --movie
 --object

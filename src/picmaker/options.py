@@ -112,6 +112,12 @@ def get_parser():
         '-v', '--valid', type=float, nargs=2,
         help='Range of valid pixel values; pixels outside are ignored.')
     _stretch.add_argument(
+        '--mask', dest='mask_ranges', type=float, nargs=2, action='append',
+        metavar=('MIN', 'MAX'),
+        help='Range of pixel values, inclusive, that are always treated as invalid; '
+             'e.g., "--mask 0 0" excludes zero-valued pixels from the stretch. Repeat '
+             'to mask several ranges.')
+    _stretch.add_argument(
         '-l', '--limits', type=float, nargs=2,
         help='Pair of pixel values that define the limits of the stretch.')
     _stretch.add_argument(
@@ -308,6 +314,7 @@ _OPTION_DEFAULTS = [
     ('crop'             , None      , float, None, None                     ),
     # Stretch options
     ('valid'            , None      , list, 2, 2        , float, None, None ),
+    ('mask_ranges'      , None      , list, 0, None     , list, 2, 2, float, None, None),
     ('limits'           , None      , list, 2, 2        , float, None, None ),
     ('percentiles'      , [0, 100  ], list, 2, 2        , float, 0, 100     ),
     ('trim'             , 0         , int, 0, None                          ),
@@ -432,6 +439,12 @@ def validate_options(options):
     # them is numeric, and False is not a numeric zero however much Python says it is:
     # it reads as "off", so let it fall back like any other unset value. Falsy values
     # of the wrong type altogether are left alone for check_value to reject.
+    # A single (min, max) pair is shorthand for a list containing one masked range
+    ranges = options.get('mask_ranges')
+    if (isinstance(ranges, (list, tuple)) and len(ranges) == 2
+            and all(isinstance(v, (int, float)) for v in ranges)):
+        options['mask_ranges'] = [ranges]
+
     for info in _OPTION_DEFAULTS:
         name, default, *type_info = info
         value = options.get(name)

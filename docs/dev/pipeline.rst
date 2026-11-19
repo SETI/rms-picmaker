@@ -349,8 +349,8 @@ Geometry and layout helpers
 :func:`picmaker.slicing.slice_array` takes the raw
 ``(bands, lines, samples)`` array (or a 2-D array) and returns the
 band-selected / band-merged array plus an optional invalid-pixel mask.
-It honors the ``samples``, ``lines``, ``bands``, ``valid``, and
-``crop`` slice arguments.
+It honors the ``samples``, ``lines``, ``bands``, ``valid``,
+``mask_ranges``, and ``crop`` slice arguments.
 
 :func:`picmaker.orientation.rotate_rgb_array` applies the
 ``--rotation`` choice and the ``--up`` / ``--down`` override on top of

@@ -5,8 +5,8 @@
 import numpy as np
 
 
-def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop=None,
-                **kwargs):
+def slice_array(array, *, samples=None, lines=None, bands=None, valid=None,
+                mask_ranges=None, crop=None, **kwargs):
     """Return the requested slice of an array.
 
     Parameters:
@@ -20,6 +20,9 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
             bands to coadd; None for all bands.
         valid (tuple[float, float], optional): The value range (vmin, vmax) in the
             array to be considered valid; None treats all values as valid.
+        mask_ranges (list[tuple[float, float]], optional): Value ranges (vmin, vmax),
+            inclusive, of pixels to treat as invalid, e.g., [(0, 0)] to mask zero-valued
+            pixels. None masks no additional values.
         crop (float, optional): Numeric value to crop from the border of the image (e.g.
             0 to crop zero-valued rows and columns). None disables cropping.
         **kwargs: Additional input options, ignored here.
@@ -59,6 +62,9 @@ def slice_array(array, *, samples=None, lines=None, bands=None, valid=None, crop
     nan_mask = None
     if valid:
         mask = (array < valid[0]) | (array > valid[1])
+    for (vmin, vmax) in (mask_ranges or []):
+        in_range = (array >= vmin) & (array <= vmax)
+        mask = in_range if mask is None else (mask | in_range)
     if array.dtype.kind == 'f':
         nan_mask = np.isnan(array)
         mask = nan_mask if mask is None else (mask | nan_mask)
