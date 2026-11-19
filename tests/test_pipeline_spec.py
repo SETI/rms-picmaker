@@ -4,6 +4,8 @@ Each test treats the function as a black box described by its docstring: the
 documented parameters, return shapes, and raised exceptions — not the source.
 """
 
+from typing import Any
+
 import numpy as np
 import pytest
 from PIL import Image
@@ -19,6 +21,7 @@ from picmaker import (
     slice_array,
     wrap_pil_image,
 )
+from picmaker.instruments import ImageData
 
 # --- get_limits ------------------------------------------------------------
 
@@ -215,10 +218,24 @@ def test_get_size_wrap_splits_elongated_image() -> None:
 # --- slice_array -----------------------------------------------------------
 
 
+def _slice(arr: np.ndarray, **options: Any) -> tuple[np.ndarray, np.ndarray | None]:
+    """Slice a bare array through ``slice_array`` and return ``(array, mask)``.
+
+    The input carries no masks of its own, so ``hmask`` and ``imask`` both come back
+    as the invalid-pixel mask (or None) and must agree.
+    """
+    result = slice_array(ImageData(arr, None, None, True, None), **options)
+    if result.hmask is None:
+        assert result.imask is None
+    else:
+        np.testing.assert_array_equal(result.hmask, result.imask)
+    return (result.array, result.imask)
+
+
 def test_slice_array_sub_region_shape() -> None:
     """Line/sample limits select the corresponding sub-region."""
     arr = np.arange(100, dtype=float).reshape(10, 10)
-    sliced, mask = slice_array(arr, lines=(2, 5), samples=(1, 4))
+    sliced, mask = _slice(arr, lines=(2, 5), samples=(1, 4))
     assert sliced.shape == (3, 3)
     assert mask is None or not mask.any()      # nothing invalid in this slice
 
@@ -226,7 +243,7 @@ def test_slice_array_sub_region_shape() -> None:
 def test_slice_array_coadds_bands_to_2d() -> None:
     """A band range collapses a 3-D array to a 2-D band average."""
     arr = np.ones((3, 4, 4))
-    sliced, _mask = slice_array(arr, bands=(0, 3))
+    sliced, _mask = _slice(arr, bands=(0, 3))
     assert sliced.ndim == 2
     assert sliced.shape == (4, 4)
 
@@ -234,7 +251,7 @@ def test_slice_array_coadds_bands_to_2d() -> None:
 def test_slice_array_valid_range_masks_outliers() -> None:
     """Pixels outside the ``valid`` range are masked."""
     arr = np.arange(16, dtype=float).reshape(4, 4)
-    _sliced, mask = slice_array(arr, valid=(5.0, 10.0))
+    _sliced, mask = _slice(arr, valid=(5.0, 10.0))
     assert mask is not None
     assert mask.sum() > 0
 
@@ -243,7 +260,7 @@ def test_slice_array_nan_always_masked() -> None:
     """NaN pixels are always masked."""
     arr = np.ones((4, 4))
     arr[1, 1] = np.nan
-    _sliced, mask = slice_array(arr)
+    _sliced, mask = _slice(arr)
     assert mask is not None
     assert bool(mask[1, 1]) is True
 
@@ -252,14 +269,14 @@ def test_slice_array_crop_removes_constant_border() -> None:
     """``crop`` removes border rows/columns that all equal the given value."""
     arr = np.ones((6, 6))
     arr[0, :] = arr[-1, :] = arr[:, 0] = arr[:, -1] = 0.0
-    sliced, _mask = slice_array(arr, crop=0.0)
+    sliced, _mask = _slice(arr, crop=0.0)
     assert sliced.shape == (4, 4)
 
 
 def test_slice_array_zero_size_raises() -> None:
     """A zero-size slice raises ValueError."""
     with pytest.raises(ValueError):
-        slice_array(np.ones((4, 4)), lines=(2, 2))
+        _slice(np.ones((4, 4)), lines=(2, 2))
 
 
 # --- filter_pil_image ------------------------------------------------------

@@ -53,7 +53,7 @@ class HST_NICMOS(ImageData):
                     retint = retint or _DEFAULT_RETINT
                     default_tint = tint_by_nm(lambda_nm * retint)
 
-        return HST_NICMOS(hdu.data, _DEFAULT_UPWARD, default_tint)
+        return HST_NICMOS(hdu.data, None, None, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################

@@ -81,7 +81,7 @@ def test_apply_mosaic_assembles_four_quadrants() -> None:
     in pre-inversion orientation: chip 1 lower-right, 2 lower-left, 3 upper-left,
     4 upper-right."""
     planes = [np.full((8, 8, 3), v, dtype=float) for v in (1, 2, 3, 4)]
-    inst = HST_WFPC(np.zeros((4, 8, 8, 3)), True, None)
+    inst = HST_WFPC(np.zeros((4, 8, 8, 3)), None, None, True, None)
     mosaic = inst.apply_mosaic(planes)
 
     assert mosaic.shape == (16, 16, 3)

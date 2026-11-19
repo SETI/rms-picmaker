@@ -208,6 +208,10 @@ Supported instruments:
 * **HST WFC3** (UVIS / IR) — FITS.
 * **HST WFPC** (WFPC1) — FITS.
 * **HST WFPC2** — FITS, either "waiver" (``_c0f`` etc.) or multi-extension (``_c0m`` etc.).
+  If the matching data quality file (``_c1f``/``_c1m`` for ``_c0f``/``_c0m``;
+  ``_q0f``/``_q0m`` for ``_d0f``/``_d0m``) is found, every pixel with a nonzero
+  data quality value is treated as invalid. It is looked for in the input file's
+  directory, or in the directory given by ``--wfpc2-dq``.
 * **Juno JunoCam** — PDS3, or a raw ``.IMG`` file recognized by its name.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.

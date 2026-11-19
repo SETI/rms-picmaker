@@ -80,14 +80,15 @@ input file, honoring the ``--replace`` policy
 -----------------------------------------------------
 
 Shape-space selection. :func:`picmaker.slicing.slice_array` extracts
-the requested sample / line / band sub-range from the raw 3-D input
-array and returns it together with an optional invalid-pixel mask.
+the requested sample / line / band sub-range from an ``ImageData`` object's
+array and returns a copy of the object (same subclass) holding the slice, with
+the invalid-pixel mask OR-ed into its ``hmask`` and ``imask``.
 
 :mod:`picmaker.stretch` (``src/picmaker/stretch.py``)
 -----------------------------------------------------
 
 :func:`picmaker.stretch.get_limits` chooses the stretch endpoints from
-the array, the optional invalid mask, and the ``--limits`` /
+the array, the optional ``hmask``, and the ``--limits`` /
 ``--percentiles`` / ``--trim`` / ``--footprint`` options.
 
 :mod:`picmaker.enhancement` (``src/picmaker/enhancement.py``)

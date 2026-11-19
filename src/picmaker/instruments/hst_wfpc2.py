@@ -3,9 +3,11 @@
 ##########################################################################################
 """HST WFPC2 detector and reader."""
 
+import pathlib
 import re
 import warnings
 
+import astropy.io.fits as pyfits
 import numpy as np
 from astropy.io.fits.verify import VerifyWarning
 
@@ -16,12 +18,17 @@ _DEFAULT_UPWARD = True
 _IS_UNDIAGNOSTIC = re.compile(r'(|F130LP|F165LP|F606W|FQCH4.*|POL.*)$')
 _IS_SCIENCE_DATA = re.compile(r'.*_[cd]0[fm](?![a-z]|\d).*', re.I)
 
+# Splits a data file name around its suffix code, e.g. "u2tf0504t_c0f.fits" ->
+# ("u2tf0504t", "c", "0", "f", ".fits"); the first group is greedy so the last match wins
+_DATA_FILENAME = re.compile(r'(.*)_([cd])(0)([fm])((?![a-z\d]).*)', re.I)
+
 
 class HST_WFPC2(ImageData):
     """HST WFPC2 detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1., **kwargs):
+    def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1.,
+                       wfpc2_dq=None, logger=None, **kwargs):
         """Extract HST WFPC2 data from an open HDUList.
 
         Parameters:
@@ -34,6 +41,13 @@ class HST_WFPC2(ImageData):
                 selected detector.
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
+            wfpc2_dq (str or Path, optional): Directory containing the data quality file
+                that goes with this file: "_c1f" or "_c1m" for a "_c0f" or "_c0m" file;
+                "_q0f" or "_q0m" for a "_d0f" or "_d0m" file. If None, the directory of
+                this file is used. If the data quality file is found, every pixel with a
+                nonzero data quality value is set in both `hmask` and `imask`.
+            logger (Logger or PdsLogger, optional): Logger for reporting whether a data
+                quality file was used.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -68,18 +82,21 @@ class HST_WFPC2(ImageData):
         # detector number (1-4) of each plane; everything after that is shared.
         (array, detectors) = _get_detector_cube(hdulist, filepath)
 
-        # Favor `obj` over `mosaic`
+        # Load the matching data quality mask, if the file is present
+        dq_mask = _get_dq_mask(filepath, array.shape, wfpc2_dq, logger)
+
+        # Favor `obj` over `mosaic`. The mask planes are selected exactly like the data.
         if obj is None and mosaic and array.shape[0] > 1:
-            # Place each plane by its detector number, leaving any missing detectors
-            # zero-filled
-            cube = np.zeros((4,) + array.shape[-2:], dtype=array.dtype)
-            for b, det in enumerate(detectors):
-                cube[det - 1] = array[b]
-            array = cube
+            array = _place_by_detector(array, detectors)
+            if dq_mask is not None:
+                dq_mask = _place_by_detector(dq_mask, detectors)
         else:
             array = array[obj or 0]  # forward IndexError
+            if dq_mask is not None:
+                dq_mask = dq_mask[obj or 0]
 
-        return HST_WFPC2(array, _DEFAULT_UPWARD, default_tint)
+        (hmask, imask) = (None, None) if dq_mask is None else (dq_mask, dq_mask.copy())
+        return HST_WFPC2(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
     def apply_mosaic(self, arrays_rgb, **kwargs):
         """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.
@@ -156,6 +173,81 @@ def _get_detector_cube(hdulist, filepath):
                 detectors = [int(d) for d in hdulist[1].data['DETECTOR']]
 
     return (array, detectors)
+
+
+def _place_by_detector(cube, detectors):
+    """Expand a detector cube to all four detectors, placing each plane by its detector
+    number (1-4) and leaving any missing detectors zero (or False)."""
+
+    result = np.zeros((4,) + cube.shape[-2:], dtype=cube.dtype)
+    for b, det in enumerate(detectors):
+        result[det - 1] = cube[b]
+    return result
+
+
+def _get_dq_path(filepath, wfpc2_dq=None):
+    """The path to the data quality file that goes with a WFPC2 science file.
+
+    Parameters:
+        filepath (str or Path): Path to a "_c0f", "_c0m", "_d0f", or "_d0m" file.
+        wfpc2_dq (str or Path, optional): Directory of the data quality file; None for
+            the directory of `filepath`.
+
+    Returns:
+        Path or None: The "_c1f", "_c1m", "_q0f", or "_q0m" path, preserving the case of
+        the original name; None if `filepath` is not one of the science file types.
+    """
+
+    filepath = pathlib.Path(filepath)
+    match = _DATA_FILENAME.fullmatch(filepath.name)
+    if not match:
+        return None
+
+    (head, kind, zero, layout, tail) = match.groups()
+    if kind in 'cC':
+        code = kind + '1'                                   # c0 -> c1
+    else:
+        code = ('q' if kind == 'd' else 'Q') + zero         # d0 -> q0
+
+    directory = pathlib.Path(wfpc2_dq) if wfpc2_dq else filepath.parent
+    return directory / f'{head}_{code}{layout}{tail}'
+
+
+def _get_dq_mask(filepath, shape, wfpc2_dq=None, logger=None):
+    """Read the data quality file for a WFPC2 science file as a boolean mask.
+
+    Parameters:
+        filepath (str or Path): Path to the science file.
+        shape (tuple[int, int, int]): Shape of the science file's detector cube.
+        wfpc2_dq (str or Path, optional): Directory of the data quality file; None for
+            the directory of `filepath`.
+        logger (Logger or PdsLogger, optional): Logger for a debug message.
+
+    Returns:
+        array[bool] or None: A detector cube that is True wherever the data quality value
+        is nonzero; None if `filepath` has no data quality counterpart or the file is not
+        found.
+
+    Raises:
+        ValueError: If the data quality cube does not match the science cube's shape.
+    """
+
+    dq_path = _get_dq_path(filepath, wfpc2_dq)
+    if dq_path is None or not dq_path.is_file():
+        if dq_path is not None:
+            logger and logger.debug('WFPC2 data quality file not found', dq_path)
+        return None
+
+    with pyfits.open(dq_path) as dq_hdulist:
+        (dq, _) = _get_detector_cube(dq_hdulist, dq_path)
+        mask = np.asarray(dq != 0)
+
+    if mask.shape != tuple(shape):
+        raise ValueError(f'WFPC2 data quality file {dq_path} has shape {mask.shape}; '
+                         f'expected {tuple(shape)}')
+
+    logger and logger.debug('Using WFPC2 data quality file', dq_path)
+    return mask
 
 
 ##########################################################################################

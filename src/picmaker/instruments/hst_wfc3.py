@@ -78,7 +78,7 @@ class HST_WFC3(ImageData):
 
         # Handle the non-mosaicked case
         if not use_mosaic:
-            return HST_WFC3(hdu.data, _DEFAULT_UPWARD, default_tint)
+            return HST_WFC3(hdu.data, None, None, _DEFAULT_UPWARD, default_tint)
 
         # Determine the first chip in the file. Should be 2 but could be 1 if only one
         # detector was used.
@@ -100,7 +100,7 @@ class HST_WFC3(ImageData):
         array[first_ccd - 1] = hdus[0].data
         if len(hdus) > 1:
             array[2 - first_ccd] = hdus[1].data
-        return HST_WFC3(array, _DEFAULT_UPWARD, default_tint)
+        return HST_WFC3(array, None, None, _DEFAULT_UPWARD, default_tint)
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):

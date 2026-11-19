@@ -99,7 +99,7 @@ def test_apply_mosaic_assembles_four_quadrants() -> None:
     """
     # Tag each detector plane with its 1-based id so it can be located.
     planes = [np.full((8, 8, 3), v, dtype=float) for v in (1, 2, 3, 4)]
-    inst = HST_WFPC2(np.zeros((4, 8, 8, 3)), True, None)
+    inst = HST_WFPC2(np.zeros((4, 8, 8, 3)), None, None, True, None)
     mosaic = inst.apply_mosaic(planes)
 
     assert mosaic.shape == (16, 16, 3)
@@ -252,3 +252,108 @@ def test_waiver_and_mef_layouts_are_read_identically(detectors: list[int],
     np.testing.assert_array_equal(np.asarray(data_f.array), np.asarray(data_m.array))
     assert np.asarray(data_f.array).shape == np.asarray(data_m.array).shape
     assert data_f.default_tint == data_m.default_tint
+
+
+# --- data quality masks (--wfpc2-dq) --------------------------------------------------
+
+def _raw_dq_mask() -> np.ndarray:
+    """The bundled _c1f data quality cube as a boolean "nonzero" mask."""
+    return np.asarray(_raw_cube(QUALITY) != 0, dtype=bool)
+
+
+@pytest.mark.parametrize(('name', 'dq_name'), [
+    ('u_c0f.fits', 'u_c1f.fits'),
+    ('u_c0m.fits', 'u_c1m.fits'),
+    ('u_d0f.fits', 'u_q0f.fits'),
+    ('u_d0m.fits', 'u_q0m.fits'),
+    ('U_C0F.FITS', 'U_C1F.FITS'),
+    ('U_D0M.FITS', 'U_Q0M.FITS'),
+    ('u_c1f.fits', None),
+    ('u_q0m.fits', None),
+    ('u_c0fx.fits', None),
+])
+def test_dq_path_maps_science_to_quality_names(name: str, dq_name: str | None) -> None:
+    """Each science file type maps to its data quality file, in the same directory by
+    default or in the ``wfpc2_dq`` directory; other files have no counterpart."""
+    from picmaker.instruments.hst_wfpc2 import _get_dq_path
+
+    if dq_name is None:
+        assert _get_dq_path(Path('data') / name) is None
+        return
+    assert _get_dq_path(Path('data') / name) == Path('data') / dq_name
+    assert _get_dq_path(Path('data') / name, 'dq') == Path('dq') / dq_name
+
+
+def test_dq_mask_loaded_from_same_directory_by_default() -> None:
+    """The bundled _c0f file picks up its _c1f neighbor: every nonzero data quality
+    pixel is set in both masks, as two separate arrays."""
+    data = read_image_array(SCIENCE, mosaic=True)
+    np.testing.assert_array_equal(data.hmask, _raw_dq_mask())
+    np.testing.assert_array_equal(data.imask, _raw_dq_mask())
+    assert data.hmask is not data.imask
+
+    data = read_image_array(SCIENCE, obj=2)
+    np.testing.assert_array_equal(data.hmask, _raw_dq_mask()[2])
+
+
+def test_dq_file_itself_and_missing_dq_have_no_mask(tmp_path: Path) -> None:
+    """A data quality file gets no mask of its own, and a science file whose data
+    quality file is not in the ``wfpc2_dq`` directory reads without masks."""
+    data = read_image_array(QUALITY)
+    assert data.hmask is None
+    assert data.imask is None
+
+    data = read_image_array(SCIENCE, wfpc2_dq=str(tmp_path))
+    assert data.hmask is None
+    assert data.imask is None
+
+
+def test_dq_mask_from_separate_directory_mef_partial_mosaic(tmp_path: Path) -> None:
+    """A _c0m file with only detectors 2 and 4 reads its _c1m mask from the
+    ``wfpc2_dq`` directory; mosaic placement puts the mask planes with the data."""
+    data_dir = tmp_path / 'c0m'
+    dq_dir = tmp_path / 'c1m'
+    data_dir.mkdir()
+    dq_dir.mkdir()
+
+    planes = [np.full((4, 4), 1.0), np.full((4, 4), 2.0)]
+    _synth_wfpc2_mef(planes, [2, 4]).writeto(data_dir / 'u_c0m.fits')
+    dq = [np.zeros((4, 4), dtype='int16'), np.zeros((4, 4), dtype='int16')]
+    dq[0][0, 0] = 2
+    dq[1][3, 3] = 258
+    _synth_wfpc2_mef(dq, [2, 4]).writeto(dq_dir / 'u_c1m.fits')
+
+    data = read_image_array(data_dir / 'u_c0m.fits', mosaic=True, wfpc2_dq=str(dq_dir))
+    expected = np.zeros((4, 4, 4), dtype=bool)
+    expected[1, 0, 0] = True        # detector 2 -> plane 1
+    expected[3, 3, 3] = True        # detector 4 -> plane 3
+    np.testing.assert_array_equal(data.hmask, expected)
+    np.testing.assert_array_equal(data.imask, expected)
+
+    data = read_image_array(data_dir / 'u_c0m.fits', obj=1, wfpc2_dq=str(dq_dir))
+    np.testing.assert_array_equal(data.imask, expected[3])
+
+
+def test_dq_mask_shape_mismatch_raises(tmp_path: Path) -> None:
+    """A data quality file whose cube does not match the science cube is rejected."""
+    _synth_wfpc2_mef([np.ones((4, 4))], [1]).writeto(tmp_path / 'u_c0m.fits')
+    _synth_wfpc2_mef([np.zeros((5, 5))], [1]).writeto(tmp_path / 'u_c1m.fits')
+    with pytest.raises(ValueError, match='data quality'):
+        read_image_array(tmp_path / 'u_c0m.fits')
+
+
+def test_wfpc2_dq_cli_option(tmp_path: Path) -> None:
+    """``--wfpc2-dq`` is parsed into ``wfpc2_dq``, and flagged pixels are drawn in the
+    ``--invalid`` color."""
+    args = get_parser().parse_args([str(SCIENCE), '--wfpc2-dq', 'some/dir'])
+    assert args.wfpc2_dq == 'some/dir'
+
+    options = vars(get_parser().parse_args([
+        str(SCIENCE), '--directory', str(tmp_path), '--invalid', 'red',
+        '--extension', 'png', '--wfpc2-dq', str(DATA_DIR),
+    ]))
+    picmaker(**options)
+    with Image.open(tmp_path / 'u2tf0504t_c0f.png') as img:
+        pixels = np.asarray(img.convert('RGB')).reshape(-1, 3)
+    red = np.all(pixels == (255, 0, 0), axis=1)
+    assert red.mean() == pytest.approx(_raw_dq_mask()[0].mean(), abs=0.01)

@@ -41,7 +41,7 @@ class HST_COS(ImageData):
         # COS NUV imaging uses a broadband mirror (MIRRORA/MIRRORB) rather than a
         # wavelength filter, so there is no diagnostic wavelength for a default tint.
         hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers)
-        return HST_COS(hdu.data, _DEFAULT_UPWARD, None)
+        return HST_COS(hdu.data, None, None, _DEFAULT_UPWARD, None)
 
 
 ##########################################################################################

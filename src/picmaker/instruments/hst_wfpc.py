@@ -82,7 +82,7 @@ class HST_WFPC(ImageData):
         else:
             array = array[obj or 0]     # forward IndexError
 
-        return HST_WFPC(array, _DEFAULT_UPWARD, default_tint)
+        return HST_WFPC(array, None, None, _DEFAULT_UPWARD, default_tint)
 
     def apply_mosaic(self, arrays_rgb, **kwargs):
         """Assemble WF/PC's four WF or PC detectors into a 2x2 mosaic.

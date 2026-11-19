@@ -55,7 +55,7 @@ class HST_FOC(ImageData):
             if lambda_nms:
                 default_tint = tint_by_nm(np.mean(lambda_nms))
 
-        return HST_FOC(hdulist[0].data, _DEFAULT_UPWARD, default_tint)
+        return HST_FOC(hdulist[0].data, None, None, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################

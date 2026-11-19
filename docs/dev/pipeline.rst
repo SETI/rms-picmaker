@@ -38,11 +38,11 @@ zoom controls to read the labels at any size.
        RO -->|VICAR open OK| NV[detect_in_vicar<br/>per instrument]
        RO -->|FITS open OK| NF[detect_in_fits<br/>per instrument]
        RO -->|otherwise| NG[detect_in_file<br/>per instrument]
-       NPI --> Q[ImageData subclass<br/>array, default_upward, default_tint]
+       NPI --> Q[ImageData subclass<br/>array, hmask, imask,<br/>default_upward, default_tint]
        NV --> Q
        NF --> Q
        NG --> Q
-       Q --> SL[slice_array]
+       Q --> SL[slice_array<br/>sliced ImageData copy]
        SL --> ZB[fill_zebra_stripes<br/>optional]
        ZB --> MOS{mosaic AND ndim==3 AND<br/>image_data.apply_mosaic?}
        MOS -->|yes| GLB[get_limits per band]
@@ -217,8 +217,12 @@ output image, running the phases shown in the flowchart:
    :func:`picmaker.instruments.read_image_array` (see the reader cascade
    below).
 2. Slice out the region of interest with
-   :func:`picmaker.slicing.slice_array`, which returns the 2-D or 3-D
-   array plus an optional invalid-pixel mask.
+   :func:`picmaker.slicing.slice_array`, which returns a sliced copy of the
+   ``ImageData`` object (same subclass). Its ``array`` is the 2-D or 3-D
+   slice, and the invalid-pixel mask is OR-ed into its ``hmask`` (used by
+   the stretch) and ``imask`` (pixels colored as invalid). The original
+   ``image_data`` is left unsliced so ``--versions`` and ``--movie`` can
+   reuse it.
 3. Optionally fill zebra stripes with
    :func:`picmaker.preprocessing.fill_zebra_stripes` when ``--zebra`` is
    set.
@@ -304,7 +308,7 @@ The image container
 
 :class:`picmaker.instruments.ImageData` is the base class every
 instrument subclasses. It is constructed as
-``ImageData(array, default_upward, default_tint)`` and carries the raw
+``ImageData(array, hmask, imask, default_upward, default_tint)`` and carries the raw
 pixel array, the display-direction default, and the per-image default
 tint color. Its :meth:`~picmaker.instruments.ImageData.apply_colormap`
 method forwards to :func:`picmaker.enhancement.apply_colormap` with the
@@ -346,11 +350,12 @@ trailing-zero artifacts in compressed spacecraft images.
 Geometry and layout helpers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:func:`picmaker.slicing.slice_array` takes the raw
-``(bands, lines, samples)`` array (or a 2-D array) and returns the
-band-selected / band-merged array plus an optional invalid-pixel mask.
-It honors the ``samples``, ``lines``, ``bands``, ``valid``,
-``mask_ranges``, and ``crop`` slice arguments.
+:func:`picmaker.slicing.slice_array` takes an ``ImageData`` object whose
+array is ``(bands, lines, samples)`` (or 2-D) and returns a copy of the same
+subclass. In the copy, ``array`` is the band-selected / band-merged slice. Its
+``hmask`` and ``imask`` are sliced the same way and OR-ed with the invalid-pixel
+mask, or set to that mask if they were ``None``. It honors the ``samples``,
+``lines``, ``bands``, ``valid``, ``mask_ranges``, and ``crop`` slice arguments.
 
 :func:`picmaker.orientation.rotate_rgb_array` applies the
 ``--rotation`` choice and the ``--up`` / ``--down`` override on top of

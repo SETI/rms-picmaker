@@ -66,7 +66,7 @@ class HST_STIS(ImageData):
                 retint = retint or (1. if detector == 'CCD' else _DEFAULT_UV_RETINT)
                 default_tint = tint_by_nm(lambda_nm * retint)
 
-        return HST_STIS(hdu.data, _DEFAULT_UPWARD, default_tint)
+        return HST_STIS(hdu.data, None, None, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################
