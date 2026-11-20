@@ -11,11 +11,39 @@ import numpy as np
 from picmaker.instruments import ImageData, tint_by_nm
 from picmaker.instruments._fits_support import (get_fits_image_hdu, get_fits_image_hdus,
                                                 hdu_is_image)
-from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
+from picmaker.instruments._hst_support import (
+    get_chip_dq_mask,
+    get_hst_filter_digits,
+    get_sci_dq_mask,
+    is_science_hdu,
+    split_mask,
+)
 
 _IS_UNDIAGNOSTIC = re.compile(r'(F200LP|F350LP)$')
 _DEFAULT_UPWARD = True
 _DEFAULT_IR_RETINT = 0.4
+
+# FLAG  Data Quality Condition
+# 0     OK
+# 1     Reed Solomon decoding error
+# 2     Data replaced by fill value
+# 4     Bad detector pixel
+# 8     UVIS: (unused); IR: Deviant zero read (bias) value
+# 16    Stable hot pixel
+# 32    Unstable pixel
+# 64    (Obsolete: Warm pixel)
+# 128   UVIS: Bad pixel in bias; IR: Bad reference pixel
+# 256   Full well saturation
+# 512   Bad or uncertain flat value
+# 1024  UVIS: Charge trap and sink pixels; IR: (unused)
+# 2048  UVIS A to D saturation; IR: Signal in zero read
+# 4096  Cosmic ray detected by AstroDrizzle
+# 8192  UVIS: Cosmic ray detected by calwf3 during CR-SPLIT or RPT-OBS combination;
+#       IR: Cosmic ray detected during calwf3 up the ramp fitting (flagged in _ima only)
+# 16384 Pixel affected by ghost/crosstalk (not used)
+
+# DQ flag bits that do not mask a pixel: 64 = warm pixel
+_DQ_IGNORE = 64
 
 
 class HST_WFC3(ImageData):
@@ -38,6 +66,10 @@ class HST_WFC3(ImageData):
             mosaic (bool, optional): True to enable the construction of a mosaic from the
                 two UVIS frames.
             **kwargs: Additional input options, ignored here.
+
+        If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
+        same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
+        value is set in both, except where the value is 64 (warm pixel) alone.
 
         Returns:
             HST_WFC3 or None: Instrument subclass if the file describes an HST WFC3
@@ -78,7 +110,8 @@ class HST_WFC3(ImageData):
 
         # Handle the non-mosaicked case
         if not use_mosaic:
-            return HST_WFC3(hdu.data, _DEFAULT_UPWARD, default_tint)
+            (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu, _DQ_IGNORE))
+            return HST_WFC3(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
         # Determine the first chip in the file. Should be 2 but could be 1 if only one
         # detector was used.
@@ -100,7 +133,10 @@ class HST_WFC3(ImageData):
         array[first_ccd - 1] = hdus[0].data
         if len(hdus) > 1:
             array[2 - first_ccd] = hdus[1].data
-        return HST_WFC3(array, _DEFAULT_UPWARD, default_tint)
+        dq_mask = get_chip_dq_mask(hdulist, hdus, first_ccd, array.shape,
+                                   ignore=_DQ_IGNORE)
+        (hmask, imask) = split_mask(dq_mask)
+        return HST_WFC3(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):

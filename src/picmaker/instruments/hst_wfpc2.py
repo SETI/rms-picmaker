@@ -4,24 +4,28 @@
 """HST WFPC2 detector and reader."""
 
 import re
-import warnings
 
 import numpy as np
-from astropy.io.fits.verify import VerifyWarning
 
 from picmaker.instruments import ImageData, tint_by_nm
-from picmaker.instruments._hst_support import get_hst_filter_digits
+from picmaker.instruments._hst_support import (
+    get_detector_cube,
+    get_dq_mask,
+    get_hst_filter_digits,
+    place_by_detector,
+)
 
 _DEFAULT_UPWARD = True
 _IS_UNDIAGNOSTIC = re.compile(r'(|F130LP|F165LP|F606W|FQCH4.*|POL.*)$')
-_IS_SCIENCE_DATA = re.compile(r'.*_[cd]0f(?![a-z]|\d).*', re.I)
+_IS_SCIENCE_DATA = re.compile(r'.*_[cd]0[fm](?![a-z]|\d).*', re.I)
 
 
 class HST_WFPC2(ImageData):
     """HST WFPC2 detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1., **kwargs):
+    def detect_in_fits(hdulist, filepath, obj=None, mosaic=False, retint=1.,
+                       hst_dq=None, logger=None, **kwargs):
         """Extract HST WFPC2 data from an open HDUList.
 
         Parameters:
@@ -34,6 +38,13 @@ class HST_WFPC2(ImageData):
                 selected detector.
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
+            hst_dq (str or Path, optional): Directory containing the data quality file
+                that goes with this file: "_c1f" or "_c1m" for a "_c0f" or "_c0m" file;
+                "_q0f" or "_q0m" for a "_d0f" or "_d0m" file. If None, the directory of
+                this file is used. If the data quality file is found, every pixel with a
+                nonzero data quality value is set in both `hmask` and `imask`.
+            logger (Logger or PdsLogger, optional): Logger for reporting whether a data
+                quality file was used.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -49,7 +60,7 @@ class HST_WFPC2(ImageData):
         except (KeyError, IndexError):
             return None
 
-        # Science data is in the _c0f and _d0f files
+        # Science data is in the _c0f, _d0f, _c0m, and _d0m files
         is_science_data = _IS_SCIENCE_DATA.fullmatch(str(filepath))
         default_tint = None
         if is_science_data:
@@ -64,30 +75,25 @@ class HST_WFPC2(ImageData):
             if lambda_nms:
                 default_tint = tint_by_nm(np.mean(lambda_nms) * retint)
 
-        # Select detector(s), allowing for the possibility of fewer than four
-        array = hdulist[0].data
-        array = array[np.newaxis] if array.ndim == 2 else array
+        # Both file layouts are reduced to the same detector cube plus a list of the
+        # detector number (1-4) of each plane; everything after that is shared.
+        (array, detectors) = get_detector_cube(hdulist, filepath)
 
-        # Favor `obj` over `mosaic`
+        # Load the matching data quality mask, if the file is present
+        dq_mask = get_dq_mask(filepath, array.shape, hst_dq, logger)
+
+        # Favor `obj` over `mosaic`. The mask planes are selected exactly like the data.
         if obj is None and mosaic and array.shape[0] > 1:
-            # Handle case of fewer than 4 images; otherwise, the array is already fine
-            if array.shape[0] < 4:
-                # The detector selection reads the group-parameters table (HDU[1]), which
-                # trips a benign astropy VerifyWarning about a non-standard TDISP keyword
-                # in the archived file; read it once here with just that warning
-                # suppressed.
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore', VerifyWarning)
-                    detectors = hdulist[1].data['DETECTOR']
-
-                new_array = np.zeros((4,) + array.shape[-2:])
-                for b, det in enumerate(detectors):
-                    new_array[det - 1] = array[b]
-                array = new_array
+            array = place_by_detector(array, detectors)
+            if dq_mask is not None:
+                dq_mask = place_by_detector(dq_mask, detectors)
         else:
             array = array[obj or 0]  # forward IndexError
+            if dq_mask is not None:
+                dq_mask = dq_mask[obj or 0]
 
-        return HST_WFPC2(array, _DEFAULT_UPWARD, default_tint)
+        (hmask, imask) = (None, None) if dq_mask is None else (dq_mask, dq_mask.copy())
+        return HST_WFPC2(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
     def apply_mosaic(self, arrays_rgb, **kwargs):
         """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.

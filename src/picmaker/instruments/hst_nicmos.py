@@ -5,7 +5,12 @@
 
 from picmaker.instruments import ImageData, tint_by_nm
 from picmaker.instruments._fits_support import get_fits_image_hdu
-from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
+from picmaker.instruments._hst_support import (
+    get_hst_filter_digits,
+    get_sci_dq_mask,
+    is_science_hdu,
+    split_mask,
+)
 
 _DEFAULT_UPWARD = True
 _DEFAULT_RETINT = 0.4
@@ -28,6 +33,10 @@ class HST_NICMOS(ImageData):
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
             **kwargs: Additional input options, ignored here.
+
+        If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
+        same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
+        value is set in both.
 
         Returns:
             HST_NICMOS or None: Instrument subclass if the file describes an HST NICMOS
@@ -53,7 +62,8 @@ class HST_NICMOS(ImageData):
                     retint = retint or _DEFAULT_RETINT
                     default_tint = tint_by_nm(lambda_nm * retint)
 
-        return HST_NICMOS(hdu.data, _DEFAULT_UPWARD, default_tint)
+        (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu))
+        return HST_NICMOS(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################

@@ -116,3 +116,37 @@ def test_deconflict_defaults_16bit_to_tiff() -> None:
     out = deconflict_options(validate_options(
         vars(get_parser().parse_args(['in.vic', '--16']))))
     assert out['extension'] == 'tiff'
+
+
+def test_mask_flag_maps_to_mask_ranges() -> None:
+    """``--mask MIN MAX`` is stored as a list of float pairs in ``mask_ranges``, and
+    each repeat of the flag adds another range."""
+    args = get_parser().parse_args(['x.img', '--mask', '0', '0'])
+    assert args.mask_ranges == [[0.0, 0.0]]
+    args = get_parser().parse_args(['x.img', '--mask', '0', '0', '--mask', '4095', '1e9'])
+    assert args.mask_ranges == [[0.0, 0.0], [4095.0, 1e9]]
+    assert _validated()['mask_ranges'] is None
+
+
+def test_mask_ranges_validation() -> None:
+    """``mask_ranges`` is a list of pairs; a bare pair is shorthand for one range."""
+    assert _validated(mask_ranges=[[0, 0], [5, 6]])['mask_ranges'] == [[0., 0.], [5., 6.]]
+    assert _validated(mask_ranges=(0, 0))['mask_ranges'] == [[0., 0.]]
+    with pytest.raises(ValueError):
+        _validated(mask_ranges=[[0]])
+    with pytest.raises(ValueError):
+        _validated(mask_ranges=[[0, 1, 2]])
+    with pytest.raises(TypeError):
+        _validated(mask_ranges=[0, 1, 2])
+
+
+def test_versions_line_adds_mask_ranges(tmp_path: Path) -> None:
+    """A ``--mask`` in a versions line adds to the base ranges without altering the
+    base options used by the other lines."""
+    versions = tmp_path / 'versions.txt'
+    versions.write_text('--mask 9 9\n--gamma 2\n')
+    base = vars(get_parser().parse_args(['x.img', '--mask', '0', '0']))
+    base.pop('versions')
+    first, second = get_versions(versions, **base)
+    assert first['mask_ranges'] == [[0.0, 0.0], [9.0, 9.0]]
+    assert second['mask_ranges'] == [[0.0, 0.0]]

@@ -93,3 +93,37 @@ def test_apply_colormap_two_stop_list() -> None:
     blue = out[..., 2].ravel()
     assert np.all(np.diff(red) < 0)
     assert np.all(np.diff(blue) > 0)
+
+
+@pytest.mark.parametrize('layer', [0, 1, 2, 3])
+def test_apply_colormap_layer_renders_one_band(layer: int) -> None:
+    """``layer`` renders just that plane of a 3-D array as a single band, rather than
+    merging the first three planes into RGB (as a mosaic requires per detector)."""
+    cube = np.stack([np.full((4, 4), v) for v in (1., 2., 3., 4.)])
+    out = apply_colormap(cube, (0., 5.), layer=layer)
+    assert out.shape == (4, 4, 1)
+    np.testing.assert_allclose(out[..., 0], (layer + 1) / 5.)
+
+
+def test_apply_colormap_layer_slices_a_3d_invalid_mask() -> None:
+    """A full 3-D invalid mask is sliced to the selected layer, so only that layer's
+    invalid pixels are colored."""
+    cube = np.full((3, 2, 2), 1.)
+    mask = np.zeros((3, 2, 2), dtype=bool)
+    mask[0, 0, 0] = True    # invalid only in layer 0
+    mask[1, 1, 1] = True    # invalid only in layer 1
+    out = apply_colormap(cube, (0., 2.), mask, layer=1, invalid_color='red')
+    assert out.shape == (2, 2, 3)
+    np.testing.assert_allclose(out[1, 1], (1., 0., 0.))     # layer-1 mask -> red
+    np.testing.assert_allclose(out[0, 0], (.5, .5, .5))     # layer-0 mask ignored
+
+
+def test_apply_colormap_layer_with_a_2d_invalid_mask() -> None:
+    """A 2-D invalid mask passed with ``layer`` (as the mosaic loop does) colors just
+    its own pixels, not every pixel in the same column."""
+    cube = np.full((2, 3, 3), 1.)
+    mask = np.zeros((3, 3), dtype=bool)
+    mask[1, 1] = True
+    out = apply_colormap(cube, (0., 2.), mask, layer=1, invalid_color='red')
+    red = np.all(out == (1., 0., 0.), axis=-1)
+    np.testing.assert_array_equal(red, mask)
