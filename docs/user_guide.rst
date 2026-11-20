@@ -122,7 +122,8 @@ are applied to each image in the following order:
    (:ref:`section 6 <supported-instruments>`), and
    ``--retint`` scales the inferred filter wavelength for some instruments.
 8. ``--above``, ``--below``, ``--invalid`` — apply the colors for above-limit,
-   below-limit, and invalid pixels.
+   below-limit, and invalid pixels. With ``--desnow``, pixels flagged by an
+   instrument's data quality mask are also drawn in the ``--invalid`` color.
 9. ``--up``, ``--down`` — set the vertical (line-number) direction.
 10. ``--rotate`` — flip or rotate the image.
 11. ``--filter`` — apply an optional image processing filter, followed by
@@ -202,32 +203,36 @@ Supported instruments:
 * **Galileo SSI** — VICAR or PDS3.
 * **HST ACS** (WFC / HRC / SBC) — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
-  treated as invalid, except where the value is 64 (a warm pixel) alone.
+  flagged, except where the value is 64 (a warm pixel) alone.
 * **HST COS** — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
-  treated as invalid.
+  flagged.
 * **HST FOC** — FITS, either "waiver" (``_d0f`` etc.) or multi-extension (``_d0m``
   etc.). If the matching ``_q0f``/``_q0m`` data quality file for a raw ``_d0f``/``_d0m``
   file is found, in the input file's directory or the directory given by ``--hst-dq``,
-  every pixel with a nonzero data quality value is treated as invalid. (FOC ``_c1f``
+  every pixel with a nonzero data quality value is flagged. (FOC ``_c1f``
   files are calibrated science images, not data quality files.)
 * **HST NICMOS** — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
-  treated as invalid.
+  flagged.
 * **HST STIS** — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
-  treated as invalid.
+  flagged.
 * **HST WFC3** (UVIS / IR) — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
-  treated as invalid, except where the value is 64 (a warm pixel) alone.
+  flagged, except where the value is 64 (a warm pixel) alone.
 * **HST WFPC** (WFPC1) and **HST WFPC2** — FITS, either "waiver" (``_c0f`` etc.) or
   multi-extension (``_c0m`` etc.). If the matching data quality file (``_c1f``/``_c1m``
   for ``_c0f``/``_c0m``; ``_q0f``/``_q0m`` for ``_d0f``/``_d0m``) is found, every pixel
-  with a nonzero data quality value is treated as invalid. It is looked for in the input
-  file's directory, or in the directory given by ``--hst-dq``.
+  with a nonzero data quality value is flagged. It is looked for in the input file's
+  directory, or in the directory given by ``--hst-dq``.
 * **Juno JunoCam** — PDS3, or a raw ``.IMG`` file recognized by its name.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.
+
+Pixels flagged by an instrument's data quality mask are always excluded from the
+stretch. By default they are otherwise drawn normally; add ``--desnow`` to draw them in
+the ``--invalid`` color instead.
 
 The per-instrument subsections below add the detail that only applies
 under ``--tint`` — which filter maps to which color. Instruments with a

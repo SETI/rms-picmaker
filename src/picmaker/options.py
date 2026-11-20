@@ -164,6 +164,11 @@ def get_parser():
         '--invalid', dest='invalid_color', type=str, default=None,
         help='Color to use for invalid pixels and NaNs. Default is black.')
     _enhancement.add_argument(
+        '--desnow', action='store_true', default=None,
+        help='Also draw pixels flagged by an instrument\'s data quality mask (e.g., HST '
+             'DQ flags) in the --invalid color. Without this option, they are drawn '
+             'normally, although they are still excluded from the stretch.')
+    _enhancement.add_argument(
         '-g', '--gamma', type=float,
         help='Gamma value to apply to the image. Values > 1 darken midtones; values < 1 '
              'brighten midtones. The gamma factor is applied before the colormap.')
@@ -333,6 +338,7 @@ _OPTION_DEFAULTS = [
     ('below_color'      , None      , 'color'                               ),
     ('above_color'      , None      , 'color'                               ),
     ('invalid_color'    , 'black'   , 'color'                               ),
+    ('desnow'           , False     , bool                                  ),
     ('gamma'            , 1.        , float, 0, None                        ),
     ('tint'             , False     , bool                                  ),
     ('retint'           , 1.        , float, 0, None                        ),

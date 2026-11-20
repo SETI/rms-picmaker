@@ -48,7 +48,8 @@ The cascade only calls a method that exists (it guards each call with
   ``(bands, lines, samples)``.
 * ``hmask``, ``imask`` — ``None`` or boolean arrays with the same shape as
   ``array``. Pixels set in ``hmask`` are excluded from the stretch; pixels set
-  in ``imask`` are drawn in the ``--invalid`` color. Most instruments pass
+  in ``imask`` are drawn in the ``--invalid`` color, but only with ``--desnow``
+  (otherwise ``slice_array`` discards ``imask``). Most instruments pass
   ``None`` for both. HST FOC, WF/PC, and WFPC2 fill both from a separate data
   quality file; HST ACS, COS, NICMOS, STIS, and WFC3 fill both from the ``DQ``
   extension that matches the selected ``SCI`` extension.

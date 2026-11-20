@@ -17,7 +17,7 @@ from PIL import Image
 
 from picmaker.instruments import read_image_array, tint_by_nm
 from picmaker.instruments.hst_wfpc2 import HST_WFPC2
-from picmaker.options import get_parser
+from picmaker.options import deconflict_options, get_parser, validate_options
 from picmaker.picmaker import picmaker
 
 DATA_DIR = Path(__file__).parent.parent / 'test_files' / 'hst_wfpc2'
@@ -348,15 +348,19 @@ def test_hst_dq_cli_option(tmp_path: Path) -> None:
     args = get_parser().parse_args([str(SCIENCE), '--hst-dq', 'some/dir'])
     assert args.hst_dq == 'some/dir'
 
-    options = vars(get_parser().parse_args([
-        str(SCIENCE), '--directory', str(tmp_path), '--invalid', 'red',
-        '--extension', 'png', '--hst-dq', str(DATA_DIR),
-    ]))
-    picmaker(**options)
-    with Image.open(tmp_path / 'u2tf0504t_c0f.png') as img:
-        pixels = np.asarray(img.convert('RGB')).reshape(-1, 3)
-    red = np.all(pixels == (255, 0, 0), axis=1)
-    assert red.mean() == pytest.approx(_raw_dq_mask()[0].mean(), abs=0.01)
+    def _red_fraction(*extra: str) -> float:
+        options = vars(get_parser().parse_args([
+            str(SCIENCE), '--directory', str(tmp_path), '--invalid', 'red',
+            '--extension', 'png', '--hst-dq', str(DATA_DIR), *extra,
+        ]))
+        picmaker(**options)
+        with Image.open(tmp_path / 'u2tf0504t_c0f.png') as img:
+            pixels = np.asarray(img.convert('RGB')).reshape(-1, 3)
+        return float(np.all(pixels == (255, 0, 0), axis=1).mean())
+
+    # Flagged pixels are drawn in the --invalid color only with --desnow
+    assert _red_fraction('--desnow') == pytest.approx(_raw_dq_mask()[0].mean(), abs=0.01)
+    assert _red_fraction() == 0.0
 
 
 @pytest.mark.parametrize(('name', 'dq_name'), [
@@ -373,3 +377,17 @@ def test_dq_path_custom_codes(name: str, dq_name: str | None) -> None:
 
     expected = None if dq_name is None else Path('data') / dq_name
     assert get_dq_path(Path('data') / name, dq_codes={'d0': 'q0'}) == expected
+
+
+def test_dq_pixels_are_excluded_from_the_stretch_without_desnow(tmp_path: Path) -> None:
+    """Without --desnow, flagged pixels are drawn normally but still excluded from the
+    stretch: the limits match those of the unflagged pixels alone."""
+    from picmaker.picmaker import picmaker1
+
+    options = vars(get_parser().parse_args([str(SCIENCE)]))
+    options = validate_options(options)
+    deconflict_options(options)
+    (_, limits) = picmaker1(SCIENCE, '', options, return_limits=True)
+
+    good = _raw_cube(SCIENCE)[0][~_raw_dq_mask()[0]]
+    assert limits == (pytest.approx(float(good.min())), pytest.approx(float(good.max())))

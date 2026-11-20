@@ -113,6 +113,9 @@ def picmaker(*, logger=None, _shift_origins=False, **options):
             `colormap`.
         invalid_color (str or tuple[int,int,int], optional): Color to use for invalid
             pixels and NaNs. the default value is "black".
+        desnow (bool, optional): True to also draw pixels flagged by an instrument's data
+            quality mask (the ImageData `imask`) in `invalid_color`. Default is False, in
+            which case they are drawn normally but still excluded from the stretch.
         gamma (float, optional): Gamma correction to apply to the image before the
             `colormap`. Values > 1 darken midtones; values < 1 brighten midtones. The
             default value is 1.

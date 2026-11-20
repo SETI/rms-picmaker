@@ -8,7 +8,7 @@ import numpy as np
 
 
 def slice_array(image_data, *, samples=None, lines=None, bands=None, valid=None,
-                mask_ranges=None, crop=None, **kwargs):
+                mask_ranges=None, crop=None, desnow=False, **kwargs):
     """Return a copy of an ImageData object, sliced and masked as requested.
 
     Parameters:
@@ -29,6 +29,10 @@ def slice_array(image_data, *, samples=None, lines=None, bands=None, valid=None,
             pixels. None masks no additional values.
         crop (float, optional): Numeric value to crop from the border of the image (e.g.
             0 to crop zero-valued rows and columns). None disables cropping.
+        desnow (bool, optional): True to keep the `imask` of `image_data`, so that its
+            pixels (e.g., an instrument's data quality flags) are drawn in the invalid
+            color; False to discard it, so those pixels are drawn normally. Either way,
+            `hmask` is kept, so they are still excluded from the stretch.
         **kwargs: Additional input options, ignored here.
 
     Returns:
@@ -42,7 +46,8 @@ def slice_array(image_data, *, samples=None, lines=None, bands=None, valid=None,
           combined by logical "or" with the invalid-pixel mask, i.e., pixels outside the
           `valid` range, inside any of the `mask_ranges`, or NaN. Where an attribute was
           None, it is replaced by a copy of the invalid-pixel mask. Either one is
-          still None if it was None and no pixels are invalid.
+          still None if it was None and no pixels are invalid. If `desnow` is False, the
+          input `imask` is treated as None, so `imask` holds only invalid pixels.
 
         The input `image_data` object is not modified.
 
@@ -51,7 +56,7 @@ def slice_array(image_data, *, samples=None, lines=None, bands=None, valid=None,
     """
 
     array = image_data.array
-    masks = [image_data.hmask, image_data.imask]
+    masks = [image_data.hmask, image_data.imask if desnow else None]
 
     def _apply(func):
         """Apply a shape operation to the array and to each existing mask."""

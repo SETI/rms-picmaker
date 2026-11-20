@@ -179,7 +179,7 @@ def test_slice_array_ors_into_existing_masks() -> None:
     image_data = ImageData(arr, hmask, imask, True, None)
 
     result = slice_array(image_data, lines=(1, 4), samples=(1, 4),
-                         mask_ranges=[(15.0, 15.0)])
+                         mask_ranges=[(15.0, 15.0)], desnow=True)
 
     invalid = np.zeros((3, 3), dtype=bool)
     invalid[2, 2] = True            # value 15 at original (3, 3)
@@ -212,7 +212,8 @@ def test_slice_array_existing_masks_collapse_on_band_coadd() -> None:
     masked."""
     arr = np.ones((2, 1, 3))
     imask = np.array([[[True, True, False]], [[True, False, False]]])
-    result = slice_array(ImageData(arr, None, imask, True, None), bands=(0, 2))
+    result = slice_array(ImageData(arr, None, imask, True, None), bands=(0, 2),
+                         desnow=True)
     np.testing.assert_array_equal(result.imask, [[True, False, False]])
     assert result.hmask is None
 
@@ -221,3 +222,24 @@ def test_slice_array_zero_size_still_raises() -> None:
     """An empty slice is rejected before any masks are built."""
     with pytest.raises(ValueError, match='size zero'):
         slice_array(ImageData(np.ones((4, 4)), None, None, True, None), lines=(2, 2))
+
+
+def test_slice_array_without_desnow_drops_the_input_imask() -> None:
+    """By default (``desnow`` False) the input ``imask`` is discarded, so ``imask`` holds
+    only the invalid pixels (here the ``mask_ranges`` value); ``hmask`` is kept."""
+    arr = np.arange(9, dtype=float).reshape(3, 3)
+    dq = np.zeros((3, 3), dtype=bool)
+    dq[0, 0] = True
+    image_data = ImageData(arr, dq, dq.copy(), True, None)
+
+    result = slice_array(image_data, mask_ranges=[(8.0, 8.0)])
+    invalid = arr == 8
+    np.testing.assert_array_equal(result.hmask, dq | invalid)
+    np.testing.assert_array_equal(result.imask, invalid)
+
+    result = slice_array(image_data)
+    np.testing.assert_array_equal(result.hmask, dq)
+    assert result.imask is None
+
+    result = slice_array(image_data, mask_ranges=[(8.0, 8.0)], desnow=True)
+    np.testing.assert_array_equal(result.imask, dq | invalid)
