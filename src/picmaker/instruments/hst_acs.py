@@ -13,11 +13,57 @@ from picmaker.instruments._fits_support import (
     get_fits_image_hdus,
     hdu_is_image,
 )
-from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
+from picmaker.instruments._hst_support import (
+    get_chip_dq_mask,
+    get_hst_filter_digits,
+    get_sci_dq_mask,
+    is_science_hdu,
+    split_mask,
+)
 
 _IS_UNDIAGNOSTIC = re.compile(r'(|CLEAR.*|POL.*|G800L|N/A)$')
 _DEFAULT_UPWARD = True
 _DEFAULT_SBC_RETINT = 3.
+
+# Flag  Definition
+# 0     Good pixel.
+# 1     Reed-Solomon decoding error; e.g., data lost during compression.
+# 2     Data replaced by fill value; e.g., neighboring cosmic ray contaminated pixels.
+# 4     Bad detector pixel, or vignetted pixel. In the HRC BPIXTAB, this identifies a
+#       small detector defect in the "upper right" corner.
+# 8     Masked by aperture feature, e.g., the HRC occulting finger.
+# 16    Hot pixel, i.e., pixel with dark current > 0.14 e-/sec, flagged in superdark DQ
+#       arrays.
+# 32    Pixels with unstable dark current; includes random telegraph signal noise and
+#       fading hot pixels. See section 3.2 of ACS ISR 2017-05 and ACS ISR 2022-07.
+# 64    Warm pixel, i.e., pixel with 0.06 e-/s ≤ dark current ≤ 0.14 e-/s, flagged in
+#       superdark DQ arrays.
+# 128   Bias structure, e.g., bad columns. Since 08 Oct 2004, bias structure has been
+#       flagged in the superbias DQ arrays. Before 08 Oct 2004, bias structure was only
+#       flagged in an increasingly outdated BPIXTAB which was created in July 2002.
+# 256   CCD full-well saturated pixel (usable at gain = 2). See ACS ISR 2020-02.
+# 512   Bad pixel in reference file. Used in the flatfield DQ arrays to indicate a portion
+#       of the flat which is not defined or not calibrated with the same accuracy as the
+#       other regions, often around the detector edges. Used for F892N and WFC polarizer
+#       observations, where the filter only subtends a portion of the chip. Used to
+#       identify dust mote replacement patches. Used to identify a saturated pixel in
+#       superdark reference files.
+# 1024  Sink pixel or pixel affected by sink pixel charge traps. See ACS ISR 2017-01.
+# 2048  A-to-D saturated pixel (never usable, even at higher gain settings). See ACS ISR
+#       2020-03.
+# 4096  Cosmic ray and detector artifact rejected during the combination DITHERED exposure
+#       in AstroDrizzle. These flags are not present in the drizzled output images
+#       (*drz.fits). Rather, they are propagated "backwards" to the DQ arrays of the
+#       calibrated input images (*flt.fits/*flc.fits).
+# 8192  Cosmic ray rejected during the combination of CR-SPLIT images in the pipeline
+#       (CALACS/ACSREJ) -- flagged in the DQ arrays of *crj.fits images. As with the 4096
+#       flag, these values are propagated "backwards" to the DQ arrays of the calibrated
+#       input images (*flt.fits/*flc.fits).
+# 16384 Reserved. Can be used for manual flagging by the user, e.g., for uncorrected
+#       detector artifacts, satellite trails, optical ghosts.
+
+# DQ flag bits that do not mask a pixel: 64 = warm pixel
+_DQ_IGNORE = 64
 
 
 class HST_ACS(ImageData):
@@ -40,6 +86,10 @@ class HST_ACS(ImageData):
             mosaic (bool, optional): True to enable the construction of a mosaic from the
                 two WFC frames; ignored for HRC and SBC.
             **kwargs: Additional input options, ignored here.
+
+        If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
+        same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
+        value is set in both, except where the value is 64 (warm pixel) alone.
 
         Returns:
             HST_ACS or None: Instrument subclass if the file describes an HST ACS product;
@@ -85,7 +135,8 @@ class HST_ACS(ImageData):
 
         # Handle the non-mosaicked case
         if not use_mosaic:
-            return HST_ACS(hdu.data, None, None, _DEFAULT_UPWARD, default_tint)
+            (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu, _DQ_IGNORE))
+            return HST_ACS(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
         # Determine the first CCD chip in the file. Should be 2 but could be 1 if only one
         # detector was used.
@@ -107,7 +158,10 @@ class HST_ACS(ImageData):
         array[first_ccd - 1] = hdus[0].data
         if len(hdus) > 1:
             array[2 - first_ccd] = hdus[1].data
-        return HST_ACS(array, None, None, _DEFAULT_UPWARD, default_tint)
+        dq_mask = get_chip_dq_mask(hdulist, hdus, first_ccd, array.shape,
+                                   ignore=_DQ_IGNORE)
+        (hmask, imask) = split_mask(dq_mask)
+        return HST_ACS(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):

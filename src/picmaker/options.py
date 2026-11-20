@@ -80,11 +80,12 @@ def get_parser():
         help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is '
              f'"{DEFAULT_PDS3_METHOD}".')
     _input_.add_argument(
-        '--wfpc2-dq', type=str, metavar='DIRECTORY',
-        help='Directory containing the HST WFPC2 data quality files (_c1f, _c1m, _q0f, '
-             'or _q0m) that go with _c0f, _c0m, _d0f, or _d0m input files. Default is '
-             'the directory of each input file. If the data quality file is found, '
-             'pixels with nonzero data quality values are treated as invalid.')
+        '--hst-dq', type=str, metavar='DIRECTORY',
+        help='Directory containing the HST data quality files that go with WF/PC and '
+             'WFPC2 _c0f, _c0m, _d0f, or _d0m input files (_c1f, _c1m, _q0f, or _q0m), '
+             'or with FOC _d0f or _d0m files (_q0f or _q0m). Default is the directory '
+             'of each input file. If the data quality file is found, pixels with nonzero '
+             'data quality values are treated as invalid.')
 
     _preprocessing = parser.add_argument_group('Pre-processing options')
     _preprocessing.add_argument(
@@ -310,7 +311,7 @@ _OPTION_DEFAULTS = [
     ('obj'              , None      , int, 1, None                          ),
     ('pointers'         , []        , list, 0, None     , str               ),
     ('pds3_method'      , DEFAULT_PDS3_METHOD, PDS3_METHODS                 ),
-    ('wfpc2_dq'         , None      , str                                   ),
+    ('hst_dq'         , None      , str                                   ),
     # Control options
     ('zebra'            , False     , bool                                  ),
     # Slicing options

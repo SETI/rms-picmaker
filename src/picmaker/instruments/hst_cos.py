@@ -5,6 +5,7 @@
 
 from picmaker.instruments import ImageData
 from picmaker.instruments._fits_support import get_fits_image_hdu
+from picmaker.instruments._hst_support import get_sci_dq_mask, split_mask
 
 _DEFAULT_UPWARD = True
 
@@ -25,6 +26,10 @@ class HST_COS(ImageData):
                 the IMAGE object within the HDU.
             **kwargs: Additional input options, ignored here.
 
+        If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
+        same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
+        value is set in both.
+
         Returns:
             HST_COS or None: Instrument subclass if the file describes an HST COS product;
             None otherwise.
@@ -41,7 +46,8 @@ class HST_COS(ImageData):
         # COS NUV imaging uses a broadband mirror (MIRRORA/MIRRORB) rather than a
         # wavelength filter, so there is no diagnostic wavelength for a default tint.
         hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers)
-        return HST_COS(hdu.data, None, None, _DEFAULT_UPWARD, None)
+        (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu))
+        return HST_COS(hdu.data, hmask, imask, _DEFAULT_UPWARD, None)
 
 
 ##########################################################################################

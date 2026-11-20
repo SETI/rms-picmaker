@@ -49,7 +49,9 @@ The cascade only calls a method that exists (it guards each call with
 * ``hmask``, ``imask`` — ``None`` or boolean arrays with the same shape as
   ``array``. Pixels set in ``hmask`` are excluded from the stretch; pixels set
   in ``imask`` are drawn in the ``--invalid`` color. Most instruments pass
-  ``None`` for both; HST WFPC2 fills both from its data quality file.
+  ``None`` for both. HST FOC, WF/PC, and WFPC2 fill both from a separate data
+  quality file; HST ACS, COS, NICMOS, STIS, and WFC3 fill both from the ``DQ``
+  extension that matches the selected ``SCI`` extension.
 * ``default_upward`` — ``True`` if the raw data is stored
   display-upward (typical for FITS), ``False`` otherwise (typical for
   VICAR / PDS3).
@@ -176,7 +178,8 @@ Writing the instrument module
 
               filter_name = vic.get('FILTER_NAME', '')
               default_tint = _FILTER_DICT.get(filter_name)
-              return MyMission_MyInst(vic.array[0], None, None, _DEFAULT_UPWARD, default_tint)
+              return MyMission_MyInst(vic.array[0], None, None, _DEFAULT_UPWARD,
+                                      default_tint)
 
    **FITS-based instrument** (e.g. HST, New Horizons MVIC) — use
    ``detect_in_fits`` and the FITS helpers:

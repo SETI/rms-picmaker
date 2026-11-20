@@ -5,7 +5,7 @@
 
 from picmaker.instruments import ImageData, tint_by_nm
 from picmaker.instruments._fits_support import get_fits_image_hdu
-from picmaker.instruments._hst_support import is_science_hdu
+from picmaker.instruments._hst_support import get_sci_dq_mask, is_science_hdu, split_mask
 
 _DEFAULT_UPWARD = True
 _DEFAULT_UV_RETINT = 3.
@@ -43,6 +43,10 @@ class HST_STIS(ImageData):
                 tinting. Default is 3 for FUV and NUV, 1 for CCD.
             **kwargs: Additional input options, ignored here.
 
+        If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
+        same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
+        value is set in both.
+
         Returns:
             HST_STIS or None: Instrument subclass if the file describes an HST STIS
             product; None otherwise.
@@ -66,7 +70,8 @@ class HST_STIS(ImageData):
                 retint = retint or (1. if detector == 'CCD' else _DEFAULT_UV_RETINT)
                 default_tint = tint_by_nm(lambda_nm * retint)
 
-        return HST_STIS(hdu.data, None, None, _DEFAULT_UPWARD, default_tint)
+        (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu))
+        return HST_STIS(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################

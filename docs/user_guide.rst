@@ -200,18 +200,31 @@ Supported instruments:
 * **Cassini ISS** — VICAR or PDS3.
 * **Voyager ISS** — VICAR or PDS3.
 * **Galileo SSI** — VICAR or PDS3.
-* **HST ACS** (WFC / HRC / SBC) — FITS.
-* **HST COS** — FITS.
-* **HST FOC** — FITS.
-* **HST NICMOS** — FITS.
-* **HST STIS** — FITS.
-* **HST WFC3** (UVIS / IR) — FITS.
-* **HST WFPC** (WFPC1) — FITS.
-* **HST WFPC2** — FITS, either "waiver" (``_c0f`` etc.) or multi-extension (``_c0m`` etc.).
-  If the matching data quality file (``_c1f``/``_c1m`` for ``_c0f``/``_c0m``;
-  ``_q0f``/``_q0m`` for ``_d0f``/``_d0m``) is found, every pixel with a nonzero
-  data quality value is treated as invalid. It is looked for in the input file's
-  directory, or in the directory given by ``--wfpc2-dq``.
+* **HST ACS** (WFC / HRC / SBC) — FITS. When the image comes from a ``SCI`` extension,
+  every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
+  treated as invalid, except where the value is 64 (a warm pixel) alone.
+* **HST COS** — FITS. When the image comes from a ``SCI`` extension,
+  every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
+  treated as invalid.
+* **HST FOC** — FITS, either "waiver" (``_d0f`` etc.) or multi-extension (``_d0m``
+  etc.). If the matching ``_q0f``/``_q0m`` data quality file for a raw ``_d0f``/``_d0m``
+  file is found, in the input file's directory or the directory given by ``--hst-dq``,
+  every pixel with a nonzero data quality value is treated as invalid. (FOC ``_c1f``
+  files are calibrated science images, not data quality files.)
+* **HST NICMOS** — FITS. When the image comes from a ``SCI`` extension,
+  every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
+  treated as invalid.
+* **HST STIS** — FITS. When the image comes from a ``SCI`` extension,
+  every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
+  treated as invalid.
+* **HST WFC3** (UVIS / IR) — FITS. When the image comes from a ``SCI`` extension,
+  every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
+  treated as invalid, except where the value is 64 (a warm pixel) alone.
+* **HST WFPC** (WFPC1) and **HST WFPC2** — FITS, either "waiver" (``_c0f`` etc.) or
+  multi-extension (``_c0m`` etc.). If the matching data quality file (``_c1f``/``_c1m``
+  for ``_c0f``/``_c0m``; ``_q0f``/``_q0m`` for ``_d0f``/``_d0m``) is found, every pixel
+  with a nonzero data quality value is treated as invalid. It is looked for in the input
+  file's directory, or in the directory given by ``--hst-dq``.
 * **Juno JunoCam** — PDS3, or a raw ``.IMG`` file recognized by its name.
 * **New Horizons LORRI** — PDS3 or FITS.
 * **New Horizons MVIC** — PDS3 or FITS.
