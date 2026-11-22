@@ -335,7 +335,9 @@ supports several strategies that can be combined:
 * ``trim_zeros`` — peel all-zero exterior rows and columns before
   computing.
 * ``footprint=D`` — apply a circular median filter (footprint diameter
-  ``D``) and tighten the limits to the filter output.
+  ``D``) and tighten the limits to the filter output. The filter is
+  :func:`psiops.median_filter`, which leaves masked pixels out of every
+  median.
 
 :func:`picmaker.enhancement.apply_colormap` maps a stretched array to an
 RGB (or single-channel grayscale) array using either a named

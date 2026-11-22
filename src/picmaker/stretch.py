@@ -4,7 +4,7 @@
 """Support for stretch options."""
 
 import numpy as np
-from scipy.ndimage import median_filter
+from psiops import median_filter
 
 
 def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
@@ -61,23 +61,17 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
         if not len(unmasked):
             return (0., 1.)
 
-        # Apply footprint if any; leave antimask unchanged
+        # Apply footprint if any; leave antimask unchanged. The filter excludes masked
+        # (out-of-range or NaN) pixels from every median, so they cannot bleed into valid
+        # pixels. It always returns floats, so remember whether the data are integers.
+        is_integer = array.dtype.kind in {'u', 'i'}
         if footprint:
-            # Confine masked (out-of-range or NaN) pixels to the valid data range first,
-            # so the median filter cannot bleed extreme masked values into valid pixels.
-            array = np.clip(array, np.min(unmasked), np.max(unmasked))
-            circle_footprint = _circle_mask(footprint)
-            if array.ndim == 3:
-                if array.shape[0] > 3:  # for more than three bands, collapse to 2-D
-                    array = np.median(array, axis=0)
-                    antimask = np.all(antimask, axis=0)  # collapse mask to match
-                    array = median_filter(array, footprint=circle_footprint)
-                else:                   # otherwise, process each band
-                    array = array.copy()
-                    for b in range(array.shape[0]):
-                        array[b] = median_filter(array[b], footprint=circle_footprint)
-            else:
-                array = median_filter(array, footprint=circle_footprint)
+            if array.ndim == 3 and array.shape[0] > 3:  # more than three bands -> 2-D
+                array = np.median(array, axis=0)
+                antimask = np.all(antimask, axis=0)  # collapse mask to match
+            # A 3-D array of up to three bands is filtered one band at a time
+            array = median_filter(array, _circle_mask(footprint),
+                                  mask=np.logical_not(antimask), returns='i')
 
             unmasked = array[antimask]
 
@@ -91,7 +85,7 @@ def get_limits(array, mask=None, *, limits=None, percentiles=None, trim=0,
                 return (0., 1.)
             elif array_min < 0:
                 return (array_min, 0.)
-            elif array.dtype.kind in {'u', 'i'}:
+            elif is_integer:
                 return (float(array_min), float(array_min + 1))
             else:
                 return (array_min, array_min * 2.)
