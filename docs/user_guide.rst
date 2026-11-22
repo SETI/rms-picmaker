@@ -214,7 +214,7 @@ Supported instruments:
   files are calibrated science images, not data quality files.)
 * **HST NICMOS** — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
-  flagged.
+  flagged, except where the value is 1024 (an astrophysical source) alone.
 * **HST STIS** — FITS. When the image comes from a ``SCI`` extension,
   every pixel with a nonzero value in the matching ``DQ`` extension of the same file is
   flagged.

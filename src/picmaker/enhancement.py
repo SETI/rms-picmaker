@@ -135,7 +135,7 @@ def apply_colormap(array, valid_limits, invalid_mask=None, *, layer=None,
     # Determine whether we need one or three channels
     channels = 3 if is_color else 1
 
-    # Apply the histogram scaling if necessary; scale zero to one
+    # Apply the histogram scaling if necessary; scale into range zero to one
     if histogram:
         rankings = []
         for b in range(bands):

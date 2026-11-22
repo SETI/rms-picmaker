@@ -24,6 +24,29 @@ _APERTURE_WAVELENGTHS = {
     'F25LYA'    : 1221,
 }
 
+# FLAG  Quality Condition Indicated
+# 1     Error in the Reed-Solomon decoding (an algorithm for error correction in digital
+#       communications).
+# 2     Lost data replaced by fill values.
+# 4     Bad detector pixel (e.g., bad column or row, mixed science and bias for overscan,
+#       or beyond aperture).
+# 8     Data masked by occulting bar.
+# 16    Pixel having dark rate > 5 sigma times the median dark level.
+# 32    Large blemish, depth < 40% of the normalized p-flat (repeller wire).
+# 64    Vignetted pixel
+# 128   Pixel in the overscan region.
+# 256   Saturated pixel, count rate at 90% of max possible—local non-linearity turns over
+#       and is multi-valued; pixels within 10% of turnover and all pixels within 4 pixels
+#       of that pixel are flagged.
+# 512   Bad pixel in reference file.
+# 1024  Small blemish, depth between 40% and 70% of the normalized flat. Applies to MAMA
+#       and CCD p-flats.
+# 2048  >30% of background pixels rejected by sigma-clip, or flagged, during 1-D spectral
+#       extraction.
+# 4096  Extracted flux affected by bad input data.
+# 8192  Data rejected in input pixel during image combination for cosmic ray rejection.
+# 16384 Extracted flux not CTI corrected because gross counts are ≤ 0.
+
 
 class HST_STIS(ImageData):
     """HST STIS detector and reader."""

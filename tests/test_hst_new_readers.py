@@ -256,8 +256,9 @@ WFC3_FLT = DATA / 'hst_wfc3' / 'iepl0jltq_flt_small.fits'
 
 def _dq_nonzero(path: Path, extver: int = 1) -> np.ndarray:
     """The DQ extension with the given EXTVER as a boolean mask of flagged pixels. For
-    ACS and WFC3, a value of 64 (warm pixel) alone is not flagged."""
-    ignore = 64 if path.parent.name in ('hst_acs', 'hst_wfc3') else 0
+    ACS and WFC3, a value of 64 (warm pixel) alone is not flagged; for NICMOS, a value
+    of 1024 (astrophysical source) alone."""
+    ignore = {'hst_acs': 64, 'hst_wfc3': 64, 'hst_nicmos': 1024}.get(path.parent.name, 0)
     with pyfits.open(path) as hdulist:
         dq = np.asarray(hdulist['DQ', extver].data, dtype=np.int64)
     return np.asarray((dq & ~ignore) != 0, dtype=bool)
@@ -387,6 +388,19 @@ def test_acs_and_wfc3_do_not_mask_warm_pixels_alone(instrument: str,
         data = reader.detect_in_fits(hdulist, 'x_flt.fits', mosaic=True)
         np.testing.assert_array_equal(data.hmask[1], expected)      # chip 2
         np.testing.assert_array_equal(data.hmask[0], [[False, False, True, False]])
+
+
+def test_nicmos_does_not_mask_source_pixels_alone() -> None:
+    """NICMOS leaves pixels whose DQ value is exactly 1024 (astrophysical source)
+    unmasked; 1024 combined with another flag is still masked."""
+    from picmaker.instruments.hst_nicmos import HST_NICMOS
+
+    dq = np.array([[0, 1024, 1024 + 32, 32]], dtype='int16')
+    hdulist = _acs_hdulist('NIC2', [dq], instrument='NICMOS')
+    hdulist[0].header['FILTER'] = 'F110W'
+    data = HST_NICMOS.detect_in_fits(hdulist, 'n_cal.fits')
+    np.testing.assert_array_equal(data.hmask, [[False, False, True, True]])
+    np.testing.assert_array_equal(data.imask, [[False, False, True, True]])
 
 
 def test_other_instruments_mask_warm_pixel_value() -> None:
