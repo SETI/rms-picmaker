@@ -33,8 +33,13 @@ _DEFAULT_RETINT = 0.4
 # 8192  User flag (reserved for manual masking)
 # 16384 Curvature in detector response (or Reserved in earlier pipelines)
 
-# DQ flag bits that do not mask a pixel: 1024 = pixel contains an astrophysical source
-_DQ_IGNORE = 1024
+# DQ flag bits that do not mask a pixel, because the pixel's value is still sound:
+#   16   grot; the flat field corrects the reduced sensitivity
+#   64   saturated; the count rate comes from the reads before saturation
+#   1024 the pixel contains an astrophysical source
+#   2048 detectable signal in the 0th read; the pixel is bright, often the target itself
+_DQ_IGNORE = 16 | 64 | 1024 | 2048
+
 
 class HST_NICMOS(ImageData):
     """HST NICMOS detector and reader."""
@@ -56,8 +61,8 @@ class HST_NICMOS(ImageData):
 
         If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
         same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
-        value is set in both, except where the value is 1024 (astrophysical source)
-        alone.
+        value is set in both, except where the only flags are 16 (grot), 64
+        (saturated), 1024 (astrophysical source), or 2048 (signal in the 0th read).
 
         Returns:
             HST_NICMOS or None: Instrument subclass if the file describes an HST NICMOS
