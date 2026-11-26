@@ -47,7 +47,7 @@ class Galileo_SSI(ImageData):
 
         array = read_pds3_image_array(label, filepath, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
-        return Galileo_SSI(array, None, None,
+        return Galileo_SSI(array,
                            _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
     @staticmethod
@@ -74,7 +74,7 @@ class Galileo_SSI(ImageData):
 
         ifilter = vic.get('FILTER', 0)
         filter_name = _FILTER_NAMES[ifilter]  # ifilter is never out of range
-        return Galileo_SSI(vic.array[0], None, None,
+        return Galileo_SSI(vic.array[0],
                            _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
 

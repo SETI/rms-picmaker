@@ -93,7 +93,7 @@ class HST_WFPC2(ImageData):
                 dq_mask = dq_mask[obj or 0]
 
         (hmask, imask) = (None, None) if dq_mask is None else (dq_mask, dq_mask.copy())
-        return HST_WFPC2(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
+        return HST_WFPC2(array, _DEFAULT_UPWARD, default_tint, hmask=hmask, imask=imask)
 
     def apply_mosaic(self, arrays_rgb, **kwargs):
         """Assemble WFPC2's four detectors (PC1, WF2, WF3, WF4) into a 2x2 mosaic.

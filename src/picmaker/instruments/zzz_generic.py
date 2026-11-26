@@ -43,7 +43,7 @@ class ZZZ_Generic(ImageData):
         """
 
         array = read_pds3_image_array(label, filepath, obj)
-        return ZZZ_Generic(array, None, None, False, None)
+        return ZZZ_Generic(array, False, None)
 
     @staticmethod
     def detect_in_vicar(vic, filepath, **kwargs):
@@ -62,7 +62,7 @@ class ZZZ_Generic(ImageData):
         array = vic.array
         if array.ndim > 2 and array.shape[0] == 1:
             array = array[0]
-        return ZZZ_Generic(array, None, None, False, None)
+        return ZZZ_Generic(array, False, None)
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, obj=None, **kwargs):
@@ -81,7 +81,7 @@ class ZZZ_Generic(ImageData):
         """
 
         array = get_fits_array(hdulist, obj=obj)
-        return ZZZ_Generic(array, None, None, True, None)
+        return ZZZ_Generic(array, True, None)
 
     @staticmethod
     def detect_in_file(filepath, **kwargs):
@@ -111,20 +111,20 @@ class ZZZ_Generic(ImageData):
             method = kwargs.get('pds3_method', DEFAULT_PDS3_METHOD)
             label = pdsparser.Pds3Label(filepath, method=method)
             array = read_pds3_image_array(label, filepath, kwargs.get('obj'))
-            return ZZZ_Generic(array, None, None, False, None)
+            return ZZZ_Generic(array, False, None)
 
         # Handle pickle file
         try:
             with open(filepath, 'rb') as f:
                 array = pickle.load(f)
-            return ZZZ_Generic(array, None, None, False, None)
+            return ZZZ_Generic(array, False, None)
         except Exception:
             pass
 
         # Handle a Numpy ".npy" file
         try:
             array = np.load(filepath)
-            return ZZZ_Generic(array, None, None, False, None)
+            return ZZZ_Generic(array, False, None)
         except Exception:
             pass
 
@@ -137,12 +137,12 @@ class ZZZ_Generic(ImageData):
             else:
                 if palette is not None:
                     raise NotImplementedError('16-bit palette option is not supported')
-                return ZZZ_Generic(array, None, None, False, None)
+                return ZZZ_Generic(array, False, None)
 
         # Handle PIL Image
         try:
             array = pil_to_array(Image.open(filepath), rescale=False)
-            return ZZZ_Generic(array, None, None, False, None)
+            return ZZZ_Generic(array, False, None)
         except Exception:
             pass
 

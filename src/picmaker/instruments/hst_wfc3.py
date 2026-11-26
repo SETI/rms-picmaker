@@ -111,7 +111,8 @@ class HST_WFC3(ImageData):
         # Handle the non-mosaicked case
         if not use_mosaic:
             (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu, _DQ_IGNORE))
-            return HST_WFC3(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
+            return HST_WFC3(hdu.data, _DEFAULT_UPWARD, default_tint,
+                            hmask=hmask, imask=imask)
 
         # Determine the first chip in the file. Should be 2 but could be 1 if only one
         # detector was used.
@@ -136,7 +137,7 @@ class HST_WFC3(ImageData):
         dq_mask = get_chip_dq_mask(hdulist, hdus, first_ccd, array.shape,
                                    ignore=_DQ_IGNORE)
         (hmask, imask) = split_mask(dq_mask)
-        return HST_WFC3(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
+        return HST_WFC3(array, _DEFAULT_UPWARD, default_tint, hmask=hmask, imask=imask)
 
     @staticmethod
     def apply_mosaic(arrays_rgb, **kwargs):

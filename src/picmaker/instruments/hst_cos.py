@@ -47,7 +47,7 @@ class HST_COS(ImageData):
         # wavelength filter, so there is no diagnostic wavelength for a default tint.
         hdu = get_fits_image_hdu(hdulist, obj=obj, pointers=pointers)
         (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu))
-        return HST_COS(hdu.data, hmask, imask, _DEFAULT_UPWARD, None)
+        return HST_COS(hdu.data, _DEFAULT_UPWARD, None, hmask=hmask, imask=imask)
 
 
 ##########################################################################################

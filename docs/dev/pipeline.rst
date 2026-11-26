@@ -38,7 +38,7 @@ zoom controls to read the labels at any size.
        RO -->|VICAR open OK| NV[detect_in_vicar<br/>per instrument]
        RO -->|FITS open OK| NF[detect_in_fits<br/>per instrument]
        RO -->|otherwise| NG[detect_in_file<br/>per instrument]
-       NPI --> Q[ImageData subclass<br/>array, hmask, imask,<br/>default_upward, default_tint]
+       NPI --> Q[ImageData subclass<br/>array, default_upward,<br/>default_tint, hmask, imask]
        NV --> Q
        NF --> Q
        NG --> Q
@@ -308,12 +308,13 @@ The image container
 
 :class:`picmaker.instruments.ImageData` is the base class every
 instrument subclasses. It is constructed as
-``ImageData(array, hmask, imask, default_upward, default_tint)`` and carries the raw
-pixel array, the display-direction default, and the per-image default
-tint color. Its :meth:`~picmaker.instruments.ImageData.apply_colormap`
-method forwards to :func:`picmaker.enhancement.apply_colormap` with the
-instrument's ``default_tint``; an instrument overrides it only for a
-non-standard colormap policy. Instruments that assemble multi-detector
+``ImageData(array, default_upward, default_tint, hmask=None, imask=None)``, with
+keyword-only masks, and carries the raw pixel array, the display-direction
+default, and the per-image default tint color. Its
+:meth:`~picmaker.instruments.ImageData.apply_colormap` method forwards to
+:func:`picmaker.enhancement.apply_colormap` with the instrument's
+``default_tint``; an instrument overrides it only for a non-standard colormap
+policy. Instruments that assemble multi-detector
 mosaics additionally define an :func:`!apply_mosaic` method, checked via
 :func:`hasattr` in :func:`~picmaker.picmaker.picmaker1`.
 

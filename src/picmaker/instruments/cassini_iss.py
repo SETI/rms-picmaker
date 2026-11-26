@@ -36,7 +36,7 @@ class Cassini_ISS(ImageData):
 
         array = read_pds3_image_array(label, filepath, **kwargs)
         filters = label.get('FILTER_NAME', ('', ''))
-        return Cassini_ISS(array, None, None,
+        return Cassini_ISS(array,
                            _DEFAULT_UPWARD, Cassini_ISS._default_tint(*filters))
 
     @staticmethod
@@ -62,7 +62,7 @@ class Cassini_ISS(ImageData):
             return None
 
         filters = vic.get('FILTER_NAME', ('', ''))
-        return Cassini_ISS(vic.array[0], None, None, _DEFAULT_UPWARD,
+        return Cassini_ISS(vic.array[0], _DEFAULT_UPWARD,
                            Cassini_ISS._default_tint(*filters))
 
     @staticmethod

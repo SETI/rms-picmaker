@@ -99,7 +99,7 @@ def test_apply_mosaic_assembles_four_quadrants() -> None:
     """
     # Tag each detector plane with its 1-based id so it can be located.
     planes = [np.full((8, 8, 3), v, dtype=float) for v in (1, 2, 3, 4)]
-    inst = HST_WFPC2(np.zeros((4, 8, 8, 3)), None, None, True, None)
+    inst = HST_WFPC2(np.zeros((4, 8, 8, 3)), True, None)
     mosaic = inst.apply_mosaic(planes)
 
     assert mosaic.shape == (16, 16, 3)

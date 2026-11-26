@@ -85,7 +85,7 @@ class HST_FOC(ImageData):
         else:
             (hmask, imask) = (dq_mask[0], dq_mask[0].copy())
 
-        return HST_FOC(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
+        return HST_FOC(array, _DEFAULT_UPWARD, default_tint, hmask=hmask, imask=imask)
 
 
 ##########################################################################################

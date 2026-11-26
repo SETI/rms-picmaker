@@ -224,7 +224,7 @@ def _slice(arr: np.ndarray, **options: Any) -> tuple[np.ndarray, np.ndarray | No
     The input carries no masks of its own, so ``hmask`` and ``imask`` both come back
     as the invalid-pixel mask (or None) and must agree.
     """
-    result = slice_array(ImageData(arr, None, None, True, None), **options)
+    result = slice_array(ImageData(arr, True, None), **options)
     if result.hmask is None:
         assert result.imask is None
     else:

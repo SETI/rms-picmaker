@@ -50,7 +50,7 @@ class Voyager_ISS(ImageData):
 
         array = read_pds3_image_array(label, filepath, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
-        return Voyager_ISS(array, None, None,
+        return Voyager_ISS(array,
                            _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name, None))
 
     @staticmethod
@@ -81,7 +81,7 @@ class Voyager_ISS(ImageData):
         except (IndexError, KeyError):
             filter_name = ''
 
-        return Voyager_ISS(vic.array[0], None, None, _DEFAULT_UPWARD,
+        return Voyager_ISS(vic.array[0], _DEFAULT_UPWARD,
                            _FILTER_TINTS.get(filter_name, None))
 
 

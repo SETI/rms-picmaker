@@ -15,7 +15,7 @@ def _slice(arr: np.ndarray, **options: Any) -> tuple[np.ndarray, np.ndarray | No
     The input carries no masks of its own, so ``hmask`` and ``imask`` both come back
     as the invalid-pixel mask (or None) and must agree.
     """
-    result = slice_array(ImageData(arr, None, None, True, None), **options)
+    result = slice_array(ImageData(arr, True, None), **options)
     if result.hmask is None:
         assert result.imask is None
     else:
@@ -136,7 +136,7 @@ def test_slice_array_returns_a_clone_of_the_same_subclass() -> None:
         extra: str
 
     arr = np.arange(16, dtype=float).reshape(4, 4)
-    image_data = _TaggedWFPC2(arr, None, None, True, (1, 2, 3))
+    image_data = _TaggedWFPC2(arr, True, (1, 2, 3))
     image_data.extra = 'kept'
 
     result = slice_array(image_data, lines=(1, 3), valid=(0.0, 6.0))
@@ -155,7 +155,7 @@ def test_slice_array_returns_a_clone_of_the_same_subclass() -> None:
 
 def test_slice_array_no_invalid_pixels_leaves_masks_none() -> None:
     """Masks that were None stay None when no pixel is invalid."""
-    result = slice_array(ImageData(np.ones((3, 3)), None, None, True, None))
+    result = slice_array(ImageData(np.ones((3, 3)), True, None))
     assert result.hmask is None
     assert result.imask is None
 
@@ -163,7 +163,7 @@ def test_slice_array_no_invalid_pixels_leaves_masks_none() -> None:
 def test_slice_array_none_masks_become_independent_copies() -> None:
     """None masks are replaced by the invalid-pixel mask, as two separate arrays."""
     arr = np.array([[0., 1.], [2., 3.]])
-    result = slice_array(ImageData(arr, None, None, True, None), valid=(1.0, 2.0))
+    result = slice_array(ImageData(arr, True, None), valid=(1.0, 2.0))
     expected = [[True, False], [False, True]]
     np.testing.assert_array_equal(result.hmask, expected)
     np.testing.assert_array_equal(result.imask, expected)
@@ -179,7 +179,7 @@ def test_slice_array_ors_into_existing_masks() -> None:
     hmask[1, 1] = True
     imask[2, 2] = True
     imask[0, 0] = True              # outside the slice; must be dropped
-    image_data = ImageData(arr, hmask, imask, True, None)
+    image_data = ImageData(arr, True, None, hmask=hmask, imask=imask)
 
     result = slice_array(image_data, lines=(1, 4), samples=(1, 4),
                          mask_ranges=[(15.0, 15.0)], desnow=True)
@@ -203,7 +203,7 @@ def test_slice_array_existing_masks_follow_crop_and_band_squeeze() -> None:
     arr[0, 1:4, 1:4] = 1.0
     hmask = np.zeros((1, 5, 5), dtype=bool)
     hmask[0, 2, 2] = True
-    result = slice_array(ImageData(arr, hmask, None, True, None), crop=0.0)
+    result = slice_array(ImageData(arr, True, None, hmask=hmask), crop=0.0)
     assert result.array.shape == (3, 3)
     assert result.hmask.shape == (3, 3)
     assert result.hmask[1, 1]
@@ -215,7 +215,7 @@ def test_slice_array_existing_masks_collapse_on_band_coadd() -> None:
     masked."""
     arr = np.ones((2, 1, 3))
     imask = np.array([[[True, True, False]], [[True, False, False]]])
-    result = slice_array(ImageData(arr, None, imask, True, None), bands=(0, 2),
+    result = slice_array(ImageData(arr, True, None, imask=imask), bands=(0, 2),
                          desnow=True)
     np.testing.assert_array_equal(result.imask, [[True, False, False]])
     assert result.hmask is None
@@ -224,7 +224,7 @@ def test_slice_array_existing_masks_collapse_on_band_coadd() -> None:
 def test_slice_array_zero_size_still_raises() -> None:
     """An empty slice is rejected before any masks are built."""
     with pytest.raises(ValueError, match='size zero'):
-        slice_array(ImageData(np.ones((4, 4)), None, None, True, None), lines=(2, 2))
+        slice_array(ImageData(np.ones((4, 4)), True, None), lines=(2, 2))
 
 
 def test_slice_array_without_desnow_drops_the_input_imask() -> None:
@@ -233,7 +233,7 @@ def test_slice_array_without_desnow_drops_the_input_imask() -> None:
     arr = np.arange(9, dtype=float).reshape(3, 3)
     dq = np.zeros((3, 3), dtype=bool)
     dq[0, 0] = True
-    image_data = ImageData(arr, dq, dq.copy(), True, None)
+    image_data = ImageData(arr, True, None, hmask=dq, imask=dq.copy())
 
     result = slice_array(image_data, mask_ranges=[(8.0, 8.0)])
     invalid = arr == 8

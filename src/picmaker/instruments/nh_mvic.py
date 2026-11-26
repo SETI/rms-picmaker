@@ -42,7 +42,7 @@ class NH_MVIC(ImageData):
 
         array = read_pds3_image_array(label, filepath, **kwargs)
         filter_name = label.get('FILTER_NAME', '')
-        return NH_MVIC(array, None, None, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
+        return NH_MVIC(array, _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, **kwargs):
@@ -67,7 +67,7 @@ class NH_MVIC(ImageData):
             return None
 
         filter_name = hdulist[0].header.get('FILTER', '')
-        return NH_MVIC(hdulist[0].data, None, None,
+        return NH_MVIC(hdulist[0].data,
                        _DEFAULT_UPWARD, _FILTER_TINTS.get(filter_name))
 
 

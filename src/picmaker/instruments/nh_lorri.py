@@ -35,7 +35,7 @@ class NH_LORRI(ImageData):
             return None
 
         array = read_pds3_image_array(label, filepath, **kwargs)
-        return NH_LORRI(array, None, None, _DEFAULT_UPWARD, None)
+        return NH_LORRI(array, _DEFAULT_UPWARD, None)
 
     @staticmethod
     def detect_in_fits(hdulist, filepath, **kwargs):
@@ -59,7 +59,7 @@ class NH_LORRI(ImageData):
         except (KeyError, IndexError):
             return None
 
-        return NH_LORRI(hdulist[0].data, None, None, _DEFAULT_UPWARD, None)
+        return NH_LORRI(hdulist[0].data, _DEFAULT_UPWARD, None)
 
 
 ##########################################################################################

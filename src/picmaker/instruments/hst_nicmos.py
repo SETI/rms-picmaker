@@ -89,7 +89,8 @@ class HST_NICMOS(ImageData):
                     default_tint = tint_by_nm(lambda_nm * retint)
 
         (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu, _DQ_IGNORE))
-        return HST_NICMOS(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
+        return HST_NICMOS(hdu.data, _DEFAULT_UPWARD, default_tint,
+                          hmask=hmask, imask=imask)
 
 
 ##########################################################################################

@@ -94,7 +94,7 @@ class HST_STIS(ImageData):
                 default_tint = tint_by_nm(lambda_nm * retint)
 
         (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu))
-        return HST_STIS(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
+        return HST_STIS(hdu.data, _DEFAULT_UPWARD, default_tint, hmask=hmask, imask=imask)
 
 
 ##########################################################################################
