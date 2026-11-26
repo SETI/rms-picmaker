@@ -27,7 +27,9 @@ def main() -> None:
     vic['LAB01'] = 'VGR ISS'
     vic['LAB02'] = 'VGR' + ' ' * 20             # LAB02[:3] == 'VGR'
     vic['LAB03'] = ' ' * 37 + 'GREEN ' + ' ' * 20  # GREEN at [37:43]
-    assert vic['LAB03'][37:43] == 'GREEN '
+    lab03 = vic['LAB03']
+    assert isinstance(lab03, str)
+    assert lab03[37:43] == 'GREEN '
     vic.write_file(str(OUT))
 
 
