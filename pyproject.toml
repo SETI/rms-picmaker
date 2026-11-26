@@ -15,7 +15,7 @@ dependencies = [
   "scipy>=1.17.1",
   "rms-pdslogger>=3.2.1",
   "rms-pdsparser>=2.0.0",
-  "rms-psiops",
+  "rms-psiops>=1.0.0",
   "rms-tabulation>=2.0.0",
   "rms-vax>=1.0.5",
   "rms-vicar>=1.2.1",

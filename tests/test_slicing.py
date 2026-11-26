@@ -132,13 +132,16 @@ def test_slice_array_returns_a_clone_of_the_same_subclass() -> None:
     attributes, with only the sliced array replaced; the input is not modified."""
     from picmaker.instruments.hst_wfpc2 import HST_WFPC2
 
+    class _TaggedWFPC2(HST_WFPC2):
+        extra: str
+
     arr = np.arange(16, dtype=float).reshape(4, 4)
-    image_data = HST_WFPC2(arr, None, None, True, (1, 2, 3))
+    image_data = _TaggedWFPC2(arr, None, None, True, (1, 2, 3))
     image_data.extra = 'kept'
 
     result = slice_array(image_data, lines=(1, 3), valid=(0.0, 6.0))
 
-    assert type(result) is HST_WFPC2
+    assert type(result) is _TaggedWFPC2
     assert result is not image_data
     assert result.default_upward is True
     assert result.default_tint == (1, 2, 3)
