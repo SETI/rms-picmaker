@@ -79,6 +79,13 @@ def get_parser():
         '--pds3-method', type=str, choices=PDS3_METHODS,
         help='Pds3Label parsing strictness for PDS3 .LBL inputs; default is '
              f'"{DEFAULT_PDS3_METHOD}".')
+    _input_.add_argument(
+        '--hst-dq', type=str, metavar='DIRECTORY',
+        help='Directory containing the HST data quality files that go with WF/PC and '
+             'WFPC2 _c0f, _c0m, _d0f, or _d0m input files (_c1f, _c1m, _q0f, or _q0m), '
+             'or with FOC _d0f or _d0m files (_q0f or _q0m). Default is the directory '
+             'of each input file. If the data quality file is found, pixels with nonzero '
+             'data quality values are treated as invalid.')
 
     _preprocessing = parser.add_argument_group('Pre-processing options')
     _preprocessing.add_argument(
@@ -111,6 +118,12 @@ def get_parser():
     _stretch.add_argument(
         '-v', '--valid', type=float, nargs=2,
         help='Range of valid pixel values; pixels outside are ignored.')
+    _stretch.add_argument(
+        '--mask', dest='mask_ranges', type=float, nargs=2, action='append',
+        metavar=('MIN', 'MAX'),
+        help='Range of pixel values, inclusive, that are always treated as invalid; '
+             'e.g., "--mask 0 0" excludes zero-valued pixels from the stretch. Repeat '
+             'to mask several ranges.')
     _stretch.add_argument(
         '-l', '--limits', type=float, nargs=2,
         help='Pair of pixel values that define the limits of the stretch.')
@@ -150,6 +163,11 @@ def get_parser():
     _enhancement.add_argument(
         '--invalid', dest='invalid_color', type=str, default=None,
         help='Color to use for invalid pixels and NaNs. Default is black.')
+    _enhancement.add_argument(
+        '--desnow', action='store_true', default=None,
+        help='Also draw pixels flagged by an instrument\'s data quality mask (e.g., HST '
+             'DQ flags) in the --invalid color. Without this option, they are drawn '
+             'normally, although they are still excluded from the stretch.')
     _enhancement.add_argument(
         '-g', '--gamma', type=float,
         help='Gamma value to apply to the image. Values > 1 darken midtones; values < 1 '
@@ -298,6 +316,7 @@ _OPTION_DEFAULTS = [
     ('obj'              , None      , int, 1, None                          ),
     ('pointers'         , []        , list, 0, None     , str               ),
     ('pds3_method'      , DEFAULT_PDS3_METHOD, PDS3_METHODS                 ),
+    ('hst_dq'         , None      , str                                   ),
     # Control options
     ('zebra'            , False     , bool                                  ),
     # Slicing options
@@ -308,6 +327,7 @@ _OPTION_DEFAULTS = [
     ('crop'             , None      , float, None, None                     ),
     # Stretch options
     ('valid'            , None      , list, 2, 2        , float, None, None ),
+    ('mask_ranges'      , None      , list, 0, None     , list, 2, 2, float, None, None),
     ('limits'           , None      , list, 2, 2        , float, None, None ),
     ('percentiles'      , [0, 100  ], list, 2, 2        , float, 0, 100     ),
     ('trim'             , 0         , int, 0, None                          ),
@@ -318,6 +338,7 @@ _OPTION_DEFAULTS = [
     ('below_color'      , None      , 'color'                               ),
     ('above_color'      , None      , 'color'                               ),
     ('invalid_color'    , 'black'   , 'color'                               ),
+    ('desnow'           , False     , bool                                  ),
     ('gamma'            , 1.        , float, 0, None                        ),
     ('tint'             , False     , bool                                  ),
     ('retint'           , 1.        , float, 0, None                        ),
@@ -432,6 +453,12 @@ def validate_options(options):
     # them is numeric, and False is not a numeric zero however much Python says it is:
     # it reads as "off", so let it fall back like any other unset value. Falsy values
     # of the wrong type altogether are left alone for check_value to reject.
+    # A single (min, max) pair is shorthand for a list containing one masked range
+    ranges = options.get('mask_ranges')
+    if (isinstance(ranges, (list, tuple)) and len(ranges) == 2
+            and all(isinstance(v, (int, float)) for v in ranges)):
+        options['mask_ranges'] = [ranges]
+
     for info in _OPTION_DEFAULTS:
         name, default, *type_info = info
         value = options.get(name)

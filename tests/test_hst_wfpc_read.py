@@ -8,11 +8,14 @@ geometry cannot be represented by the synthetic fixtures, so WFPC1 is tested
 against real data.
 """
 
+import shutil
+import warnings
 from pathlib import Path
 
 import astropy.io.fits as pyfits
 import numpy as np
 import pytest
+from astropy.io.fits.verify import VerifyWarning
 from PIL import Image
 
 from picmaker.instruments import read_image_array, tint_by_nm
@@ -81,7 +84,7 @@ def test_apply_mosaic_assembles_four_quadrants() -> None:
     in pre-inversion orientation: chip 1 lower-right, 2 lower-left, 3 upper-left,
     4 upper-right."""
     planes = [np.full((8, 8, 3), v, dtype=float) for v in (1, 2, 3, 4)]
-    inst = HST_WFPC(np.zeros((4, 8, 8, 3)), True, None)
+    inst = HST_WFPC(np.zeros((4, 8, 8, 3)), None, None, True, None)
     mosaic = inst.apply_mosaic(planes)
 
     assert mosaic.shape == (16, 16, 3)
@@ -170,3 +173,125 @@ def test_mosaic_fills_missing_detectors_from_the_table() -> None:
     assert cube[0, 0, 0] == 1.0     # detector 1 -> plane 0
     assert cube[2, 0, 0] == 2.0     # detector 3 -> plane 2
     assert cube[1].sum() == 0.0     # unfilled planes stay zero
+
+
+# --- multi-extension FITS (_c0m) layout -----------------------------------------------
+
+def _wfpc_mef(planes: list[np.ndarray], detectors: list[int],
+              **header: str) -> pyfits.HDUList:
+    """A minimal multi-extension WFPC HDUList: an empty PRIMARY HDU followed by one
+    SCI image extension per detector, each carrying a DETECTOR keyword."""
+    primary = pyfits.PrimaryHDU()
+    primary.header['INSTRUME'] = 'WFPC'
+    for key, value in header.items():
+        primary.header[key] = value
+    hdus: list[pyfits.PrimaryHDU | pyfits.ImageHDU] = [primary]
+    for plane, det in zip(planes, detectors, strict=True):
+        ext = pyfits.ImageHDU(plane, name='SCI')
+        ext.header['DETECTOR'] = det
+        hdus.append(ext)
+    return pyfits.HDUList(hdus)
+
+
+def test_mef_reads_detectors_and_tints() -> None:
+    """A _c0m file reads the first detector by default, ``obj=N`` selects the Nth,
+    and a _c0m science file carries its filter tint."""
+    planes = [np.full((4, 4), float(v)) for v in (1, 2, 3, 4)]
+    hdulist = _wfpc_mef(planes, [5, 6, 7, 8], FILTNAM1='F718M')
+
+    data = HST_WFPC.detect_in_fits(hdulist, 'w_c0m.fits')
+    np.testing.assert_array_equal(np.asarray(data.array), planes[0])
+    assert tuple(data.default_tint) == tuple(tint_by_nm(718))
+
+    data = HST_WFPC.detect_in_fits(hdulist, 'w_c0m.fits', obj=2)
+    np.testing.assert_array_equal(np.asarray(data.array), planes[2])
+
+
+def test_mosaic_places_pc_detectors_modulo_four() -> None:
+    """PC detectors 5-8 fill planes 0-3, the same as WF detectors 1-4."""
+    planes = [np.full((4, 4), 1.0), np.full((4, 4), 2.0)]
+    hdulist = _wfpc_mef(planes, [6, 8])
+    cube = np.asarray(HST_WFPC.detect_in_fits(hdulist, 'w_c0m.fits', mosaic=True).array)
+
+    assert cube.shape == (4, 4, 4)
+    assert cube[1, 0, 0] == 1.0     # detector 6 -> plane 1
+    assert cube[3, 0, 0] == 2.0     # detector 8 -> plane 3
+    assert cube[0].sum() == 0.0
+    assert cube[2].sum() == 0.0
+
+
+@pytest.mark.parametrize('detectors', [[1, 2, 3, 4], [5, 6, 7, 8], [1, 3], [6], [5, 8]])
+@pytest.mark.parametrize('options', [{}, {'obj': 0}, {'obj': -1}, {'mosaic': True}])
+def test_waiver_and_mef_layouts_are_read_identically(detectors: list[int],
+                                                     options: dict[str, object]) -> None:
+    """The same detectors stored as a _c0f cube or as _c0m extensions yield the same
+    array and tint for every selection mode."""
+    planes = [np.full((4, 4), 10.0 * det) for det in detectors]
+    c0f = _wfpc_hdulist(np.stack(planes), detectors=detectors, FILTNAM1='F718M')
+    c0m = _wfpc_mef([p.astype('float32') for p in planes], detectors, FILTNAM1='F718M')
+
+    data_f = HST_WFPC.detect_in_fits(c0f, 'w_c0f.fits', **options)
+    data_m = HST_WFPC.detect_in_fits(c0m, 'w_c0m.fits', **options)
+
+    np.testing.assert_array_equal(np.asarray(data_f.array), np.asarray(data_m.array))
+    assert np.asarray(data_f.array).shape == np.asarray(data_m.array).shape
+    assert data_f.default_tint == data_m.default_tint
+
+
+# --- data quality masks (--hst-dq) ----------------------------------------------------
+
+def _write_dq_beside_copy(directory: Path,
+                          dq_directory: Path | None = None) -> np.ndarray:
+    """Copy the four-detector sample into `directory` and write a matching _c1f data
+    quality file (same cube shape and group table) into `dq_directory`, defaulting to
+    the same directory. Returns the expected boolean mask."""
+    dq_directory = dq_directory or directory
+    shutil.copy(MOSAIC, directory / MOSAIC.name)
+
+    dq = np.zeros(_raw_cube(MOSAIC).shape, dtype='int16')
+    dq[0, :2, :] = 2
+    dq[2, 5, 7] = 8
+    dq[3, :, -1] = 258
+    with pyfits.open(MOSAIC) as hdulist:
+        hdulist[0].data = dq
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', VerifyWarning)
+            hdulist.writeto(dq_directory / 'w0ck0103t_c1f_small.fits')
+    return np.asarray(dq != 0, dtype=bool)
+
+
+def test_dq_mask_loaded_from_same_directory(tmp_path: Path) -> None:
+    """A _c1f file beside the _c0f file is found by default; its nonzero pixels are
+    set in both masks, selected like the data for mosaics and for ``obj``."""
+    expected = _write_dq_beside_copy(tmp_path)
+    data = read_image_array(tmp_path / MOSAIC.name, mosaic=True)
+    np.testing.assert_array_equal(data.hmask, expected)
+    np.testing.assert_array_equal(data.imask, expected)
+    assert data.hmask is not data.imask
+
+    data = read_image_array(tmp_path / MOSAIC.name, obj=3)
+    np.testing.assert_array_equal(data.imask, expected[3])
+
+
+def test_dq_mask_from_hst_dq_directory(tmp_path: Path) -> None:
+    """With ``hst_dq``, the data quality file is read from that directory instead."""
+    data_dir = tmp_path / 'c0f'
+    dq_dir = tmp_path / 'c1f'
+    data_dir.mkdir()
+    dq_dir.mkdir()
+    expected = _write_dq_beside_copy(data_dir, dq_dir)
+
+    data = read_image_array(data_dir / MOSAIC.name)
+    assert data.hmask is None
+    assert data.imask is None
+
+    data = read_image_array(data_dir / MOSAIC.name, hst_dq=str(dq_dir))
+    np.testing.assert_array_equal(data.hmask, expected[0])
+
+
+def test_bundled_samples_have_no_dq_mask() -> None:
+    """The bundled samples have no data quality files beside them."""
+    for path in (MOSAIC, SINGLE):
+        data = read_image_array(path)
+        assert data.hmask is None
+        assert data.imask is None

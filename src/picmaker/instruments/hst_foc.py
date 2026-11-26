@@ -8,7 +8,11 @@ import re
 import numpy as np
 
 from picmaker.instruments import ImageData, tint_by_nm
-from picmaker.instruments._hst_support import get_hst_filter_digits
+from picmaker.instruments._hst_support import (
+    get_detector_cube,
+    get_dq_mask,
+    get_hst_filter_digits,
+)
 
 _DEFAULT_UPWARD = True
 
@@ -16,14 +20,20 @@ _DEFAULT_UPWARD = True
 # wavelength.
 _IS_UNDIAGNOSTIC = re.compile(r'(|CLEAR.*|.*ND|PRISM.*|POL.*)$')
 
-_IS_SCIENCE_DATA = re.compile(r'.*_[cd]0f(?![a-z]|\d).*', re.I)
+_IS_SCIENCE_DATA = re.compile(r'.*_[cd]0[fm](?![a-z]|\d).*', re.I)
+
+# FOC's only data quality file is _q0f/_q0m, for the raw _d0f/_d0m file. The calibrated
+# products are dezoomed and geometrically corrected, so they get no mask. (FOC's _c1f is a
+# calibrated image, not a data quality file as it is for WF/PC and WFPC2.)
+_DQ_CODES = {'d0': 'q0'}
 
 
 class HST_FOC(ImageData):
     """HST FOC detector and reader."""
 
     @staticmethod
-    def detect_in_fits(hdulist, filepath, retint=None, **kwargs):
+    def detect_in_fits(hdulist, filepath, retint=None, hst_dq=None, logger=None,
+                       **kwargs):
         """Extract HST FOC data from an open HDUList.
 
         Parameters:
@@ -31,6 +41,13 @@ class HST_FOC(ImageData):
             filepath (str or Path): The path to this FITS file.
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
+            hst_dq (str or Path, optional): Directory containing the "_q0f" or "_q0m"
+                data quality file that goes with a raw "_d0f" or "_d0m" file. If None,
+                the directory of this file is used. If the data quality file is found,
+                every pixel with a nonzero data quality value is set in both `hmask` and
+                `imask`. Calibrated FOC images are never masked.
+            logger (Logger or PdsLogger, optional): Logger for reporting whether a data
+                quality file was used.
             **kwargs: Additional input options, ignored here.
 
         Returns:
@@ -44,7 +61,7 @@ class HST_FOC(ImageData):
         except (KeyError, IndexError):
             return None
 
-        # Science data is in the _c0f and _d0f files
+        # Science data is in the _c0f, _d0f, _c0m, and _d0m files
         is_science_data = _IS_SCIENCE_DATA.fullmatch(str(filepath))
         default_tint = None
         if is_science_data:
@@ -55,7 +72,20 @@ class HST_FOC(ImageData):
             if lambda_nms:
                 default_tint = tint_by_nm(np.mean(lambda_nms))
 
-        return HST_FOC(hdulist[0].data, _DEFAULT_UPWARD, default_tint)
+        # Both file layouts ("waiver" _d0f, multi-extension _d0m) are reduced to the same
+        # cube of planes; FOC has a single detector, so use the first plane
+        (array, _) = get_detector_cube(hdulist, filepath)
+
+        # Load the data quality mask (_q0f/_q0m) of a raw file, if present
+        dq_mask = get_dq_mask(filepath, array.shape, hst_dq, logger, dq_codes=_DQ_CODES)
+
+        array = array[0]
+        if dq_mask is None:
+            (hmask, imask) = (None, None)
+        else:
+            (hmask, imask) = (dq_mask[0], dq_mask[0].copy())
+
+        return HST_FOC(array, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################

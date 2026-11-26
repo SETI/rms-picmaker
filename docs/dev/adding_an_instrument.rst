@@ -41,11 +41,18 @@ The cascade only calls a method that exists (it guards each call with
 :func:`!detect_in_fits`.
 
 **Construction.** Every ``detect_*`` method builds and returns
-``cls(array, default_upward, default_tint)`` — the
+``cls(array, hmask, imask, default_upward, default_tint)`` — the
 :class:`~picmaker.instruments.ImageData` constructor:
 
 * ``array`` — the pixel array, 2-D ``(lines, samples)`` or 3-D
   ``(bands, lines, samples)``.
+* ``hmask``, ``imask`` — ``None`` or boolean arrays with the same shape as
+  ``array``. Pixels set in ``hmask`` are excluded from the stretch; pixels set
+  in ``imask`` are drawn in the ``--invalid`` color, but only with ``--desnow``
+  (otherwise ``slice_array`` discards ``imask``). Most instruments pass
+  ``None`` for both. HST FOC, WF/PC, and WFPC2 fill both from a separate data
+  quality file; HST ACS, COS, NICMOS, STIS, and WFC3 fill both from the ``DQ``
+  extension that matches the selected ``SCI`` extension.
 * ``default_upward`` — ``True`` if the raw data is stored
   display-upward (typical for FITS), ``False`` otherwise (typical for
   VICAR / PDS3).
@@ -172,7 +179,8 @@ Writing the instrument module
 
               filter_name = vic.get('FILTER_NAME', '')
               default_tint = _FILTER_DICT.get(filter_name)
-              return MyMission_MyInst(vic.array[0], _DEFAULT_UPWARD, default_tint)
+              return MyMission_MyInst(vic.array[0], None, None, _DEFAULT_UPWARD,
+                                      default_tint)
 
    **FITS-based instrument** (e.g. HST, New Horizons MVIC) — use
    ``detect_in_fits`` and the FITS helpers:
@@ -198,7 +206,7 @@ Writing the instrument module
                   return None
 
               array = get_fits_array(hdulist, obj=obj)
-              return MyMission_MyInst(array, _DEFAULT_UPWARD, None)
+              return MyMission_MyInst(array, None, None, _DEFAULT_UPWARD, None)
 
    **PDS3-labeled instrument** (e.g. Cassini ISS via ``.LBL``, NH LORRI
    via ``.LBL``) — add a ``detect_in_pds3`` method and extract the array
@@ -221,7 +229,7 @@ Writing the instrument module
                   return None
 
               array = read_pds3_image_array(label, **kwargs)
-              return MyMission_MyInst(array, False, None)
+              return MyMission_MyInst(array, None, None, False, None)
 
    An instrument can implement several ``detect_*`` methods on the same
    subclass — for example ``detect_in_pds3`` for ``.LBL`` inputs and

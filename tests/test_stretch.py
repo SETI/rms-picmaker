@@ -145,6 +145,23 @@ def test_get_limits_with_footprint_filter() -> None:
     assert hi == 1
 
 
+def test_get_limits_footprint_excludes_masked_pixels() -> None:
+    """Masked pixels do not contribute to the footprint median of their neighbors."""
+    arr = np.full((8, 8), 10.)
+    arr[:, :4] = 20.
+    mask = np.zeros(arr.shape, dtype=bool)
+    mask[:, 3:5] = True  # columns 3-4 straddle the 10/20 boundary
+    arr[mask] = 1.e6     # extreme masked values
+    lo, hi = get_limits(arr, mask, percentiles=(0.0, 100.0), footprint=3)
+    assert (lo, hi) == (10., 20.)
+
+
+def test_get_limits_footprint_integer_single_value() -> None:
+    """A filtered single-valued integer array keeps the integer (v, v+1) limits."""
+    arr = np.full((8, 8), 5, dtype='uint8')
+    assert get_limits(arr, None, footprint=3) == (5., 6.)
+
+
 def test_get_limits_with_trim() -> None:
     """``trim=N`` excludes ``N`` pixels around the edge."""
     arr = np.arange(256, dtype='uint16').reshape(16, 16)

@@ -5,10 +5,40 @@
 
 from picmaker.instruments import ImageData, tint_by_nm
 from picmaker.instruments._fits_support import get_fits_image_hdu
-from picmaker.instruments._hst_support import get_hst_filter_digits, is_science_hdu
+from picmaker.instruments._hst_support import (
+    get_hst_filter_digits,
+    get_sci_dq_mask,
+    is_science_hdu,
+    split_mask,
+)
 
 _DEFAULT_UPWARD = True
 _DEFAULT_RETINT = 0.4
+
+# Flag  Condition / Meaning
+# 0     No known problems
+# 1     Reed-Solomon decoding error in telemetry
+# 2     Poor or uncertain linearity correction
+# 4     Poor or uncertain dark correction
+# 8     Poor or uncertain flat-field correction
+# 16    Pixel affected by "grot" (particulate debris) on the detector
+# 32    Defective (hot or cold) pixel
+# 64    Saturated pixel
+# 128   Missing data in telemetry
+# 256   Bad pixel determined during calibration (calnica)
+# 512   Pixel contains cosmic ray
+# 1024  Pixel contains astrophysical source
+# 2048  Pixel has detectable signal in the 0th readout
+# 4096  Cosmic ray detected by MultiDrizzle (or User flag in earlier pipelines)
+# 8192  User flag (reserved for manual masking)
+# 16384 Curvature in detector response (or Reserved in earlier pipelines)
+
+# DQ flag bits that do not mask a pixel, because the pixel's value is still sound:
+#   16   grot; the flat field corrects the reduced sensitivity
+#   64   saturated; the count rate comes from the reads before saturation
+#   1024 the pixel contains an astrophysical source
+#   2048 detectable signal in the 0th read; the pixel is bright, often the target itself
+_DQ_IGNORE = 16 | 64 | 1024 | 2048
 
 
 class HST_NICMOS(ImageData):
@@ -28,6 +58,11 @@ class HST_NICMOS(ImageData):
             retint (float, optional): Factor by which to scale wavelengths for purposes of
                 tinting.
             **kwargs: Additional input options, ignored here.
+
+        If the image comes from a science ("SCI") HDU, the matching "DQ" extension in the
+        same file supplies `hmask` and `imask`: every pixel with a nonzero data quality
+        value is set in both, except where the only flags are 16 (grot), 64
+        (saturated), 1024 (astrophysical source), or 2048 (signal in the 0th read).
 
         Returns:
             HST_NICMOS or None: Instrument subclass if the file describes an HST NICMOS
@@ -53,7 +88,8 @@ class HST_NICMOS(ImageData):
                     retint = retint or _DEFAULT_RETINT
                     default_tint = tint_by_nm(lambda_nm * retint)
 
-        return HST_NICMOS(hdu.data, _DEFAULT_UPWARD, default_tint)
+        (hmask, imask) = split_mask(get_sci_dq_mask(hdulist, hdu, _DQ_IGNORE))
+        return HST_NICMOS(hdu.data, hmask, imask, _DEFAULT_UPWARD, default_tint)
 
 
 ##########################################################################################

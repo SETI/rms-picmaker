@@ -9,18 +9,18 @@ import logging
 import numpy as np
 from pdslogger import PdsLogger
 
-from picmaker.control     import get_filepaths, get_outfile
-from picmaker.instruments import read_image_array
-from picmaker.layout      import pad_pil_image, wrap_pil_image
-from picmaker.options     import (deconflict_options, get_versions, shift_to_zero_origin,
-                                  validate_options)
-from picmaker.orientation import rotate_rgb_array
-from picmaker.pil_utils   import array_to_pil, write_pil
+from picmaker.control        import get_filepaths, get_outfile
+from picmaker.instruments    import read_image_array
+from picmaker.layout         import pad_pil_image, wrap_pil_image
+from picmaker.options        import (deconflict_options, get_versions,
+                                     shift_to_zero_origin, validate_options)
+from picmaker.orientation    import rotate_rgb_array
+from picmaker.pil_utils      import array_to_pil, write_pil
 from picmaker.postprocessing import adjust_pil_image, filter_pil_image
 from picmaker.preprocessing  import fill_zebra_stripes
-from picmaker.sizing      import get_size, resize_pil_image
-from picmaker.slicing     import slice_array
-from picmaker.stretch     import get_limits
+from picmaker.sizing         import get_size, resize_pil_image
+from picmaker.slicing        import slice_array
+from picmaker.stretch        import get_limits
 
 
 def picmaker(*, logger=None, _shift_origins=False, **options):
@@ -46,7 +46,7 @@ def picmaker(*, logger=None, _shift_origins=False, **options):
             write each output file to the input's own directory.
         recursive (bool, optional): Descend into input directories. Default is False.
         patterns (str or list[str], optional): One or more glob patterns that each file in
-            an input directory mask match, e.g. "\*.IMG".
+            an input directory must match, e.g. "\*.IMG".
         movie (bool, optional): Share one set of enhancement limits across all images.
             This option is incompatible with `versions`. The default False.
         versions (str, optional): Path to a file whose non-blank lines each add a set of
@@ -83,6 +83,10 @@ def picmaker(*, logger=None, _shift_origins=False, **options):
             this value.
         valid (tuple[float, float], optional): Numeric range of valid pixel values; pixels
             outside these limits are treated as invalid.
+        mask_ranges (list[tuple[float, float]], optional): Numeric ranges of pixel
+            values, inclusive, that are always treated as invalid, e.g., [(0, 0)] to
+            exclude zero-valued pixels from the stretch. A single (min, max) pair is also
+            accepted. Set by one or more `--mask` options on the command line.
         limits (tuple[float, float], optional): Pixel values defining the stretch
             endpoints.
         percentiles (tuple[float, float], optional): Percentiles into the histogram of
@@ -109,6 +113,9 @@ def picmaker(*, logger=None, _shift_origins=False, **options):
             `colormap`.
         invalid_color (str or tuple[int,int,int], optional): Color to use for invalid
             pixels and NaNs. the default value is "black".
+        desnow (bool, optional): True to also draw pixels flagged by an instrument's data
+            quality mask (the ImageData `imask`) in `invalid_color`. Default is False, in
+            which case they are drawn normally but still excluded from the stretch.
         gamma (float, optional): Gamma correction to apply to the image before the
             `colormap`. Values > 1 darken midtones; values < 1 brighten midtones. The
             default value is 1.
@@ -298,46 +305,49 @@ def picmaker1(infile, outfile, options, *, image_data=None, return_limits=False)
         logger and logger.debug('Reading data file', infile)
         image_data = read_image_array(infile, **options)
 
-    # Slice out the part we care about
-    array, invalid_mask = slice_array(image_data.array, **options)
+    # Slice out the part we care about. `sliced` is a copy of the same ImageData
+    # subclass; `image_data` itself stays unsliced so it can be returned for reuse.
+    sliced = slice_array(image_data, **options)
 
     # Fill zebra stripes
     if options.get('zebra', False):
-        array = fill_zebra_stripes(array, **options)
+        sliced.array = fill_zebra_stripes(sliced.array, **options)
+
+    # The stretch ignores pixels in `hmask` but the image may still show them;
+    # pixels in `imask` are drawn as invalid. Each mask is None when no pixels are masked.
+    (array, hmask, imask) = (sliced.array, sliced.hmask, sliced.imask)
 
     # Assemble a mosaic if necessary; convert to RGB or grayscale arrays scaled 0-1
-    mosaic = (image_data.mosaic if hasattr(image_data, 'mosaic')
+    mosaic = (sliced.mosaic if hasattr(sliced, 'mosaic')
               else options.get('mosaic', False))
-    if mosaic and array.ndim == 3 and hasattr(image_data, 'apply_mosaic'):
+    if mosaic and array.ndim == 3 and hasattr(sliced, 'apply_mosaic'):
         # Get the scaling limits and apply the colormap to each band
         rgb_arrays = []
         min_limits = []
         max_limits = []
         for b in range(array.shape[0]):
-            # slice_array returns None when no pixels are masked; index per band only
-            # when there is a mask.
-            mask_b = None if invalid_mask is None else invalid_mask[b]
-            limits = get_limits(array[b], mask_b, **options)
-            array_rgb = image_data.apply_colormap(array, limits, layer=b,
-                                                  invalid_mask=mask_b, **options)
+            hmask_b = None if hmask is None else hmask[b]
+            imask_b = None if imask is None else imask[b]
+            limits = get_limits(array[b], hmask_b, **options)
+            array_rgb = sliced.apply_colormap(array, limits, layer=b,
+                                              invalid_mask=imask_b, **options)
             rgb_arrays.append(array_rgb)
             min_limits.append(limits[0])
             max_limits.append(limits[1])
         limits = (np.min(min_limits), np.max(max_limits))
         if return_limits:
             return (image_data, limits)
-        array_rgb = image_data.apply_mosaic(rgb_arrays, **options)
+        array_rgb = sliced.apply_mosaic(rgb_arrays, **options)
 
     else:
         # Just get the scaling limits and apply the colormap; merge bands into one
-        limits = get_limits(array, invalid_mask, **options)
+        limits = get_limits(array, hmask, **options)
         if return_limits:
             return (image_data, limits)
-        array_rgb = image_data.apply_colormap(array, limits, invalid_mask=invalid_mask,
-                                              **options)
+        array_rgb = sliced.apply_colormap(array, limits, invalid_mask=imask, **options)
 
     # Set the orientation
-    array_rgb = rotate_rgb_array(array_rgb, default_upward=image_data.default_upward,
+    array_rgb = rotate_rgb_array(array_rgb, default_upward=sliced.default_upward,
                                  **options)
 
     # Determine the size and layout

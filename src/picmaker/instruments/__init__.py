@@ -52,8 +52,10 @@ class ImageData:
         super().__init_subclass__(**kwargs)
         _register_instrument(cls)
 
-    def __init__(self, array, default_upward, default_tint):
+    def __init__(self, array, hmask, imask, default_upward, default_tint):
         self.array = array
+        self.hmask = hmask
+        self.imask = imask
         self.default_upward = default_upward
         self.default_tint = default_tint
 
@@ -105,7 +107,8 @@ def read_image_array(filepath, **kwargs):
     array3d = np.vstack(arrays)
     # Note that the `default_upward` and `default_tint` are defined by the first filepath
     # in cases where there is more than one.
-    return ImageData(array3d, results[0].default_upward, results[0].default_tint)
+    return ImageData(array3d, None, None,
+                     results[0].default_upward, results[0].default_tint)
 
 
 def _read_one_image_array(filepath, **kwargs):

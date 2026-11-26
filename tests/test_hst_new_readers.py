@@ -16,12 +16,15 @@ real data — the synthetic single-plane fixtures cannot represent these
 multi-extension / primary-HDU structures.
 """
 
+import shutil
 from pathlib import Path
 
 import astropy.io.fits as pyfits
 import numpy as np
+import pytest
 
 from picmaker.instruments import read_image_array, tint_by_nm
+from picmaker.instruments.hst_acs import HST_ACS
 from picmaker.instruments.hst_cos import HST_COS
 from picmaker.instruments.hst_foc import HST_FOC
 from picmaker.instruments.hst_stis import HST_STIS
@@ -154,3 +157,307 @@ def test_foc_all_clear_filters_have_no_tint() -> None:
                            FILTNAM3='CLEAR3', FILTNAM4='CLEAR4')
     data = HST_FOC.detect_in_fits(hdulist, 'foo_d0f.fits')
     assert data.default_tint is None
+
+
+# --- FOC multi-extension layout and data quality masks --------------------------------
+
+def _raw_foc() -> np.ndarray:
+    """The bundled FOC sample's PRIMARY image."""
+    with pyfits.open(FOC) as hdulist:
+        return np.array(hdulist[0].data)
+
+
+def test_foc_mef_reads_like_the_waiver_layout() -> None:
+    """A _d0m file (empty PRIMARY, one SCI extension) reads the same image and tint
+    as the equivalent _d0f file."""
+    image = np.arange(16, dtype='float32').reshape(4, 4)
+    d0f = _foc_hdulist(FILTNAM1='F220W')
+    d0f[0].data = image
+
+    primary = pyfits.PrimaryHDU()
+    primary.header['INSTRUME'] = 'FOC'
+    primary.header['FILTNAM1'] = 'F220W'
+    d0m = pyfits.HDUList([primary, pyfits.ImageHDU(image, name='SCI')])
+
+    data_f = HST_FOC.detect_in_fits(d0f, 'x_d0f.fits')
+    data_m = HST_FOC.detect_in_fits(d0m, 'x_d0m.fits')
+    np.testing.assert_array_equal(data_f.array, image)
+    np.testing.assert_array_equal(data_m.array, image)
+    assert data_f.default_tint == data_m.default_tint == tint_by_nm(220)
+    assert data_m.hmask is None
+    assert data_m.imask is None
+
+
+def _foc_image(image: np.ndarray) -> pyfits.HDUList:
+    """A minimal FOC HDUList holding `image` in its PRIMARY HDU."""
+    primary = pyfits.PrimaryHDU(image)
+    primary.header['INSTRUME'] = 'FOC'
+    return pyfits.HDUList([primary])
+
+
+def _write_foc_q0f(directory: Path) -> np.ndarray:
+    """Write a _q0f data quality file for the bundled FOC sample into `directory`,
+    with the sample's geometry and a few flagged pixels; return the expected mask."""
+    dq = np.zeros(_raw_foc().shape, dtype='float32')
+    dq[0, :] = 1.
+    dq[10, 20] = 4.
+    primary = pyfits.PrimaryHDU(dq)
+    primary.header['INSTRUME'] = 'FOC'
+    primary.writeto(directory / 'x2490106t_q0f.fits')
+    return np.asarray(dq != 0, dtype=bool)
+
+
+def test_foc_d0f_reads_its_q0f_mask(tmp_path: Path) -> None:
+    """A _q0f beside the _d0f file is found by default; with ``hst_dq`` it is read
+    from that directory instead. Nonzero pixels are set in both masks."""
+    shutil.copy(FOC, tmp_path / FOC.name)
+    expected = _write_foc_q0f(tmp_path)
+    data = read_image_array(tmp_path / FOC.name)
+    np.testing.assert_array_equal(data.hmask, expected)
+    np.testing.assert_array_equal(data.imask, expected)
+    assert data.hmask is not data.imask
+
+    dq_dir = tmp_path / 'q0f'
+    dq_dir.mkdir()
+    expected = _write_foc_q0f(dq_dir)
+    data = read_image_array(FOC, hst_dq=str(dq_dir))
+    np.testing.assert_array_equal(data.hmask, expected)
+
+
+@pytest.mark.parametrize('code', ['c0f', 'c1f', 'c0m'])
+def test_foc_calibrated_products_have_no_mask(tmp_path: Path, code: str) -> None:
+    """Calibrated FOC files are never masked, even with the raw _q0 data quality file
+    and a _c1 file beside them."""
+    image = np.ones((4, 4), dtype='float32')
+    dq = np.ones((4, 4), dtype='float32')
+    layout = code[-1]
+    _foc_image(image).writeto(tmp_path / f'x_{code}.fits')
+    _foc_image(image).writeto(tmp_path / f'x_c1{layout}.fits', overwrite=True)
+    _foc_image(dq).writeto(tmp_path / f'x_q0{layout}.fits')
+
+    data = read_image_array(tmp_path / f'x_{code}.fits')
+    assert data.hmask is None
+    assert data.imask is None
+
+
+def test_foc_bundled_samples_have_no_dq_mask() -> None:
+    """The bundled FOC samples have no _q0f files beside them."""
+    for path in (FOC, FOC_WHEEL4):
+        data = read_image_array(path)
+        assert data.hmask is None
+        assert data.imask is None
+
+
+# --- DQ extension masks (ACS, COS, NICMOS, STIS, WFC3) --------------------------------
+
+ACS_FLT = DATA / 'hst_acs' / 'j96o01ipq_flt_small.fits'
+WFC3_FLT = DATA / 'hst_wfc3' / 'iepl0jltq_flt_small.fits'
+
+
+def _dq_nonzero(path: Path, extver: int = 1) -> np.ndarray:
+    """The DQ extension with the given EXTVER as a boolean mask of flagged pixels. For
+    ACS and WFC3, a value of 64 (warm pixel) alone is not flagged; for NICMOS, values
+    made only of 16, 64, 1024, and 2048."""
+    ignore = {'hst_acs': 64, 'hst_wfc3': 64,
+              'hst_nicmos': 16 | 64 | 1024 | 2048}.get(path.parent.name, 0)
+    with pyfits.open(path) as hdulist:
+        dq = np.asarray(hdulist['DQ', extver].data, dtype=np.int64)
+    return np.asarray((dq & ~ignore) != 0, dtype=bool)
+
+
+@pytest.mark.parametrize('path', [
+    ACS_FLT,
+    WFC3_FLT,
+    DATA / 'hst_nicmos' / 'nb06030a0_mos.fits',
+    COS,
+])
+def test_sci_image_uses_its_dq_extension(path: Path) -> None:
+    """An image read from a SCI HDU takes its masks from the DQ extension of the same
+    EXTVER: every nonzero value is set in both, as separate arrays."""
+    data = read_image_array(path)
+    expected = _dq_nonzero(path)
+    np.testing.assert_array_equal(data.hmask, expected)
+    np.testing.assert_array_equal(data.imask, expected)
+    assert data.hmask is not data.imask
+
+
+@pytest.mark.parametrize('path', [ACS_FLT, WFC3_FLT])
+def test_two_chip_mosaic_places_each_dq_mask_with_its_chip(path: Path) -> None:
+    """In an ACS/WFC or WFC3/UVIS mosaic, each chip's DQ mask lands in the same plane
+    as its data (the first SCI HDU is chip 2, so it goes to plane 1)."""
+    data = read_image_array(path, mosaic=True)
+    assert data.hmask.shape == np.shape(data.array) == (2, *_dq_nonzero(path).shape)
+    np.testing.assert_array_equal(data.hmask[1], _dq_nonzero(path, 1))
+    np.testing.assert_array_equal(data.hmask[0], _dq_nonzero(path, 2))
+    np.testing.assert_array_equal(data.imask, data.hmask)
+
+
+@pytest.mark.parametrize('path', [
+    DATA / 'hst_acs' / 'j96o01ipq_raw_small.fits',
+    DATA / 'hst_wfc3' / 'iepl0jltq_raw_small.fits',
+    STIS,
+])
+def test_constant_zero_dq_extension_gives_an_empty_mask(path: Path) -> None:
+    """A raw file's DQ extension holds no array, only PIXVALUE = 0, which yields an
+    all-False mask of the image's shape."""
+    data = read_image_array(path)
+    assert data.hmask.shape == np.shape(data.array)
+    assert not data.hmask.any()
+    assert not data.imask.any()
+
+
+@pytest.mark.parametrize('path', [
+    DATA / 'hst_acs' / 'j96o01010_drz_small.fits',     # drizzled: no DQ extension
+    DATA / 'hst_wfc3' / 'iepl0j020_drz_small.fits',
+])
+def test_no_dq_extension_gives_no_mask(path: Path) -> None:
+    """A drizzled product with no DQ extension reads without masks."""
+    data = read_image_array(path)
+    assert data.hmask is None
+    assert data.imask is None
+
+
+def test_non_science_hdu_gets_no_dq_mask() -> None:
+    """Selecting a non-SCI HDU (here the ERR extension) uses no DQ mask."""
+    data = read_image_array(ACS_FLT, obj=1)
+    assert data.hmask is None
+    assert data.imask is None
+
+
+def test_get_sci_dq_mask_matches_extver_and_pixvalue() -> None:
+    """The DQ extension is matched by EXTVER; a constant DQ uses PIXVALUE; a DQ of the
+    wrong shape is rejected."""
+    from picmaker.instruments._hst_support import get_sci_dq_mask
+
+    sci1 = pyfits.ImageHDU(np.zeros((2, 3), dtype='float32'), name='SCI', ver=1)
+    sci2 = pyfits.ImageHDU(np.zeros((2, 3), dtype='float32'), name='SCI', ver=2)
+    dq2 = pyfits.ImageHDU(np.array([[0, 4, 0], [0, 0, 1]], dtype='int16'), name='DQ',
+                          ver=2)
+    dq1 = pyfits.ImageHDU(name='DQ', ver=1)
+    dq1.header['PIXVALUE'] = 8
+    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), sci1, sci2, dq2, dq1])
+
+    np.testing.assert_array_equal(get_sci_dq_mask(hdulist, sci2),
+                                  [[False, True, False], [False, False, True]])
+    np.testing.assert_array_equal(get_sci_dq_mask(hdulist, sci1), np.ones((2, 3)))
+    assert get_sci_dq_mask(hdulist, dq2) is None                  # not a SCI HDU
+    assert get_sci_dq_mask(pyfits.HDUList([sci1]), sci1) is None   # no DQ at all
+
+    bad = pyfits.HDUList([sci1, pyfits.ImageHDU(np.zeros((3, 3)), name='DQ', ver=1)])
+    with pytest.raises(ValueError, match='DQ extension'):
+        get_sci_dq_mask(bad, sci1)
+
+
+def _acs_hdulist(detector: str, dqs: list[np.ndarray],
+                 instrument: str = 'ACS') -> pyfits.HDUList:
+    """A minimal ACS (or WFC3) HDUList with one SCI/ERR/DQ triple per DQ array; the
+    chips are numbered 2, 1 as in two-chip files."""
+    primary = pyfits.PrimaryHDU()
+    primary.header['TELESCOP'] = 'HST'
+    primary.header['INSTRUME'] = instrument
+    primary.header['DETECTOR'] = detector
+    hdus: list[pyfits.PrimaryHDU | pyfits.ImageHDU] = [primary]
+    for ver, dq in enumerate(dqs, start=1):
+        sci = pyfits.ImageHDU(np.ones(dq.shape, dtype='float32'), name='SCI', ver=ver)
+        sci.header['CCDCHIP'] = 3 - ver
+        err = pyfits.ImageHDU(np.zeros(dq.shape, dtype='float32'), name='ERR', ver=ver)
+        hdus += [sci, err, pyfits.ImageHDU(dq, name='DQ', ver=ver)]
+    return pyfits.HDUList(hdus)
+
+
+@pytest.mark.parametrize(('instrument', 'detector'), [
+    ('ACS', 'HRC'), ('ACS', 'WFC'), ('WFC3', 'UVIS'), ('WFC3', 'IR'),
+])
+def test_acs_and_wfc3_do_not_mask_warm_pixels_alone(instrument: str,
+                                                    detector: str) -> None:
+    """ACS and WFC3 leave pixels whose DQ value is exactly 64 (warm pixel) unmasked;
+    64 combined with another flag is still masked. Two-chip mosaics (ACS/WFC,
+    WFC3/UVIS) follow the same rule on each chip."""
+    from picmaker.instruments.hst_wfc3 import HST_WFC3
+
+    reader = HST_ACS if instrument == 'ACS' else HST_WFC3
+    dq = np.array([[0, 64, 64 + 16, 16]], dtype='int16')
+    expected = [[False, False, True, True]]
+
+    data = reader.detect_in_fits(_acs_hdulist(detector, [dq], instrument), 'x_flt.fits')
+    np.testing.assert_array_equal(data.hmask, expected)
+    np.testing.assert_array_equal(data.imask, expected)
+
+    if detector in ('WFC', 'UVIS'):
+        dq2 = np.array([[64, 64, 1, 0]], dtype='int16')
+        hdulist = _acs_hdulist(detector, [dq, dq2], instrument)
+        data = reader.detect_in_fits(hdulist, 'x_flt.fits', mosaic=True)
+        np.testing.assert_array_equal(data.hmask[1], expected)      # chip 2
+        np.testing.assert_array_equal(data.hmask[0], [[False, False, True, False]])
+
+
+def test_nicmos_does_not_mask_source_pixels_alone() -> None:
+    """NICMOS leaves pixels whose DQ value is exactly 1024 (astrophysical source)
+    unmasked; 1024 combined with another flag is still masked."""
+    from picmaker.instruments.hst_nicmos import HST_NICMOS
+
+    dq = np.array([[0, 1024, 1024 + 32, 32]], dtype='int16')
+    hdulist = _acs_hdulist('NIC2', [dq], instrument='NICMOS')
+    hdulist[0].header['FILTER'] = 'F110W'
+    data = HST_NICMOS.detect_in_fits(hdulist, 'n_cal.fits')
+    np.testing.assert_array_equal(data.hmask, [[False, False, True, True]])
+    np.testing.assert_array_equal(data.imask, [[False, False, True, True]])
+
+
+def test_nicmos_ignores_grot_and_zeroth_read_flags() -> None:
+    """NICMOS leaves pixels whose only flags are 16 (grot), 1024 (source), or 2048
+    (signal in the 0th read) unmasked; any other flag alongside them still masks."""
+    from picmaker.instruments.hst_nicmos import HST_NICMOS
+
+    dq = np.array([[16, 2048, 16 + 1024 + 2048, 2048 + 512, 16 + 256]], dtype='int16')
+    hdulist = _acs_hdulist('NIC2', [dq], instrument='NICMOS')
+    hdulist[0].header['FILTER'] = 'F110W'
+    data = HST_NICMOS.detect_in_fits(hdulist, 'n_cal.fits')
+    np.testing.assert_array_equal(data.hmask, [[False, False, False, True, True]])
+
+
+def test_nicmos_does_not_mask_saturated_pixels_alone() -> None:
+    """NICMOS leaves pixels whose only flags are 64 (saturated) and other ignored flags
+    unmasked, in every file type; 64 with any other flag still masks."""
+    from picmaker.instruments.hst_nicmos import HST_NICMOS
+
+    dq = np.array([[0, 64, 64 + 2048, 64 + 512]], dtype='int16')
+    for filepath in ('n_ima.fits', 'n_cal.fits', 'n_mos.fits'):
+        hdulist = _acs_hdulist('NIC3', [dq], instrument='NICMOS')
+        hdulist[0].header['FILTER'] = 'G206'
+        data = HST_NICMOS.detect_in_fits(hdulist, filepath)
+        np.testing.assert_array_equal(data.hmask, [[False, False, False, True]])
+        np.testing.assert_array_equal(data.imask, [[False, False, False, True]])
+
+
+def test_other_instruments_mask_warm_pixel_value() -> None:
+    """Instruments other than ACS, NICMOS, and WFC3 mask every nonzero DQ value,
+    including 64."""
+    from picmaker.instruments.hst_stis import HST_STIS
+
+    dq = np.array([[0, 64, 64 + 32, 32]], dtype='int16')
+    hdulist = _acs_hdulist('CCD', [dq], instrument='STIS')
+    hdulist[0].header['APERTURE'] = '50CCD'
+    data = HST_STIS.detect_in_fits(hdulist, 'o_flt.fits')
+    np.testing.assert_array_equal(data.hmask, [[False, True, True, True]])
+
+
+@pytest.mark.parametrize('dtype', ['int16', 'uint16', 'int32'])
+def test_get_sci_dq_mask_ignore_bits(dtype: str) -> None:
+    """``ignore`` drops the given flag bits, for array and constant DQ extensions and
+    for signed or unsigned DQ data."""
+    from picmaker.instruments._hst_support import get_sci_dq_mask
+
+    sci = pyfits.ImageHDU(np.zeros((1, 4), dtype='float32'), name='SCI', ver=1)
+    dq = pyfits.ImageHDU(np.array([[0, 64, 65, 128]], dtype=dtype), name='DQ', ver=1)
+    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), sci, dq])
+    np.testing.assert_array_equal(get_sci_dq_mask(hdulist, sci, ignore=64),
+                                  [[False, False, True, True]])
+    np.testing.assert_array_equal(get_sci_dq_mask(hdulist, sci),
+                                  [[False, True, True, True]])
+
+    const = pyfits.ImageHDU(name='DQ', ver=1)
+    const.header['PIXVALUE'] = 64
+    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), sci, const])
+    assert not get_sci_dq_mask(hdulist, sci, ignore=64).any()
+    assert get_sci_dq_mask(hdulist, sci).all()

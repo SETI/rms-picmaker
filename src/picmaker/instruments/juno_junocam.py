@@ -80,7 +80,7 @@ class Juno_JunoCam(ImageData):
         if mosaic:
             array = Juno_JunoCam._reshape_for_mosaic(array, filter_names)
 
-        result = Juno_JunoCam(array, _DEFAULT_UPWARD,
+        result = Juno_JunoCam(array, None, None, _DEFAULT_UPWARD,
                               Juno_JunoCam._default_tint(filter_names))
         result.mosaic = mosaic
         result.filter_names = filter_names
@@ -119,7 +119,7 @@ class Juno_JunoCam(ImageData):
         if mosaic:
             array = Juno_JunoCam._reshape_for_mosaic(array, filter_names)
 
-        result = Juno_JunoCam(array, _DEFAULT_UPWARD,
+        result = Juno_JunoCam(array, None, None, _DEFAULT_UPWARD,
                               Juno_JunoCam._default_tint(filter_names))
         result.mosaic = mosaic
         result.filter_names = filter_names
